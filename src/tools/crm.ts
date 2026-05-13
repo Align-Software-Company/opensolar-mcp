@@ -1,36 +1,12 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import type { OpenSolarClient } from '../client/index.js';
-import { DEFAULT_REDACTION, redactSensitive } from '../lib/redaction.js';
-import { type Contact, ContactListSchema, ContactSchema } from '../schemas/contact.js';
+import { enrichContact } from '../lib/contact-enrich.js';
+import { ContactListSchema, ContactSchema } from '../schemas/contact.js';
 
 export interface CrmContext {
   client: OpenSolarClient;
   orgId: number;
-}
-
-const syntheticEmailPattern = /^\d+@os\.code$/;
-
-function enrichContact(contact: Contact): Contact & { is_synthetic_email: boolean } {
-  const redacted = redactSensitive(contact, DEFAULT_REDACTION) as Contact;
-  const emailValue = typeof redacted.email === 'string' ? redacted.email : null;
-  const isSyntheticEmail = emailValue !== null && syntheticEmailPattern.test(emailValue);
-
-  const { url: _url, share_urls: _shareUrls, ...withoutNoise } = redacted;
-  const withDerivedField: Record<string, unknown> = {};
-
-  for (const [key, value] of Object.entries(withoutNoise)) {
-    withDerivedField[key] = value;
-    if (key === 'email') {
-      withDerivedField.is_synthetic_email = isSyntheticEmail;
-    }
-  }
-
-  if (!Object.hasOwn(withDerivedField, 'is_synthetic_email')) {
-    withDerivedField.is_synthetic_email = isSyntheticEmail;
-  }
-
-  return withDerivedField as Contact & { is_synthetic_email: boolean };
 }
 
 const listContactsInputShape = {

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { type CuratedProjectEvent, curateProjectEvent, EventSchema } from './event.js';
 
 export const ProjectSummarySchema = z
   .object({
@@ -48,6 +49,7 @@ export const ProjectFullSchema = z
     contacts_data: z.array(ContactDataSchema).nullish(),
     systems: z.array(SystemRefSchema).nullish(),
     assigned_role_data: AssignedRoleDataSchema.nullish(),
+    events_data: z.array(EventSchema).nullish(),
     created_date: z.string().nullish(),
     modified_date: z.string().nullish(),
     design: z.string().nullish(),
@@ -88,6 +90,7 @@ export type ProjectCurated = Pick<
   system_count: number;
   assigned_role_data: CuratedAssignedRole | null;
   design_available: boolean;
+  events: CuratedProjectEvent[];
 };
 
 export function curateProject(p: ProjectFull): ProjectCurated {
@@ -123,5 +126,6 @@ export function curateProject(p: ProjectFull): ProjectCurated {
     system_count: p.systems?.length ?? 0,
     assigned_role_data: assignedRole,
     design_available: p.design !== undefined && p.design !== null,
+    events: (p.events_data ?? []).map(curateProjectEvent),
   };
 }

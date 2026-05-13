@@ -74,7 +74,10 @@ const getProjectDescription =
   'credential strings (API keys, Stripe keys, webhook secrets) are wholesale-redacted. The ' +
   'structure is otherwise identical to the API response. The curated ' +
   'response includes `design_available` (boolean) — true if the `design` field is populated, ' +
-  'false if it is null or absent (the API Access tier signal). Field-name notes: assigned ' +
+  'false if it is null or absent (the API Access tier signal). Curated mode also surfaces ' +
+  '`events` — the project timeline (each event has `event_type_name` derived from ' +
+  '`event_type_id`, plus title, notes, start, who, and any contact_data with PII redacted). ' +
+  'Use get_event for richer per-event detail. Field-name notes: assigned ' +
   'team member is exposed as `assigned_role_data` ({id, display, email}); contacts are slimmed ' +
   'from `contacts_data` to {id, display, email, phone} per contact. Tier: API Access (the ' +
   '`design` field is omitted or null on API Access; full design data requires Raw Data API ' +
