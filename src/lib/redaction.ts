@@ -30,6 +30,10 @@ export const DEFAULT_REDACTION: RedactionOptions = {
   fieldRules: [
     { match: /^integration_key_/i, mode: 'surgical' },
     { match: /^integration_secret_/i, mode: 'surgical' },
+    // Wholesale-redact bulk-data fields that are not useful to LLMs in raw form.
+    // The design field is gzip+base64-encoded (~167KB); the LLM cannot decode it.
+    // Use a dedicated v2 tool (get_system_summary, etc.) for structured design data.
+    { match: 'design', mode: 'wholesale' },
     { match: 'integration_json', mode: 'wholesale' },
     { match: 'api_key_chat', mode: 'wholesale' },
     { match: /^api_key_/i, mode: 'wholesale' },
@@ -77,7 +81,8 @@ export const DEFAULT_REDACTION: RedactionOptions = {
     /^pk_(live|test)_[A-Za-z0-9]{20,}/,
     /^rk_(live|test)_[A-Za-z0-9]{20,}/,
     /^eyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/,
-    /^[A-Za-z0-9+/=_-]{40,}$/,
+    // Keep value redaction format-specific; generic high-entropy patterns over-redact
+    // non-credential bulk fields (for example gzip+base64 project design blobs).
   ],
 };
 
@@ -114,6 +119,10 @@ function valueShouldBeRedacted(value: string, valuePatterns: readonly RegExp[]):
   return valuePatterns.some((pattern) => pattern.test(value));
 }
 
+function preserveEmptyOrNull(value: unknown): boolean {
+  return value === '' || value === null || value === undefined;
+}
+
 function walkAndRedact(
   value: unknown,
   fieldRules: readonly RedactionRule[],
@@ -121,6 +130,10 @@ function walkAndRedact(
   valuePatterns: readonly RegExp[],
   forceSurgical: boolean,
 ): unknown {
+  if (preserveEmptyOrNull(value)) {
+    return value;
+  }
+
   if (typeof value === 'string') {
     if (valueShouldBeRedacted(value, valuePatterns)) {
       return REDACTED_VALUE;
@@ -139,10 +152,18 @@ function walkAndRedact(
     for (const [key, nestedValue] of Object.entries(value)) {
       const ruleMode = resolveRuleMode(key, fieldRules, normalizedFieldRuleNames);
       if (ruleMode === 'wholesale') {
+        if (preserveEmptyOrNull(nestedValue)) {
+          clone[key] = nestedValue;
+          continue;
+        }
         clone[key] = REDACTED_VALUE;
         continue;
       }
       if (ruleMode === 'surgical') {
+        if (preserveEmptyOrNull(nestedValue)) {
+          clone[key] = nestedValue;
+          continue;
+        }
         clone[key] = isContainer(nestedValue)
           ? walkAndRedact(nestedValue, fieldRules, normalizedFieldRuleNames, valuePatterns, true)
           : REDACTED_VALUE;
