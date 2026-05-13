@@ -1,6 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import type { OpenSolarClient } from '../client/index.js';
+import { redactSensitive } from '../lib/redaction.js';
 import { curateOrg, OrgSchema } from '../schemas/org.js';
 
 export interface OrgContext {
@@ -26,7 +27,9 @@ const getOrgDescription =
   "the user asks 'what org am I connected to', 'what country/units does this account use', " +
   'or to confirm the active org before performing a workflow. Curated by default; pass ' +
   '`verbose: true` for the full ~27 KB payload (billing, integrations, feature flags, ' +
-  'nested catalogs). Field names follow OpenSolar conventions: phone is `sales_phone_number`, ' +
+  'nested catalogs) except sensitive integration credentials, encrypted tokens, Stripe/Lightreach/' +
+  "PandaDoc API keys, and similar credential material, which are replaced with '[REDACTED]'. " +
+  'Curated mode (default) does not include these fields. Field names follow OpenSolar conventions: phone is `sales_phone_number`, ' +
   'website is `company_website`; locale and timezone are not surfaced at the org level. ' +
   'Tier: API Access (uniform across plans, no degradation).';
 
@@ -41,7 +44,7 @@ export function registerOrgToolset(server: McpServer, ctx: OrgContext): void {
       const path = `orgs/${ctx.orgId}/`;
       const raw = await ctx.client.get(path);
       const org = OrgSchema.parse(raw);
-      const payload = verbose ? org : curateOrg(org);
+      const payload = verbose ? redactSensitive(org) : curateOrg(org);
       return {
         content: [{ type: 'text', text: JSON.stringify(payload, null, 2) }],
       };
