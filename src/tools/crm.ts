@@ -2,7 +2,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import type { OpenSolarClient } from '../client/index.js';
 import { DEFAULT_REDACTION, redactSensitive } from '../lib/redaction.js';
-import { type Contact, ContactListSchema } from '../schemas/contact.js';
+import { type Contact, ContactListSchema, ContactSchema } from '../schemas/contact.js';
 
 export interface CrmContext {
   client: OpenSolarClient;
@@ -69,6 +69,30 @@ const listContactsDescription =
   'another org; `org_id` identifies record ownership. Sensitive PII (`passport_number`, ' +
   '`licence_number`, `date_of_birth`) is redacted before reaching the LLM.';
 
+const getContactInputShape = {
+  contact_id: z
+    .number()
+    .int()
+    .positive()
+    .describe(
+      'OpenSolar contact ID. Get this from `list_contacts` results or another tool that ' +
+        'surfaces contact IDs.',
+    ),
+};
+
+const getContactDescription =
+  'Fetch a single contact by ID from the authenticated org. Returns the full contact object: ' +
+  'id, email, phone, first/middle/family names, display, type (0=normal, 1=proposal-share), ' +
+  'type_name, projects linkage, org context, custom_data, etc. Use this when you have a ' +
+  'specific contact ID and need full details, or when `list_contacts` returned a result and the ' +
+  'LLM wants to inspect one contact more closely. If the contact has no real email (for example, ' +
+  'a proposal-share auto-generated account), `is_synthetic_email: true` is set on the response. ' +
+  'Sensitive PII fields (`passport_number`, `licence_number`, `date_of_birth`) are redacted ' +
+  "before reaching the LLM. OpenSolar's contact model has no `created_date` or `modified_date`, " +
+  'so creation or modification time cannot be inferred from this endpoint. Returns a single ' +
+  'contact object, not an array. If the contact does not exist, an API error is raised; callers ' +
+  'can use `list_contacts` to verify the ID first if needed.';
+
 export function registerCrmToolset(server: McpServer, ctx: CrmContext): void {
   server.registerTool(
     'list_contacts',
@@ -89,6 +113,24 @@ export function registerCrmToolset(server: McpServer, ctx: CrmContext): void {
       const raw = await ctx.client.get(path);
       const contacts = ContactListSchema.parse(raw);
       const payload = contacts.map(enrichContact);
+
+      return {
+        content: [{ type: 'text', text: JSON.stringify(payload, null, 2) }],
+      };
+    },
+  );
+
+  server.registerTool(
+    'get_contact',
+    {
+      description: getContactDescription,
+      inputSchema: getContactInputShape,
+    },
+    async ({ contact_id }) => {
+      const path = `orgs/${ctx.orgId}/contacts/${contact_id}/`;
+      const raw = await ctx.client.get(path);
+      const contact = ContactSchema.parse(raw);
+      const payload = enrichContact(contact);
 
       return {
         content: [{ type: 'text', text: JSON.stringify(payload, null, 2) }],
