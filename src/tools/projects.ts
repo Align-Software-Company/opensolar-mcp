@@ -42,7 +42,7 @@ const listProjectsDescription =
   "containers (`integration_key_*`) preserve structure and replace values with '[REDACTED]'; " +
   'per-user integration data (`integration_json`) and simple credential strings are ' +
   'wholesale-redacted. ' +
-  'Use get_project to fetch one project by ID. ' +
+  'Use get_project to fetch full details by ID. ' +
   'Tier: API Access (no degradation in v1 list response).';
 
 const getProjectInputShape = {
