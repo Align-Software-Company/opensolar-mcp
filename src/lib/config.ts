@@ -1,9 +1,15 @@
 import { z } from 'zod';
 
+export const BaseUrlSchema = z
+  .string()
+  .url()
+  .default('https://api.opensolar.com/api/')
+  .transform((value) => (value.endsWith('/') ? value : `${value}/`));
+
 const ConfigSchema = z.object({
   OPENSOLAR_API_TOKEN: z.string().min(1, 'OPENSOLAR_API_TOKEN is required'),
   OPENSOLAR_ORG_ID: z.coerce.number().int().positive('OPENSOLAR_ORG_ID must be a positive integer'),
-  BASE_URL: z.string().url().default('https://api.opensolar.com/api/'),
+  BASE_URL: BaseUrlSchema,
 });
 
 export type Config = z.infer<typeof ConfigSchema>;

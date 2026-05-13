@@ -2,50 +2,112 @@ import { z } from 'zod';
 
 const REDACTED_VALUE = '[REDACTED]';
 
-export const RedactionOptions = z.object({
-  fieldNames: z.array(z.string()).default([]),
-  fieldPatterns: z.array(z.instanceof(RegExp)).default([]),
+export type SubtreeMode = 'wholesale' | 'surgical';
+
+export type RedactionRule = {
+  match: string | RegExp;
+  mode: SubtreeMode;
+};
+
+export type ValuePatternRule = RegExp;
+
+export type RedactionOptions = {
+  fieldRules: RedactionRule[];
+  valuePatterns: ValuePatternRule[];
+};
+
+const SubtreeModeSchema = z.enum(['wholesale', 'surgical']);
+const RedactionRuleSchema = z.object({
+  match: z.union([z.string(), z.instanceof(RegExp)]),
+  mode: SubtreeModeSchema,
+});
+const RedactionOptionsSchema = z.object({
+  fieldRules: z.array(RedactionRuleSchema).default([]),
   valuePatterns: z.array(z.instanceof(RegExp)).default([]),
 });
 
-export type RedactionOptions = z.infer<typeof RedactionOptions>;
-
 export const DEFAULT_REDACTION: RedactionOptions = {
-  fieldNames: [
-    'integration_key_lightreach',
-    'integration_json',
-    'api_key',
-    'api_key_chat',
-    'credit_card_stripe_secret_key',
-    'credit_card_stripe_publishable_key',
-    'docusign_account_secret',
-    'pandadoc_api_key',
-    'webhook_signing_secret',
+  fieldRules: [
+    { match: /^integration_key_/i, mode: 'surgical' },
+    { match: /^integration_secret_/i, mode: 'surgical' },
+    { match: 'integration_json', mode: 'wholesale' },
+    { match: 'api_key_chat', mode: 'wholesale' },
+    { match: /^api_key_/i, mode: 'wholesale' },
+    { match: 'webhook_signing_secret', mode: 'wholesale' },
+    { match: /^webhook_/i, mode: 'wholesale' },
+    { match: 'credit_card_stripe_secret_key', mode: 'wholesale' },
+    { match: 'credit_card_stripe_publishable_key', mode: 'wholesale' },
+    { match: 'docusign_account_secret', mode: 'wholesale' },
+    { match: /^docusign_(secret|token|key|account)/i, mode: 'wholesale' },
+    { match: /^pandadoc_(secret|token|key|api)/i, mode: 'wholesale' },
+    { match: /^lightreach_(secret|token|key|api)/i, mode: 'wholesale' },
+    { match: /^brighte_(secret|token|key|api)/i, mode: 'wholesale' },
+    { match: /^bridgeselect_(secret|token|key|api)/i, mode: 'wholesale' },
+    { match: /^bridgeselect_key$/i, mode: 'wholesale' },
+    { match: /^sungage_(secret|token|key|api)/i, mode: 'wholesale' },
+    { match: /^mosaic_(secret|token|key|api)/i, mode: 'wholesale' },
+    { match: /^sunlight_(secret|token|key|api)/i, mode: 'wholesale' },
+    { match: /^goodleap_(secret|token|key|api)/i, mode: 'wholesale' },
+    { match: /^cashflow_(api|secret|token|key)/i, mode: 'wholesale' },
+    { match: /^segen_(secret|token|key|api)/i, mode: 'wholesale' },
+    { match: /^city_plumbing_(secret|token|key|api)/i, mode: 'wholesale' },
+    { match: /^outlet_(secret|token|key|api)/i, mode: 'wholesale' },
+    { match: /^salesforce_(secret|token|key|access|refresh|client)/i, mode: 'wholesale' },
+    { match: /^zoho_(secret|token|key|access|refresh|client)/i, mode: 'wholesale' },
+    { match: /^nearmap_(secret|token|key|api)/i, mode: 'wholesale' },
+    { match: /^solarapp_(secret|token|key|api)/i, mode: 'wholesale' },
+    { match: /^greenlancer_(secret|token|key|api)/i, mode: 'wholesale' },
+    { match: /^centrix_(secret|token|key|api)/i, mode: 'wholesale' },
+    { match: /_secret$/i, mode: 'wholesale' },
+    { match: /_secret_key$/i, mode: 'wholesale' },
+    { match: /_api_key$/i, mode: 'wholesale' },
+    { match: /_signing_secret$/i, mode: 'wholesale' },
+    { match: /_access_token$/i, mode: 'wholesale' },
+    { match: /_refresh_token$/i, mode: 'wholesale' },
+    { match: /_bearer_token$/i, mode: 'wholesale' },
+    { match: /_password$/i, mode: 'wholesale' },
+    { match: /_passwd$/i, mode: 'wholesale' },
+    { match: /_credentials?$/i, mode: 'wholesale' },
+    { match: /_private_key$/i, mode: 'wholesale' },
+    { match: /_client_secret$/i, mode: 'wholesale' },
   ],
-  fieldPatterns: [
-    /^integration_key_/i,
-    /^api_key_/i,
-    /_secret$/i,
-    /_secret_key$/i,
-    /credentials?$/i,
+  valuePatterns: [
+    /^gAAAA[A-Za-z0-9+/=_-]{20,}/,
+    /^sk_(live|test)_[A-Za-z0-9]{20,}/,
+    /^pk_(live|test)_[A-Za-z0-9]{20,}/,
+    /^rk_(live|test)_[A-Za-z0-9]{20,}/,
+    /^eyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/,
+    /^[A-Za-z0-9+/=_-]{40,}$/,
   ],
-  valuePatterns: [/^gAAAA[A-Za-z0-9_-]{20,}/],
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function keyShouldBeRedacted(
+function isContainer(value: unknown): value is Record<string, unknown> | unknown[] {
+  return isRecord(value) || Array.isArray(value);
+}
+
+function resolveRuleMode(
   key: string,
-  normalizedFieldNames: ReadonlySet<string>,
-  fieldPatterns: readonly RegExp[],
-): boolean {
+  fieldRules: readonly RedactionRule[],
+  normalizedFieldRuleNames: ReadonlyMap<number, string>,
+): SubtreeMode | null {
   const normalizedKey = key.toLowerCase();
-  if (normalizedFieldNames.has(normalizedKey)) {
-    return true;
+  for (const [index, rule] of fieldRules.entries()) {
+    if (typeof rule.match === 'string') {
+      const normalizedRule = normalizedFieldRuleNames.get(index);
+      if (normalizedRule === normalizedKey) {
+        return rule.mode;
+      }
+      continue;
+    }
+    if (rule.match.test(key)) {
+      return rule.mode;
+    }
   }
-  return fieldPatterns.some((pattern) => pattern.test(key));
+  return null;
 }
 
 function valueShouldBeRedacted(value: string, valuePatterns: readonly RegExp[]): boolean {
@@ -54,28 +116,45 @@ function valueShouldBeRedacted(value: string, valuePatterns: readonly RegExp[]):
 
 function walkAndRedact(
   value: unknown,
-  normalizedFieldNames: ReadonlySet<string>,
-  fieldPatterns: readonly RegExp[],
+  fieldRules: readonly RedactionRule[],
+  normalizedFieldRuleNames: ReadonlyMap<number, string>,
   valuePatterns: readonly RegExp[],
+  forceSurgical: boolean,
 ): unknown {
   if (typeof value === 'string') {
-    return valueShouldBeRedacted(value, valuePatterns) ? REDACTED_VALUE : value;
+    if (valueShouldBeRedacted(value, valuePatterns)) {
+      return REDACTED_VALUE;
+    }
+    return forceSurgical ? REDACTED_VALUE : value;
   }
 
   if (Array.isArray(value)) {
     return value.map((entry) =>
-      walkAndRedact(entry, normalizedFieldNames, fieldPatterns, valuePatterns),
+      walkAndRedact(entry, fieldRules, normalizedFieldRuleNames, valuePatterns, forceSurgical),
     );
   }
 
   if (isRecord(value)) {
     const clone: Record<string, unknown> = {};
     for (const [key, nestedValue] of Object.entries(value)) {
-      if (keyShouldBeRedacted(key, normalizedFieldNames, fieldPatterns)) {
+      const ruleMode = resolveRuleMode(key, fieldRules, normalizedFieldRuleNames);
+      if (ruleMode === 'wholesale') {
         clone[key] = REDACTED_VALUE;
         continue;
       }
-      clone[key] = walkAndRedact(nestedValue, normalizedFieldNames, fieldPatterns, valuePatterns);
+      if (ruleMode === 'surgical') {
+        clone[key] = isContainer(nestedValue)
+          ? walkAndRedact(nestedValue, fieldRules, normalizedFieldRuleNames, valuePatterns, true)
+          : REDACTED_VALUE;
+        continue;
+      }
+      clone[key] = walkAndRedact(
+        nestedValue,
+        fieldRules,
+        normalizedFieldRuleNames,
+        valuePatterns,
+        forceSurgical,
+      );
     }
     return clone;
   }
@@ -84,14 +163,19 @@ function walkAndRedact(
 }
 
 export function redactSensitive<T>(payload: T, options: RedactionOptions = DEFAULT_REDACTION): T {
-  const parsedOptions = RedactionOptions.parse(options);
-  const normalizedFieldNames = new Set(
-    parsedOptions.fieldNames.map((fieldName) => fieldName.toLowerCase()),
-  );
+  const parsedOptions = RedactionOptionsSchema.parse(options);
+  const normalizedFieldRuleNames = new Map<number, string>();
+  for (const [index, rule] of parsedOptions.fieldRules.entries()) {
+    if (typeof rule.match === 'string') {
+      normalizedFieldRuleNames.set(index, rule.match.toLowerCase());
+    }
+  }
+  const clonedPayload = JSON.parse(JSON.stringify(payload)) as unknown;
   return walkAndRedact(
-    payload,
-    normalizedFieldNames,
-    parsedOptions.fieldPatterns,
+    clonedPayload,
+    parsedOptions.fieldRules,
+    normalizedFieldRuleNames,
     parsedOptions.valuePatterns,
+    false,
   ) as T;
 }

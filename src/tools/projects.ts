@@ -1,6 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import type { OpenSolarClient } from '../client/index.js';
+import { DEFAULT_REDACTION, redactSensitive } from '../lib/redaction.js';
 import { curateProject, ProjectFullSchema, ProjectListSchema } from '../schemas/project.js';
 
 export interface ProjectsContext {
@@ -22,13 +23,26 @@ const listProjectsInputShape = {
     .min(1)
     .default(1)
     .describe('1-indexed page number. Use page=2 to fetch the next batch of results.'),
+  verbose: z
+    .boolean()
+    .default(false)
+    .describe(
+      'When true, returns the full list payload with sensitive fields redacted. Credential ' +
+        "containers (`integration_key_*`) preserve structure and replace values with '[REDACTED]'; " +
+        'per-user integration data (`integration_json`) and simple credential strings are ' +
+        'wholesale-redacted. Default false returns the standard summary list.',
+    ),
 };
 
 const listProjectsDescription =
   "Lists projects in the user's OpenSolar org with pagination. Use this for discovery " +
   "questions ('what projects do I have', 'recent projects', 'projects modified this week'). " +
   'Returns an array of project summaries with id, address, stage, created_date, modified_date. ' +
-  'Use get_project (not yet implemented) to fetch full details by ID. ' +
+  'Use `verbose: true` for the full payload with sensitive fields redacted. Credential ' +
+  "containers (`integration_key_*`) preserve structure and replace values with '[REDACTED]'; " +
+  'per-user integration data (`integration_json`) and simple credential strings are ' +
+  'wholesale-redacted. ' +
+  'Use get_project to fetch one project by ID. ' +
   'Tier: API Access (no degradation in v1 list response).';
 
 const getProjectInputShape = {
@@ -54,7 +68,11 @@ const getProjectDescription =
   'contacts, assigned team-member role, and a count of systems on the project. Use when the ' +
   'user references a specific project by ID and wants details beyond what list_projects ' +
   'returns. Curated by default; pass `verbose: true` for the full payload (200+ KB on Raw ' +
-  'Data tier) including the compressed `design` blob and full nested objects. The curated ' +
+  'Data tier) including the compressed `design` blob and full nested objects, with sensitive ' +
+  'fields redacted. Credential containers (`integration_key_*`) preserve structure and replace ' +
+  "values with '[REDACTED]'; per-user integration data (`integration_json`) and simple " +
+  'credential strings (API keys, Stripe keys, webhook secrets) are wholesale-redacted. The ' +
+  'structure is otherwise identical to the API response. The curated ' +
   'response includes `design_available` (boolean) — true if the `design` field is populated, ' +
   'false if it is null or absent (the API Access tier signal). Field-name notes: assigned ' +
   'team member is exposed as `assigned_role_data` ({id, display, email}); contacts are slimmed ' +
@@ -69,12 +87,13 @@ export function registerProjectsToolset(server: McpServer, ctx: ProjectsContext)
       description: listProjectsDescription,
       inputSchema: listProjectsInputShape,
     },
-    async ({ limit, page }) => {
+    async ({ limit, page, verbose }) => {
       const path = `orgs/${ctx.orgId}/projects/?limit=${limit}&page=${page}`;
       const raw = await ctx.client.get(path);
       const projects = ProjectListSchema.parse(raw);
+      const payload = verbose ? redactSensitive(projects, DEFAULT_REDACTION) : projects;
       return {
-        content: [{ type: 'text', text: JSON.stringify(projects, null, 2) }],
+        content: [{ type: 'text', text: JSON.stringify(payload, null, 2) }],
       };
     },
   );
@@ -89,7 +108,9 @@ export function registerProjectsToolset(server: McpServer, ctx: ProjectsContext)
       const path = `orgs/${ctx.orgId}/projects/${id}/`;
       const raw = await ctx.client.get(path);
       const project = ProjectFullSchema.parse(raw);
-      const payload = verbose ? project : curateProject(project);
+      const payload = verbose
+        ? redactSensitive(project, DEFAULT_REDACTION)
+        : curateProject(project);
       return {
         content: [{ type: 'text', text: JSON.stringify(payload, null, 2) }],
       };
