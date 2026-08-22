@@ -1,0 +1,21 @@
+{
+  "id": 8001,
+  "event_type_id": 56,
+  "title": "Stage changed",
+  "notes": "Moved to Designing",
+  "start": "2026-02-01T15:00:00.000000Z",
+  "end": "2026-02-01T15:00:00.000000Z",
+  "created_date": "2026-02-01T15:00:00.000000Z",
+  "modified_date": "2026-02-01T15:00:00.000000Z",
+  "who": {
+    "display": "Alex Example",
+    "email": "alex@example.test"
+  },
+  "project": "https://api.opensolar.com/api/orgs/1/projects/1001/",
+  "project_name": "12 Example Street",
+  "is_archived": false,
+  "is_complete": true,
+  "duration": 0,
+  "url": "https://api.opensolar.com/api/orgs/1/events/8001/",
+  "org": "https://api.opensolar.com/api/orgs/1/"
+}

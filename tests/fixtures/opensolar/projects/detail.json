@@ -1,0 +1,40 @@
+{
+  "id": 1001,
+  "title": "12 Example Street",
+  "address": "12 Example Street",
+  "locality": "Exampleton",
+  "state": "MD",
+  "zip": "20001",
+  "country_iso2": "US",
+  "lat": 38.9072,
+  "lon": -77.0369,
+  "stage": 0,
+  "stage_warning": "The stage field is deprecated, and presently represents the project's workflow milestone.",
+  "contacts_data": [
+    {
+      "id": 3001,
+      "display": "Pat Example",
+      "email": "pat@example.test",
+      "phone": "2025550100"
+    }
+  ],
+  "systems": [{ "id": 4001 }],
+  "assigned_role_data": {
+    "id": 50,
+    "display": "Alex Example",
+    "email": "alex@example.test"
+  },
+  "events_data": [],
+  "created_date": "2026-01-15T12:00:00.000000Z",
+  "modified_date": "2026-02-01T12:00:00.000000Z",
+  "design": null,
+  "usage": {
+    "usage_data_source": "kwh_annual",
+    "values": 8000
+  },
+  "workflow": {
+    "id": 9001,
+    "workflow_id": 200,
+    "active_stage_id": 501
+  }
+}

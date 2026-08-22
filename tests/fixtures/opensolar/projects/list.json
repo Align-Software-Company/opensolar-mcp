@@ -1,0 +1,15 @@
+[
+  {
+    "id": 1001,
+    "title": "12 Example Street",
+    "address": "12 Example Street",
+    "stage": 0,
+    "created_date": "2026-01-15T12:00:00.000000Z",
+    "modified_date": "2026-02-01T12:00:00.000000Z",
+    "workflow": {
+      "id": 9001,
+      "workflow_id": 200,
+      "active_stage_id": 501
+    }
+  }
+]

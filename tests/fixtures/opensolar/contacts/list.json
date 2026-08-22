@@ -1,0 +1,22 @@
+[
+  {
+    "id": 3001,
+    "first_name": "Pat",
+    "family_name": "Example",
+    "display": "Pat Example",
+    "email": "pat@example.test",
+    "phone": "2025550100",
+    "type": 0,
+    "org_id": 1
+  },
+  {
+    "id": 3002,
+    "first_name": "Sam",
+    "family_name": "Example",
+    "display": "Sam Example",
+    "email": "1000001@os.code",
+    "phone": "",
+    "type": 1,
+    "org_id": 1
+  }
+]

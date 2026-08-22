@@ -1,0 +1,18 @@
+{
+  "id": 1,
+  "name": "Example Solar Co",
+  "address": "100 Main Street",
+  "locality": "Exampleton",
+  "state": "MD",
+  "zip": "20001",
+  "country": "United States",
+  "country_iso2": "US",
+  "company_email": "hello@example.test",
+  "company_website": "https://example.test",
+  "sales_phone_number": "2025550199",
+  "service_offering": "residential",
+  "measurement_units": "imperial",
+  "is_active": true,
+  "created_date": "2025-01-01T00:00:00.000000Z",
+  "modified_date": "2026-01-01T00:00:00.000000Z"
+}
