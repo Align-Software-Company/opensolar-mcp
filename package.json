@@ -5,7 +5,7 @@
   "license": "MIT",
   "type": "module",
   "engines": {
-    "node": ">=20"
+    "node": ">=24"
   },
   "bin": {
     "opensolar-mcp": "./dist/index.js"
@@ -16,21 +16,26 @@
   ],
   "scripts": {
     "dev": "tsx src/index.ts",
+    "dev:http": "tsx src/index.ts --http",
     "build": "tsup",
     "typecheck": "tsc --noEmit",
     "lint": "biome check .",
     "format": "biome format --write .",
     "test": "vitest run",
-    "test:integration": "vitest run tests/integration",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
     "check:all": "pnpm lint && pnpm typecheck && pnpm test"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.29.0",
-    "zod": "^3.25.76"
+    "@hono/node-server": "^2.1.1",
+    "@modelcontextprotocol/hono": "^2.0.0",
+    "@modelcontextprotocol/server": "^2.0.0",
+    "hono": "^4.13.3",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.15",
-    "@types/node": "^20.19.41",
+    "@modelcontextprotocol/client": "^2.0.0",
+    "@types/node": "^24.13.3",
     "tsup": "^8.5.1",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",

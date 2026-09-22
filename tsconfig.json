@@ -4,6 +4,7 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "lib": ["ES2022"],
+    "types": ["node"],
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
@@ -19,6 +20,12 @@
     "noEmit": true,
     "outDir": "./dist"
   },
-  "include": ["src/**/*", "tests/**/*", "tsup.config.ts", "vitest.config.ts"],
+  "include": [
+    "src/**/*",
+    "tests/**/*",
+    "tsup.config.ts",
+    "vitest.config.ts",
+    "vitest.integration.config.ts"
+  ],
   "exclude": ["node_modules", "dist"]
 }

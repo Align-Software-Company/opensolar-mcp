@@ -1,8 +1,10 @@
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { McpServer } from '@modelcontextprotocol/server';
 import { z } from 'zod';
+import { runOpenSolarTool } from '../client/errors.js';
 import type { OpenSolarClient } from '../client/index.js';
 import { enrichContact } from '../lib/contact-enrich.js';
 import { getEventTypeName } from '../lib/enums/event-types.js';
+import type { ToolName } from '../lib/tier-policy.js';
 import { type Contact, ContactSchema } from '../schemas/contact.js';
 import { EventSchema } from '../schemas/event.js';
 
@@ -11,7 +13,7 @@ export interface EventsContext {
   orgId: number;
 }
 
-const getEventInputShape = {
+const getEventInputSchema = z.object({
   event_id: z
     .number()
     .int()
@@ -20,7 +22,7 @@ const getEventInputShape = {
       "OpenSolar event ID. Get this from get_project's events_data, or from another tool that " +
         'surfaces event IDs.',
     ),
-};
+});
 
 const getEventDescription =
   'Fetch a single event by ID from the authenticated org. Returns the full event object ' +
@@ -51,45 +53,53 @@ function enrichEventContactData(value: unknown): unknown {
   return enrichContact(parsed.data as Contact);
 }
 
-export function registerEventsToolset(server: McpServer, ctx: EventsContext): void {
+export function registerEventsToolset(
+  server: McpServer,
+  ctx: EventsContext,
+  enabled: ReadonlySet<ToolName>,
+): void {
+  if (!enabled.has('get_event')) {
+    return;
+  }
   server.registerTool(
     'get_event',
     {
       description: getEventDescription,
-      inputSchema: getEventInputShape,
+      inputSchema: getEventInputSchema,
     },
-    async ({ event_id }) => {
-      const path = `orgs/${ctx.orgId}/events/${event_id}/`;
-      const raw = await ctx.client.get(path);
-      const event = EventSchema.parse(raw);
+    async ({ event_id }) =>
+      runOpenSolarTool(async () => {
+        const path = `orgs/${ctx.orgId}/events/${event_id}/`;
+        const raw = await ctx.client.get(path);
+        const event = EventSchema.parse(raw);
 
-      const { url: _url, org: _org, ...rest } = event;
-      const enrichedContact = enrichEventContactData(event.contact_data);
+        const { url: _url, org: _org, ...rest } = event;
+        const enrichedContact = enrichEventContactData(event.contact_data);
 
-      const payload: Record<string, unknown> = {};
-      for (const [key, value] of Object.entries(rest)) {
-        payload[key] = value;
-        if (key === 'event_type_id') {
+        const payload: Record<string, unknown> = {};
+        for (const [key, value] of Object.entries(rest)) {
+          payload[key] = value;
+          if (key === 'event_type_id') {
+            payload.event_type_name = getEventTypeName(event.event_type_id);
+          }
+          if (key === 'contact_data') {
+            payload.contact_data = enrichedContact;
+          }
+        }
+        if (!Object.hasOwn(payload, 'event_type_name')) {
           payload.event_type_name = getEventTypeName(event.event_type_id);
         }
-        if (key === 'contact_data') {
+        if (
+          !Object.hasOwn(payload, 'contact_data') &&
+          enrichedContact !== null &&
+          enrichedContact !== undefined
+        ) {
           payload.contact_data = enrichedContact;
         }
-      }
-      if (!Object.hasOwn(payload, 'event_type_name')) {
-        payload.event_type_name = getEventTypeName(event.event_type_id);
-      }
-      if (
-        !Object.hasOwn(payload, 'contact_data') &&
-        enrichedContact !== null &&
-        enrichedContact !== undefined
-      ) {
-        payload.contact_data = enrichedContact;
-      }
 
-      return {
-        content: [{ type: 'text', text: JSON.stringify(payload, null, 2) }],
-      };
-    },
+        return {
+          content: [{ type: 'text', text: JSON.stringify(payload, null, 2) }],
+        };
+      }),
   );
 }

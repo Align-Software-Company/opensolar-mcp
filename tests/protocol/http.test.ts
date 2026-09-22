@@ -1,0 +1,124 @@
+import type { ServerType } from '@hono/node-server';
+import { serve } from '@hono/node-server';
+import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { createHttpApp } from '../../src/transports/http.js';
+import { loadOpenSolarFixture } from '../fixtures/load-fixture.js';
+
+async function listenApp(
+  app: ReturnType<typeof createHttpApp>,
+): Promise<{ origin: string; close: () => Promise<void> }> {
+  const server: ServerType = serve({ fetch: app.fetch, hostname: '127.0.0.1', port: 0 });
+  await new Promise<void>((resolve) => {
+    server.once('listening', () => resolve());
+  });
+  const address = server.address();
+  if (address === null || typeof address === 'string') {
+    throw new Error('HTTP test server did not bind a port');
+  }
+  return {
+    origin: `http://127.0.0.1:${address.port}`,
+    close: () =>
+      new Promise((resolve, reject) => {
+        server.close((error) => {
+          if (error) {
+            reject(error);
+            return;
+          }
+          resolve();
+        });
+      }),
+  };
+}
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+});
+
+describe('stateless HTTP transport', () => {
+  it('serves health outside the MCP path', async () => {
+    vi.stubEnv('OPENSOLAR_ORG_ID', '1');
+    const app = createHttpApp({
+      host: '127.0.0.1',
+      port: 3000,
+      path: '/mcp',
+      allowedHosts: undefined,
+    });
+    const listening = await listenApp(app);
+    try {
+      const health = await fetch(`${listening.origin}/health`);
+      const ready = await fetch(`${listening.origin}/ready`);
+      expect(health.status).toBe(200);
+      expect(await health.json()).toEqual({ status: 'ok' });
+      expect(ready.status).toBe(200);
+      expect(await ready.json()).toEqual({ status: 'ready' });
+    } finally {
+      await listening.close();
+    }
+  });
+
+  it('uses a fresh server instance and per-request token on independent calls', async () => {
+    vi.stubEnv('OPENSOLAR_ORG_ID', '1');
+    vi.stubEnv('OPENSOLAR_BASE_URL', 'https://api.opensolar.com/api/');
+
+    const seenTokens: string[] = [];
+    const payload = loadOpenSolarFixture('org', 'summary');
+    const originalFetch = globalThis.fetch.bind(globalThis);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: URL | Request | string, init?: RequestInit) => {
+        const url = new URL(String(input instanceof Request ? input.url : input));
+        if (url.hostname === 'api.opensolar.com') {
+          const headers = new Headers(input instanceof Request ? input.headers : init?.headers);
+          seenTokens.push(headers.get('authorization') ?? '');
+          return new Response(JSON.stringify(payload), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
+        return originalFetch(input, init);
+      }),
+    );
+
+    const app = createHttpApp({
+      host: '127.0.0.1',
+      port: 3000,
+      path: '/mcp',
+      allowedHosts: undefined,
+    });
+    const listening = await listenApp(app);
+
+    const callGetOrg = async (token: string): Promise<string> => {
+      const transport = new StreamableHTTPClientTransport(new URL(`${listening.origin}/mcp`), {
+        requestInit: { headers: { Authorization: `Bearer ${token}` } },
+      });
+      const client = new Client({ name: 'http-test', version: '0.0.0' });
+      await client.connect(transport);
+      try {
+        const result = await client.callTool({ name: 'get_org', arguments: {} });
+        const text = result.content[0];
+        if (text?.type !== 'text') {
+          throw new Error('expected text content');
+        }
+        return text.text;
+      } finally {
+        await client.close();
+      }
+    };
+
+    try {
+      const first = await callGetOrg('token-a');
+      const second = await callGetOrg('token-b');
+
+      expect(JSON.parse(first)).toEqual(
+        expect.objectContaining({ id: 1, name: 'Example Solar Co' }),
+      );
+      expect(JSON.parse(second)).toEqual(expect.objectContaining({ id: 1 }));
+      expect(seenTokens).toEqual(['Bearer token-a', 'Bearer token-b']);
+    } finally {
+      await listening.close();
+    }
+  });
+});

@@ -1,12 +1,60 @@
 import { z } from 'zod';
 import { type CuratedProjectEvent, curateProjectEvent, EventSchema } from './event.js';
 
+const STAGE_MILESTONE_LABELS: Record<number, string> = {
+  0: 'Presale',
+  1: 'Lock Pricing',
+  2: 'Sold',
+  3: 'Installed',
+  4: 'Others',
+};
+
+export function stageMilestoneLabel(stage: number | null | undefined): string | undefined {
+  if (stage === null || stage === undefined) {
+    return undefined;
+  }
+  return STAGE_MILESTONE_LABELS[stage];
+}
+
+const ProjectWorkflowSchema = z
+  .object({
+    workflow_id: z.number().optional(),
+    active_stage_id: z.number().optional(),
+  })
+  .passthrough();
+
+export type CuratedWorkflow = {
+  workflow_id?: number;
+  active_stage_id?: number;
+};
+
+export function curateWorkflow(value: unknown): CuratedWorkflow | undefined {
+  const parsed = ProjectWorkflowSchema.safeParse(value);
+  if (!parsed.success) {
+    return undefined;
+  }
+  const workflow: CuratedWorkflow = {};
+  if (parsed.data.workflow_id !== undefined) {
+    workflow.workflow_id = parsed.data.workflow_id;
+  }
+  if (parsed.data.active_stage_id !== undefined) {
+    workflow.active_stage_id = parsed.data.active_stage_id;
+  }
+  if (workflow.workflow_id === undefined && workflow.active_stage_id === undefined) {
+    return undefined;
+  }
+  return workflow;
+}
+
 export const ProjectSummarySchema = z
   .object({
     id: z.number(),
+    title: z.string().nullish(),
     address: z.string().nullish(),
     created_date: z.string().nullish(),
     modified_date: z.string().nullish(),
+    stage: z.number().nullish(),
+    workflow: ProjectWorkflowSchema.nullish(),
   })
   .passthrough();
 
@@ -14,6 +62,37 @@ export type ProjectSummary = z.infer<typeof ProjectSummarySchema>;
 
 export const ProjectListSchema = z.array(ProjectSummarySchema);
 export type ProjectList = z.infer<typeof ProjectListSchema>;
+
+export type ProjectListRow = {
+  id: number;
+  title: string | null | undefined;
+  address: string | null | undefined;
+  created_date: string | null | undefined;
+  modified_date: string | null | undefined;
+  stage: number | null | undefined;
+  stage_milestone?: string;
+  workflow?: CuratedWorkflow;
+};
+
+export function curateProjectListRow(p: ProjectSummary): ProjectListRow {
+  const row: ProjectListRow = {
+    id: p.id,
+    title: p.title,
+    address: p.address,
+    created_date: p.created_date,
+    modified_date: p.modified_date,
+    stage: p.stage,
+  };
+  const milestone = stageMilestoneLabel(p.stage);
+  if (milestone !== undefined) {
+    row.stage_milestone = milestone;
+  }
+  const workflow = curateWorkflow(p.workflow);
+  if (workflow !== undefined) {
+    row.workflow = workflow;
+  }
+  return row;
+}
 
 const ContactDataSchema = z
   .object({
@@ -53,6 +132,7 @@ export const ProjectFullSchema = z
     created_date: z.string().nullish(),
     modified_date: z.string().nullish(),
     design: z.string().nullish(),
+    workflow: ProjectWorkflowSchema.nullish(),
   })
   .passthrough();
 
@@ -91,6 +171,8 @@ export type ProjectCurated = Pick<
   assigned_role_data: CuratedAssignedRole | null;
   design_available: boolean;
   events: CuratedProjectEvent[];
+  stage_milestone?: string;
+  workflow?: CuratedWorkflow;
 };
 
 export function curateProject(p: ProjectFull): ProjectCurated {
@@ -109,7 +191,7 @@ export function curateProject(p: ProjectFull): ProjectCurated {
       }
     : null;
 
-  return {
+  const curated: ProjectCurated = {
     id: p.id,
     title: p.title,
     address: p.address,
@@ -128,4 +210,13 @@ export function curateProject(p: ProjectFull): ProjectCurated {
     design_available: p.design !== undefined && p.design !== null,
     events: (p.events_data ?? []).map(curateProjectEvent),
   };
+  const milestone = stageMilestoneLabel(p.stage);
+  if (milestone !== undefined) {
+    curated.stage_milestone = milestone;
+  }
+  const workflow = curateWorkflow(p.workflow);
+  if (workflow !== undefined) {
+    curated.workflow = workflow;
+  }
+  return curated;
 }

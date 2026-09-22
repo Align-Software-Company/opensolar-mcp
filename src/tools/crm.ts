@@ -1,7 +1,9 @@
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { McpServer } from '@modelcontextprotocol/server';
 import { z } from 'zod';
+import { runOpenSolarTool } from '../client/errors.js';
 import type { OpenSolarClient } from '../client/index.js';
 import { enrichContact } from '../lib/contact-enrich.js';
+import type { ToolName } from '../lib/tier-policy.js';
 import { ContactListSchema, ContactSchema } from '../schemas/contact.js';
 
 export interface CrmContext {
@@ -9,7 +11,7 @@ export interface CrmContext {
   orgId: number;
 }
 
-const listContactsInputShape = {
+const listContactsInputSchema = z.object({
   page: z.number().int().min(1).default(1).describe('1-indexed page number. Defaults to 1.'),
   limit: z
     .number()
@@ -26,7 +28,7 @@ const listContactsInputShape = {
         'Prefix with `-` for descending order (for example `-first_name` for Z→A). ' +
         "Note: this endpoint uses `-` for descending, contrary to OpenSolar's docs.",
     ),
-};
+});
 
 const listContactsDescription =
   'List contacts from OpenSolar for the authenticated org. Returns a JSON array of contacts at ' +
@@ -45,7 +47,7 @@ const listContactsDescription =
   'another org; `org_id` identifies record ownership. Sensitive PII (`passport_number`, ' +
   '`licence_number`, `date_of_birth`) is redacted before reaching the LLM.';
 
-const getContactInputShape = {
+const getContactInputSchema = z.object({
   contact_id: z
     .number()
     .int()
@@ -54,7 +56,7 @@ const getContactInputShape = {
       'OpenSolar contact ID. Get this from `list_contacts` results or another tool that ' +
         'surfaces contact IDs.',
     ),
-};
+});
 
 const getContactDescription =
   'Fetch a single contact by ID from the authenticated org. Returns the full contact object: ' +
@@ -69,48 +71,58 @@ const getContactDescription =
   'contact object, not an array. If the contact does not exist, an API error is raised; callers ' +
   'can use `list_contacts` to verify the ID first if needed.';
 
-export function registerCrmToolset(server: McpServer, ctx: CrmContext): void {
-  server.registerTool(
-    'list_contacts',
-    {
-      description: listContactsDescription,
-      inputSchema: listContactsInputShape,
-    },
-    async ({ page, limit, ordering }) => {
-      const params = new URLSearchParams({
-        page: String(page),
-        limit: String(limit),
-      });
-      if (ordering !== undefined) {
-        params.set('ordering', ordering);
-      }
+export function registerCrmToolset(
+  server: McpServer,
+  ctx: CrmContext,
+  enabled: ReadonlySet<ToolName>,
+): void {
+  if (enabled.has('list_contacts')) {
+    server.registerTool(
+      'list_contacts',
+      {
+        description: listContactsDescription,
+        inputSchema: listContactsInputSchema,
+      },
+      async ({ page, limit, ordering }) =>
+        runOpenSolarTool(async () => {
+          const params = new URLSearchParams({
+            page: String(page),
+            limit: String(limit),
+          });
+          if (ordering !== undefined) {
+            params.set('ordering', ordering);
+          }
 
-      const path = `orgs/${ctx.orgId}/contacts/?${params.toString()}`;
-      const raw = await ctx.client.get(path);
-      const contacts = ContactListSchema.parse(raw);
-      const payload = contacts.map(enrichContact);
+          const path = `orgs/${ctx.orgId}/contacts/?${params.toString()}`;
+          const raw = await ctx.client.get(path);
+          const contacts = ContactListSchema.parse(raw);
+          const payload = contacts.map(enrichContact);
 
-      return {
-        content: [{ type: 'text', text: JSON.stringify(payload, null, 2) }],
-      };
-    },
-  );
+          return {
+            content: [{ type: 'text', text: JSON.stringify(payload, null, 2) }],
+          };
+        }),
+    );
+  }
 
-  server.registerTool(
-    'get_contact',
-    {
-      description: getContactDescription,
-      inputSchema: getContactInputShape,
-    },
-    async ({ contact_id }) => {
-      const path = `orgs/${ctx.orgId}/contacts/${contact_id}/`;
-      const raw = await ctx.client.get(path);
-      const contact = ContactSchema.parse(raw);
-      const payload = enrichContact(contact);
+  if (enabled.has('get_contact')) {
+    server.registerTool(
+      'get_contact',
+      {
+        description: getContactDescription,
+        inputSchema: getContactInputSchema,
+      },
+      async ({ contact_id }) =>
+        runOpenSolarTool(async () => {
+          const path = `orgs/${ctx.orgId}/contacts/${contact_id}/`;
+          const raw = await ctx.client.get(path);
+          const contact = ContactSchema.parse(raw);
+          const payload = enrichContact(contact);
 
-      return {
-        content: [{ type: 'text', text: JSON.stringify(payload, null, 2) }],
-      };
-    },
-  );
+          return {
+            content: [{ type: 'text', text: JSON.stringify(payload, null, 2) }],
+          };
+        }),
+    );
+  }
 }

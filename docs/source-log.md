@@ -60,7 +60,10 @@ Clause 17 items used in [terms-release-gate.md](./terms-release-gate.md):
 
 | Source | Version / URL | Retrieved |
 |--------|---------------|-----------|
-| `@modelcontextprotocol/sdk` | `1.29.0` (package.json `^1.29.0`) | 2026-08-22 |
+| `@modelcontextprotocol/server` | `2.0.0` (package.json `^2.0.0`) | 2026-08-22 |
+| `@modelcontextprotocol/client` | `2.0.0` (devDependency; protocol tests) | 2026-08-22 |
+| `@modelcontextprotocol/hono` | `2.0.0` | 2026-08-22 |
+| MCP TypeScript SDK v2 docs | https://ts.sdk.modelcontextprotocol.io/v2/ | 2026-08-22 |
 | MCP specification | https://spec.modelcontextprotocol.io/ | 2026-08-22 (index; transport subpage timed out on fetch) |
 
 ---

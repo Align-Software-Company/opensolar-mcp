@@ -1,7 +1,9 @@
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { McpServer } from '@modelcontextprotocol/server';
 import { z } from 'zod';
+import { runOpenSolarTool } from '../client/errors.js';
 import type { OpenSolarClient } from '../client/index.js';
 import { DEFAULT_REDACTION, redactSensitive } from '../lib/redaction.js';
+import type { ToolName } from '../lib/tier-policy.js';
 import { curateOrg, OrgSchema } from '../schemas/org.js';
 
 export interface OrgContext {
@@ -9,7 +11,7 @@ export interface OrgContext {
   orgId: number;
 }
 
-const getOrgInputShape = {
+const getOrgInputSchema = z.object({
   verbose: z
     .boolean()
     .default(false)
@@ -19,7 +21,7 @@ const getOrgInputShape = {
         'module/inverter/battery/incentive arrays, and all enable_* feature flags. ' +
         'Default false returns a curated subset suitable for routine LLM context.',
     ),
-};
+});
 
 const getOrgDescription =
   "Returns the user's OpenSolar organization details: id, name, physical address, " +
@@ -34,21 +36,29 @@ const getOrgDescription =
   'website is `company_website`; locale and timezone are not surfaced at the org level. ' +
   'Tier: API Access (uniform across plans, no degradation).';
 
-export function registerOrgToolset(server: McpServer, ctx: OrgContext): void {
+export function registerOrgToolset(
+  server: McpServer,
+  ctx: OrgContext,
+  enabled: ReadonlySet<ToolName>,
+): void {
+  if (!enabled.has('get_org')) {
+    return;
+  }
   server.registerTool(
     'get_org',
     {
       description: getOrgDescription,
-      inputSchema: getOrgInputShape,
+      inputSchema: getOrgInputSchema,
     },
-    async ({ verbose }) => {
-      const path = `orgs/${ctx.orgId}/`;
-      const raw = await ctx.client.get(path);
-      const org = OrgSchema.parse(raw);
-      const payload = verbose ? redactSensitive(org, DEFAULT_REDACTION) : curateOrg(org);
-      return {
-        content: [{ type: 'text', text: JSON.stringify(payload, null, 2) }],
-      };
-    },
+    async ({ verbose }) =>
+      runOpenSolarTool(async () => {
+        const path = `orgs/${ctx.orgId}/`;
+        const raw = await ctx.client.get(path);
+        const org = OrgSchema.parse(raw);
+        const payload = verbose ? redactSensitive(org, DEFAULT_REDACTION) : curateOrg(org);
+        return {
+          content: [{ type: 'text', text: JSON.stringify(payload, null, 2) }],
+        };
+      }),
   );
 }

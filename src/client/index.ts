@@ -1,5 +1,3 @@
-import type { Config } from '../lib/config.js';
-
 export class OpenSolarApiError extends Error {
   constructor(
     message: string,
@@ -11,20 +9,44 @@ export class OpenSolarApiError extends Error {
   }
 }
 
-export interface OpenSolarClient {
-  get(path: string): Promise<unknown>;
+export const DEFAULT_TIMEOUT_MS = 30_000;
+
+export interface OpenSolarRequestOptions {
+  timeoutMs?: number;
 }
 
-export function createClient(config: Config): OpenSolarClient {
+export interface OpenSolarClient {
+  get(path: string, options?: OpenSolarRequestOptions): Promise<unknown>;
+}
+
+function isTimeoutError(error: unknown): boolean {
+  return error instanceof DOMException && error.name === 'TimeoutError';
+}
+
+export function createClient(auth: { token: string; baseUrl: string }): OpenSolarClient {
   return {
-    async get(path: string): Promise<unknown> {
-      const url = new URL(path.replace(/^\//, ''), config.BASE_URL);
-      const response = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${config.OPENSOLAR_API_TOKEN}`,
-          Accept: 'application/json',
-        },
-      });
+    async get(path: string, options?: OpenSolarRequestOptions): Promise<unknown> {
+      const timeoutMs = options?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+      const url = new URL(path.replace(/^\//, ''), auth.baseUrl);
+      let response: Response;
+      try {
+        response = await fetch(url, {
+          headers: {
+            Authorization: `Bearer ${auth.token}`,
+            Accept: 'application/json',
+          },
+          signal: AbortSignal.timeout(timeoutMs),
+        });
+      } catch (error) {
+        if (isTimeoutError(error)) {
+          throw new OpenSolarApiError(
+            `OpenSolar API timed out after ${timeoutMs}ms on GET ${path}`,
+            504,
+            '',
+          );
+        }
+        throw error;
+      }
 
       const body = await response.text();
       if (!response.ok) {

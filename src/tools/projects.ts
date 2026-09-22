@@ -1,15 +1,22 @@
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { McpServer } from '@modelcontextprotocol/server';
 import { z } from 'zod';
+import { runOpenSolarTool } from '../client/errors.js';
 import type { OpenSolarClient } from '../client/index.js';
 import { DEFAULT_REDACTION, redactSensitive } from '../lib/redaction.js';
-import { curateProject, ProjectFullSchema, ProjectListSchema } from '../schemas/project.js';
+import type { ToolName } from '../lib/tier-policy.js';
+import {
+  curateProject,
+  curateProjectListRow,
+  ProjectFullSchema,
+  ProjectListSchema,
+} from '../schemas/project.js';
 
 export interface ProjectsContext {
   client: OpenSolarClient;
   orgId: number;
 }
 
-const listProjectsInputShape = {
+const listProjectsInputSchema = z.object({
   limit: z
     .number()
     .int()
@@ -32,20 +39,15 @@ const listProjectsInputShape = {
         'per-user integration data (`integration_json`) and simple credential strings are ' +
         'wholesale-redacted. Default false returns the standard summary list.',
     ),
-};
+});
 
 const listProjectsDescription =
-  "Lists projects in the user's OpenSolar org with pagination. Use this for discovery " +
-  "questions ('what projects do I have', 'recent projects', 'projects modified this week'). " +
-  'Returns an array of project summaries with id, address, stage, created_date, modified_date. ' +
-  'Use `verbose: true` for the full payload with sensitive fields redacted. Credential ' +
-  "containers (`integration_key_*`) preserve structure and replace values with '[REDACTED]'; " +
-  'per-user integration data (`integration_json`) and simple credential strings are ' +
-  'wholesale-redacted. ' +
-  'Use get_project to fetch full details by ID. ' +
-  'Tier: API Access (no degradation in v1 list response).';
+  "Lists projects in the user's OpenSolar org, one page at a time. Default returns `{ projects, page, limit }`. " +
+  'Each project has id, title, address, dates, stage, stage_milestone, and workflow ids when OpenSolar sent them. ' +
+  'Use `verbose: true` for the redacted full list objects. Sensitive fields are stripped on both paths. ' +
+  'Use get_project for one project. API Access.';
 
-const getProjectInputShape = {
+const getProjectInputSchema = z.object({
   id: z
     .number()
     .int()
@@ -61,62 +63,67 @@ const getProjectInputShape = {
         'false returns a curated subset suitable for routine LLM context, plus a ' +
         '`design_available` boolean indicating whether the design blob is reachable.',
     ),
-};
+});
 
 const getProjectDescription =
-  'Returns a single OpenSolar project by ID with metadata: title, address, lat/lon, stage, ' +
-  'contacts, assigned team-member role, and a count of systems on the project. Use when the ' +
-  'user references a specific project by ID and wants details beyond what list_projects ' +
-  'returns. Curated by default; pass `verbose: true` for the full payload (200+ KB on Raw ' +
-  'Data tier) including the compressed `design` blob and full nested objects, with sensitive ' +
-  'fields redacted. Credential containers (`integration_key_*`) preserve structure and replace ' +
-  "values with '[REDACTED]'; per-user integration data (`integration_json`) and simple " +
-  'credential strings (API keys, Stripe keys, webhook secrets) are wholesale-redacted. The ' +
-  'structure is otherwise identical to the API response. The curated ' +
-  'response includes `design_available` (boolean) — true if the `design` field is populated, ' +
-  'false if it is null or absent (the API Access tier signal). Curated mode also surfaces ' +
-  '`events` — the project timeline (each event has `event_type_name` derived from ' +
-  '`event_type_id`, plus title, notes, start, who, and any contact_data with PII redacted). ' +
-  'Use get_event for richer per-event detail. Field-name notes: assigned ' +
-  'team member is exposed as `assigned_role_data` ({id, display, email}); contacts are slimmed ' +
-  'from `contacts_data` to {id, display, email, phone} per contact. Tier: API Access (the ' +
-  '`design` field is omitted or null on API Access; full design data requires Raw Data API ' +
-  'Access).';
+  'Returns a single OpenSolar project by ID: title, address, lat/lon, stage, stage_milestone, ' +
+  'workflow ids, contacts, assigned role, system_count, design_available, and events. Use when ' +
+  'the user names a project id from list_projects. Curated by default. `verbose: true` returns ' +
+  'the redacted full object; `design` is replaced with `[REDACTED]`. API Access omits or nulls `design`.';
 
-export function registerProjectsToolset(server: McpServer, ctx: ProjectsContext): void {
-  server.registerTool(
-    'list_projects',
-    {
-      description: listProjectsDescription,
-      inputSchema: listProjectsInputShape,
-    },
-    async ({ limit, page, verbose }) => {
-      const path = `orgs/${ctx.orgId}/projects/?limit=${limit}&page=${page}`;
-      const raw = await ctx.client.get(path);
-      const projects = ProjectListSchema.parse(raw);
-      const payload = verbose ? redactSensitive(projects, DEFAULT_REDACTION) : projects;
-      return {
-        content: [{ type: 'text', text: JSON.stringify(payload, null, 2) }],
-      };
-    },
-  );
+export function registerProjectsToolset(
+  server: McpServer,
+  ctx: ProjectsContext,
+  enabled: ReadonlySet<ToolName>,
+): void {
+  if (enabled.has('list_projects')) {
+    server.registerTool(
+      'list_projects',
+      {
+        description: listProjectsDescription,
+        inputSchema: listProjectsInputSchema,
+      },
+      async ({ limit, page, verbose }) =>
+        runOpenSolarTool(async () => {
+          const path = `orgs/${ctx.orgId}/projects/?limit=${limit}&page=${page}`;
+          const raw = await ctx.client.get(path);
+          const projects = ProjectListSchema.parse(raw);
+          const payload = verbose
+            ? redactSensitive(projects, DEFAULT_REDACTION)
+            : redactSensitive(
+                {
+                  projects: projects.map(curateProjectListRow),
+                  page,
+                  limit,
+                },
+                DEFAULT_REDACTION,
+              );
+          return {
+            content: [{ type: 'text', text: JSON.stringify(payload, null, 2) }],
+          };
+        }),
+    );
+  }
 
-  server.registerTool(
-    'get_project',
-    {
-      description: getProjectDescription,
-      inputSchema: getProjectInputShape,
-    },
-    async ({ id, verbose }) => {
-      const path = `orgs/${ctx.orgId}/projects/${id}/`;
-      const raw = await ctx.client.get(path);
-      const project = ProjectFullSchema.parse(raw);
-      const payload = verbose
-        ? redactSensitive(project, DEFAULT_REDACTION)
-        : curateProject(project);
-      return {
-        content: [{ type: 'text', text: JSON.stringify(payload, null, 2) }],
-      };
-    },
-  );
+  if (enabled.has('get_project')) {
+    server.registerTool(
+      'get_project',
+      {
+        description: getProjectDescription,
+        inputSchema: getProjectInputSchema,
+      },
+      async ({ id, verbose }) =>
+        runOpenSolarTool(async () => {
+          const path = `orgs/${ctx.orgId}/projects/${id}/`;
+          const raw = await ctx.client.get(path);
+          const project = ProjectFullSchema.parse(raw);
+          const payload = verbose
+            ? redactSensitive(project, DEFAULT_REDACTION)
+            : redactSensitive(curateProject(project), DEFAULT_REDACTION);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(payload, null, 2) }],
+          };
+        }),
+    );
+  }
 }

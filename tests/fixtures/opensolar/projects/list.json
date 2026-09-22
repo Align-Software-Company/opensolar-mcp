@@ -10,6 +10,14 @@
       "id": 9001,
       "workflow_id": 200,
       "active_stage_id": 501
-    }
+    },
+    "contacts_data": [
+      {
+        "id": 3001,
+        "display": "Pat Example",
+        "passport_number": "PTEST123456",
+        "licence_number": "LTEST654321"
+      }
+    ]
   }
 ]
