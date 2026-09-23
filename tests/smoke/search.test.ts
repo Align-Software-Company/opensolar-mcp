@@ -13,6 +13,7 @@ type SearchPayload = {
   search: {
     complete: boolean;
     results_truncated: boolean;
+    resolution: 'none' | 'unique' | 'ambiguous' | 'incomplete';
     stopped_by: string;
     pages_scanned: number;
   };
@@ -58,6 +59,7 @@ describe('search_contacts', () => {
   it('matches exact email, punctuated phone, full name, and a name prefix', async () => {
     const email = await search('search_contacts', [page], { query: 'pat@example.test' });
     expect(email.payload.matches[0]?.match).toEqual({ field: 'email', type: 'exact' });
+    expect(email.payload.search.resolution).toBe('unique');
     expect(email.paths).toEqual(['orgs/1/contacts/?page=1&limit=100']);
 
     const phone = await search('search_contacts', [page], { query: '(202) 555-0100' });
@@ -86,6 +88,7 @@ describe('search_contacts', () => {
     expect(payload.search).toMatchObject({
       complete: true,
       results_truncated: false,
+      resolution: 'none',
       stopped_by: 'end',
     });
   });
@@ -99,6 +102,7 @@ describe('search_contacts', () => {
     expect(payload.search).toMatchObject({
       complete: false,
       results_truncated: false,
+      resolution: 'incomplete',
       stopped_by: 'max_pages',
       pages_scanned: 1,
     });
@@ -115,6 +119,7 @@ describe('search_contacts', () => {
     expect(payload.search).toMatchObject({
       complete: true,
       results_truncated: true,
+      resolution: 'ambiguous',
       stopped_by: 'end',
     });
   });
@@ -188,6 +193,28 @@ describe('search_contacts', () => {
     expect(payload.search).toMatchObject({
       complete: false,
       results_truncated: true,
+      resolution: 'ambiguous',
+      stopped_by: 'max_pages',
+    });
+  });
+
+  it('does not call one observed match unique when the bounded scan is unfinished', async () => {
+    const full = [
+      contact(1, { email: 'only-match@example.test' }),
+      ...Array.from({ length: 99 }, (_, index) =>
+        contact(index + 2, { first_name: 'Other', family_name: String(index), display: `Other ${index}` }),
+      ),
+    ];
+    const { payload } = await search('search_contacts', [full], {
+      query: 'only-match@example.test',
+      max_pages: 1,
+      max_results: 10,
+    });
+    expect(payload.matches.map((row) => row.id)).toEqual([1]);
+    expect(payload.search).toMatchObject({
+      complete: false,
+      results_truncated: false,
+      resolution: 'incomplete',
       stopped_by: 'max_pages',
     });
   });
@@ -234,6 +261,7 @@ describe('search_projects', () => {
     });
     expect(paths).toEqual(['orgs/1/projects/?page=1&limit=100']);
     expect(payload.matches[0]?.match).toEqual({ field: 'contact_email', type: 'exact' });
+    expect(payload.search.resolution).toBe('unique');
     expect(payload.matches[0]).not.toHaveProperty('contacts_data');
   });
 });
