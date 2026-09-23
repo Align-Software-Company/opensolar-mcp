@@ -102,6 +102,12 @@ describe('OPENSOLAR_PROFILE', () => {
     expect(() => loadToolFilters({ OPENSOLAR_PROFILE: 'banana' })).toThrow(/OPENSOLAR_PROFILE/);
   });
 
+  it('fails closed on an invalid read-only value', () => {
+    expect(() => loadToolFilters({ OPENSOLAR_READ_ONLY: 'tru' })).toThrow(ConfigError);
+    expect(() => loadToolFilters({ OPENSOLAR_READ_ONLY: 'tru' })).toThrow(/OPENSOLAR_READ_ONLY/);
+    expect(loadToolFilters({ OPENSOLAR_READ_ONLY: 'off' }).readOnly).toBe(false);
+  });
+
   it('registers the same surface from one filter set', async () => {
     const filters = loadToolFilters({ OPENSOLAR_PROFILE: 'agent' });
     const first = buildServer({ client: unexpectedCallClient(), orgId: 1, filters });
