@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses semantic versioning.
 
-## Unreleased
+## [Unreleased]
 
 ### Added
 
@@ -21,7 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Reworked the README into a release-facing user guide.
 - Hardened the Docker runtime and added image-level CI smoke coverage.
 
-## 0.1.0-rc.1 - 2026-09-23
+## [0.1.0-rc.1] - 2026-09-23
 
 ### Added
 
@@ -45,4 +45,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Structured-output redaction.
 - Size limits for private-file downloads and system images.
 - Explicit gating for live integration writes.
+
+[Unreleased]: https://github.com/Align-Software-Company/opensolar-mcp/compare/6e1bd1419d8cab77d0f1b09def6be9200e25c837...HEAD
+[0.1.0-rc.1]: https://github.com/Align-Software-Company/opensolar-mcp/commit/6e1bd1419d8cab77d0f1b09def6be9200e25c837
 
