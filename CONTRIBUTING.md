@@ -126,7 +126,7 @@ This project is unofficial and is not affiliated with or endorsed by OpenSolar P
 
 ## Reporting security issues
 
-Until a dedicated security policy is added, avoid posting credentials, tokens, customer data, or a working exploit in a public issue. A formal `SECURITY.md` is planned for the public release polish pass.
+Follow [SECURITY.md](SECURITY.md). Do not post credentials, customer data, or a working exploit in a public issue.
 
 ## License
 
