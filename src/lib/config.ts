@@ -27,6 +27,7 @@ export type AccessPlan = 'api_access' | 'raw_data';
 
 export type ParsedFlags = {
   help: boolean;
+  version: boolean;
   check: boolean;
   probe: boolean;
   listTools: boolean;
@@ -101,11 +102,24 @@ export function loadBaseUrl(env: NodeJS.ProcessEnv = process.env): string {
   return parsed.data;
 }
 
-function parseTruthy(value: string | undefined): boolean {
-  if (value === undefined) {
+const TRUE_VALUES = ['1', 'true', 'yes', 'on'];
+const FALSE_VALUES = ['0', 'false', 'no', 'off'];
+
+// A misspelled safety flag must fail loudly instead of silently exposing writes.
+function parseBooleanFlag(name: string, raw: string | undefined): boolean {
+  if (raw === undefined || raw.trim() === '') {
     return false;
   }
-  return ['1', 'true', 'yes', 'on'].includes(value.trim().toLowerCase());
+  const value = raw.trim().toLowerCase();
+  if (TRUE_VALUES.includes(value)) {
+    return true;
+  }
+  if (FALSE_VALUES.includes(value)) {
+    return false;
+  }
+  throw new ConfigError(
+    `Unknown ${name}: ${raw}. Use one of ${[...TRUE_VALUES, ...FALSE_VALUES].join(', ')}.`,
+  );
 }
 
 export function loadToolFilters(env: NodeJS.ProcessEnv = process.env): ToolFilters {
@@ -114,7 +128,7 @@ export function loadToolFilters(env: NodeJS.ProcessEnv = process.env): ToolFilte
     profile: parseProfile(env.OPENSOLAR_PROFILE),
     toolsets: toolsets.names,
     toolsetsExplicit: toolsets.explicit,
-    readOnly: parseTruthy(env.OPENSOLAR_READ_ONLY),
+    readOnly: parseBooleanFlag('OPENSOLAR_READ_ONLY', env.OPENSOLAR_READ_ONLY),
     plan: parsePlan(env.OPENSOLAR_PLAN),
   };
 }
@@ -188,6 +202,7 @@ function parsePort(raw: string): number {
 export function parseFlags(argv: string[]): ParsedFlags {
   const flags: ParsedFlags = {
     help: false,
+    version: false,
     check: false,
     probe: true,
     listTools: false,
@@ -205,6 +220,10 @@ export function parseFlags(argv: string[]): ParsedFlags {
     }
     if (arg === '--help' || arg === '-h') {
       flags.help = true;
+      continue;
+    }
+    if (arg === '--version' || arg === '-v') {
+      flags.version = true;
       continue;
     }
     if (arg === '--check') {

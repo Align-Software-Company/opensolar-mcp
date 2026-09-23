@@ -3,6 +3,7 @@ import { foldText } from './entity-match.js';
 export type WorkflowStageTitle = {
   id: number;
   title?: string | null;
+  is_archived?: boolean | null;
 };
 
 export type StageResolution =
@@ -15,14 +16,16 @@ export function resolveWorkflowStage(
   stageName: string,
 ): StageResolution {
   const query = foldText(stageName);
-  const titles = stages.flatMap((stage) => {
+  // Archived stages stay addressable by id but are never picked by name.
+  const activeStages = stages.filter((stage) => stage.is_archived !== true);
+  const titles = activeStages.flatMap((stage) => {
     if (typeof stage.title !== 'string') {
       return [];
     }
     const title = stage.title.trim();
     return title.length > 0 ? [title] : [];
   });
-  const matches = stages.filter((stage) => {
+  const matches = activeStages.filter((stage) => {
     if (typeof stage.title !== 'string') {
       return false;
     }

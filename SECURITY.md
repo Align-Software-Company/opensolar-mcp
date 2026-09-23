@@ -2,27 +2,29 @@
 
 ## Supported versions
 
-OpenSolar MCP is prerelease software. Security fixes are applied to the current codebase and, when releases are available, to the latest published release.
-
-| Version | Support |
+| Version | Supported |
 | --- | --- |
-| Latest code on `main` | Supported |
-| Latest published release | Supported |
-| Older prerelease snapshots | Best effort |
+| 0.1.x (latest release) | Yes |
+| `main` | Yes |
+| Earlier prerelease snapshots | Best effort |
 
 ## Reporting a vulnerability
 
-Do not disclose credentials, customer data, signed file URLs, or working exploit details in a public issue.
+**Please do not report security problems in public issues, discussions, or pull requests.**
 
-Use GitHub private vulnerability reporting when it is available for this repository. If that option is unavailable, open a minimal public issue requesting a private contact path without including sensitive details.
+Report them privately through [GitHub private vulnerability reporting](https://github.com/Align-Software-Company/opensolar-mcp/security/advisories/new). If that is unavailable to you, open a minimal public issue asking for a private contact path, without any technical details.
 
 A useful report includes:
 
 - the affected version or commit;
 - the transport or subsystem involved;
 - the affected tool, endpoint, or configuration;
-- reproduction steps using synthetic data;
-- the security impact.
+- reproduction steps that use synthetic data;
+- the impact you observed or expect.
+
+Never include OpenSolar tokens, organisation or project IDs, customer data, or signed file URLs. Replace them with placeholders.
+
+We will acknowledge your report, keep you informed while we investigate, and credit you in the advisory unless you prefer otherwise.
 
 ## Security model
 
@@ -31,45 +33,44 @@ OpenSolar MCP is self-hosted software. It does not provide a shared OpenSolar cr
 ### Credentials
 
 - OpenSolar bearer tokens are secrets.
-- Stdio reads `OPENSOLAR_API_TOKEN` from the local process environment.
+- Over stdio, the server reads `OPENSOLAR_API_TOKEN` from its own process environment.
 - Loopback HTTP may use the environment token as a local fallback.
-- Non-loopback HTTP requires `Authorization: Bearer <token>` on every MCP request and does not use the environment token as a request fallback.
-- Tokens are not intentionally written to disk or included in normal logs.
+- Non-loopback HTTP requires `Authorization: Bearer <token>` on every MCP request and never falls back to the environment token. A malformed `Authorization` header is rejected.
+- The server does not intentionally write tokens to disk or include them in logs.
 
 ### HTTP transport
 
-- Host allowlisting protects against DNS-rebinding-style Host manipulation.
-- Browser Origin allowlisting is a separate control.
-- Neither control replaces authentication.
-- The built-in server uses plain HTTP. Internet-facing deployments must terminate TLS at a trusted reverse proxy or hosting platform.
-- `/health` and `/ready` expose process status only and do not require an OpenSolar token.
+- In HTTP mode the bearer token sent by the client **is the OpenSolar API token**, which the server forwards to OpenSolar. It is not an MCP OAuth access token issued for this server. Anyone who can reach the endpoint with a valid OpenSolar token can act as that OpenSolar user, so treat the endpoint like the OpenSolar API itself. If several people share one deployment, put an authenticating gateway in front of it.
+- Host allowlisting protects against DNS rebinding. Browser Origin allowlisting is a separate control. Neither replaces authentication.
+- The built-in server speaks plain HTTP. Internet-facing deployments must terminate TLS at a trusted reverse proxy or hosting platform.
+- `/health` and `/ready` return process status only and do not require a token.
 
 ### Mutations
 
-Mutation tools operate on the configured live OpenSolar organisation.
+Mutation tools act on the configured live OpenSolar organisation.
 
-- `OPENSOLAR_READ_ONLY=1` removes registered mutation tools.
-- Writes are not automatically retried.
-- Mutation annotations identify read/write and destructive behavior.
-- Search results are not treated as a confirmed target unless the bounded scan reports `resolution: unique`.
+- `OPENSOLAR_READ_ONLY=1` removes every registered mutation tool. Unrecognized values stop startup rather than leaving writes enabled.
+- Writes are never retried automatically.
+- Tool annotations mark read-only, mutating, and destructive behavior.
+- A search result is treated as a confirmed target only when the bounded scan reports `resolution: unique`.
 
 ### Local files
 
-`create_private_file` is disabled unless `OPENSOLAR_UPLOAD_ROOT` is configured. Resolved file paths must remain inside that root, including through symlinks.
+`create_private_file` is disabled unless `OPENSOLAR_UPLOAD_ROOT` is configured. Resolved real paths must stay inside that root, including through symlinks, and the model never supplies file bytes.
 
 Private-file downloads and system images are capped at 10 MB. Signed download URLs are not returned to the model.
 
 ### Resource limits
 
-Compressed Raw Data expansion is bounded before JSON parsing. Model-facing text from private files is truncated at a fixed limit. Ordinary JSON GET retries are bounded; writes and file transfers are not automatically retried.
+Compressed Raw Data expansion is bounded before JSON parsing. Model-facing text from private files is truncated at a fixed limit. Searches stop at a fixed page limit. Only ordinary JSON reads retry, and only on HTTP 429.
 
 ## Out of scope
 
-The following are deployment responsibilities rather than vulnerabilities in this package:
+These are deployment responsibilities rather than vulnerabilities in this package:
 
-- protecting the host operating system and environment variables;
-- securing the reverse proxy, TLS certificates, network perimeter, and container platform;
+- protecting the host operating system, its environment variables, and MCP client configuration files;
+- the reverse proxy, TLS certificates, network perimeter, and container platform;
 - OpenSolar account permissions and token issuance;
-- security of third-party MCP clients that receive tool output.
+- the security of MCP clients and models that receive tool output.
 
-Reports that demonstrate a package-level bypass of the documented boundaries above are in scope.
+Reports that demonstrate a bypass of the boundaries described above are in scope.

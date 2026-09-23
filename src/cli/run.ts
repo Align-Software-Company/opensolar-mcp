@@ -1,4 +1,5 @@
 import { parseFlags, resolveHttpBind } from '../lib/config.js';
+import { readPackageVersion } from '../lib/package-version.js';
 import { serveHttp } from '../transports/http.js';
 import { serveStdioTransport } from '../transports/stdio.js';
 import { runCheck } from './check.js';
@@ -10,6 +11,11 @@ export async function runCli(argv: string[]): Promise<void> {
 
   if (flags.help) {
     process.stdout.write(HELP_TEXT);
+    return;
+  }
+
+  if (flags.version) {
+    process.stdout.write(`${readPackageVersion()}\n`);
     return;
   }
 

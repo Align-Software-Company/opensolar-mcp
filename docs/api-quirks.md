@@ -7,7 +7,7 @@ one. Do not paper over it in tool code without recording it here.
 Format: what it is, where it is documented (if anywhere), what this
 codebase should do.
 
-Last reviewed: 2026-09-22
+Last reviewed: 2026-09-23
 Canonical path: `docs/api-quirks.md` (this file).
 
 ---
@@ -23,10 +23,11 @@ Set `is_machine_user: true` on the user via `PATCH /auth/users/:user_id/`.
 Machine-user tokens do not expire. MFA-enabled users can also be machine
 users (older docs may say otherwise).
 
-OpenSolar's recommendation is a dedicated admin user for API use, converted
-to a machine user. Do not convert the primary login.
+This repository recommends a dedicated user for API use, converted to a
+machine user, rather than converting a person's primary login. That is
+project advice; the OpenSolar pages do not state it.
 
-**Source:** [Getting Bearer Tokens](https://developers.opensolar.com/api/getting-bearer-tokens/)
+**Source:** [Getting Bearer Tokens](https://developers.opensolar.com/api/getting-bearer-tokens/), [How to Set Machine User](https://developers.opensolar.com/api/how-to-set-machine-user/)
 
 **What to do:**
 
@@ -85,9 +86,9 @@ On `GET /api/orgs/:org_id/projects/:id/`, API Access documents `design` as
 
 ### Per-project access after disabling the wallet
 
-If an org disables the API Access wallet product, projects created *while
-the wallet was enabled* retain API access. Projects created after the
-disable lose access.
+If an org disables the API Access wallet product, projects purchased
+*while the wallet was enabled* retain API access. All other projects lose
+API access and webhook functionality.
 
 Tier is not strictly org-level for orgs that toggled the product.
 
@@ -164,10 +165,13 @@ descending.
 - Support `range` in a shared helper if needed; tools should not reach
   for it first.
 
-### `include_parts` and `exclude_parts` are mutually exclusive
+### `include_parts` and `exclude_parts` are mutually exclusive and only filter `data`
 
 On `GET /projects/:project_id/systems/details/`, pass one or the other,
-not both.
+not both. The docs say both "only affect the contents of the system data
+field". Top-level `modules`, `inverters`, `batteries`, `module_groups`,
+`incentives`, `adders`, and `other_components` are returned regardless.
+The only part name the docs show is `mcs`.
 
 **Source:** [Systems Details](https://developers.opensolar.com/api/system-details/)
 
@@ -326,16 +330,21 @@ OpenSolar recommends scoping with `include_parts`.
 **What to do:**
 
 - Default `include_parts` to modules, inverters, batteries,
-  module_groups, incentives.
-- Allow override.
-- 504 messages should mention this and recommend narrowing.
+  module_groups, incentives. Because the filter applies only to `data`,
+  which the curated output omits, this keeps the upstream response small
+  without changing the returned hardware groups.
+- Allow override, and describe the parameters as `data` filters.
+- 504 messages should say large projects can time out and not to loop.
 
-### 403 means no access, even when the resource exists
+### 403 means no access, not proof that a record is missing
 
-OpenSolar returns 403, not 404, when the user cannot access a resource
-that exists. 404 is for genuinely missing resources.
+The Errors page defines 403 as "Not permitted for this user" and lists 404
+without further detail. Proposal Data documents that one inaccessible
+project in `project_ids` fails the whole request with 403. Treat 403 as a
+permission problem; do not read it as evidence that the record does not
+exist.
 
-**Source:** [API Conventions § Errors](https://developers.opensolar.com/api/error/)
+**Source:** [Errors](https://developers.opensolar.com/api/error/), [Proposal Data](https://developers.opensolar.com/api/proposal-data/)
 
 **What to do:**
 
@@ -367,12 +376,56 @@ The contacts page documents PUT as the update method and does not say whether om
 
 **What to do:** `list_webhook_logs` still sends `page` and `limit`. The description tells the caller that an empty page can return HTTP 500. Do not retry that 500 as if the page exists.
 
-### No batch endpoints
+### Webhook queue rows are shaped differently from log rows
 
-Standard CRUD only. Fifty project creates are fifty POSTs at 10/min per
-user.
+Queue rows carry `number_of_attempts`, `next_attempt_at`,
+`processing_started_at`, `model_name`, `model_pk`, `event`, and
+`foreign_identifier`. `event_queue_name` appears only on log rows.
 
-**Source:** No batch routes on [Schema overview](https://developers.opensolar.com/api/schema-overview/)
+**Source:** [Webhooks Queue](https://developers.opensolar.com/api/webhooks-queue/), [Webhooks Logs](https://developers.opensolar.com/api/webhooks-logs/), retrieved 2026-09-23.
+
+**What to do:** `list_webhook_queue` returns `model_name`, `event`, and `number_of_attempts` with the attempt timestamps. It does not return `event_queue_name`, `model_pk`, or `foreign_identifier`.
+
+### Document generation: `generate_document` is the recommended endpoint
+
+The page lists `generate_document` as "recommended", `generate_document_pdf` as "legacy", and `generate_document_docx`. `generate_document` takes an optional `file_format` of `pdf` or `csv`; the default depends on the document type (PDF for most, CSV for some). The docs do not describe HTML output.
+
+**Source:** [Generating Project Files](https://developers.opensolar.com/api/generating-project-files/), retrieved 2026-09-23.
+
+**What to do:** `generate_project_document` calls `generate_document` for the type default, `pdf`, and `csv`, and `generate_document_docx` for `docx`. It does not call the legacy PDF endpoint.
+
+### Workflow stages carry `is_archived`
+
+Each entry in `workflow_stages` has its own `is_archived` flag in the workflows sample, separate from the workflow's `is_archived`.
+
+**Source:** [Workflows](https://developers.opensolar.com/api/workflows/), retrieved 2026-09-23.
+
+**What to do:** Curated workflow stages include `is_archived`. `update_project_stage` never resolves `stage_name` to an archived stage; an archived stage can still be set explicitly with `active_stage_id`.
+
+### Connection requests require `notify_roles`
+
+The create-connection page marks only `is_active` and `permission` as optional. `org_name` and `notify_roles` have no optional label.
+
+**Source:** [Creating a connection request](https://developers.opensolar.com/api/creating-a-connection-request/), retrieved 2026-09-23.
+
+**What to do:** `create_connection_request` requires `notify_roles`.
+
+### Sharing a project: `shared_with` replacement semantics are undocumented
+
+The sharing sample sends `PUT /api/orgs/:org_id/projects/:project_id/` with a one-entry `shared_with` list. The page does not say whether shares with other orgs that are not in the body are kept or removed.
+
+**Source:** [Sharing a Project](https://developers.opensolar.com/api/sharing-a-project/), retrieved 2026-09-23.
+
+**What to do:** `share_project` sends the documented one-entry body. Before relying on one project being shared with several orgs, confirm the behavior on a dedicated fixture project and record the result here.
+
+### Only entity sharing has a bulk endpoint
+
+The one documented bulk route is `PUT /api/orgs/:org_id/bulk/:entity_type/`
+for sharing entities with connected orgs, which `share_entities` uses.
+Everything else is standard CRUD: fifty project creates are fifty POSTs at
+10/min per user.
+
+**Source:** [Sharing entities (bulk)](https://developers.opensolar.com/api/sharing-entities-to-a-connected-org-bulk/), [Schema overview](https://developers.opensolar.com/api/schema-overview/)
 
 **What to do:**
 
@@ -388,8 +441,13 @@ Two layers, both binding. Full gate: [terms-release-gate.md](./terms-release-gat
 ### Contractual ceilings (User Terms 17.8)
 
 - Google Solar API: 1,000/month, 200/day
-- Webhooks: 2,000/month
+- Webhooks: 2,000 calls/month
 - Everything else: https://developers.opensolar.com/api/throttle
+
+These apply "unless otherwise agreed with us in writing (including under a
+commercial plan)". The API Access FAQ says the plan "includes unlimited API
+calls and webhook events", so the webhook ceiling may not apply to an org
+on API Access. Tool text states the Terms limit with that qualifier.
 
 Exceeding these is a terms breach (17.6). OpenSolar may throttle,
 suspend, or terminate under clauses 13 or 15.

@@ -32,7 +32,7 @@ describe('sanitized tool errors', () => {
     [401, 'Token missing or expired. Normal tokens last 7 days. A machine user does not expire'],
     [403, 'The caller cannot use this record. OpenSolar uses 403 even when the record exists'],
     [429, 'Throttled. Wait. Do not loop'],
-    [504, 'Timed out. For system details, narrow the request'],
+    [504, 'Timed out. Large projects can time out upstream. Do not loop'],
   ] as const)('maps HTTP %s to isError text without the upstream body', async (status, expected) => {
     const mcp = buildServer({
       client: errorClient(status),

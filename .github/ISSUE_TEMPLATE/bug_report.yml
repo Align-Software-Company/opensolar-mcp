@@ -1,0 +1,68 @@
+name: Bug report
+description: Something in OpenSolar MCP does not work as documented.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a problem.
+
+        **Do not paste OpenSolar tokens, organisation IDs, project IDs, customer names, addresses, signed file URLs, or other production data.** Replace them with placeholders such as `<org-id>` or `<project-id>`.
+
+        Security problems belong in a [private vulnerability report](https://github.com/Align-Software-Company/opensolar-mcp/security/advisories/new), not a public issue.
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+      description: What you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: The tool call, arguments, and configuration that trigger the problem. Use synthetic values.
+      placeholder: |
+        1. Run with OPENSOLAR_PROFILE=agent
+        2. Call search_projects with { "query": "<address>" }
+        3. ...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: OpenSolar MCP version
+      description: Output of `npx -y @alignco/opensolar-mcp --version`, or the commit you run.
+    validations:
+      required: true
+  - type: dropdown
+    id: transport
+    attributes:
+      label: Transport
+      options:
+        - stdio
+        - Streamable HTTP (loopback)
+        - Streamable HTTP (remote / reverse proxy)
+        - Docker
+    validations:
+      required: true
+  - type: input
+    id: client
+    attributes:
+      label: MCP client
+      description: For example Claude Desktop, Claude Code, Cursor, VS Code, or your own client, with its version.
+  - type: textarea
+    id: config
+    attributes:
+      label: Relevant configuration
+      description: Profile, toolsets, read-only mode, access plan. Leave out tokens and IDs.
+      placeholder: |
+        OPENSOLAR_PROFILE=agent
+        OPENSOLAR_READ_ONLY=1
+        OPENSOLAR_PLAN=api_access
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or tool output
+      description: Redact identifiers and customer data first.
+      render: text

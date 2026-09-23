@@ -106,7 +106,7 @@ function registerGetProjectDesign(server: McpServer, ctx: RawDataContext): void 
         'components and energy return unmapped true because the decompress section does not name those keys. ' +
         'geometry reports whether autoFacetsGeoJson is present and does not return coordinates. ' +
         'financials returns numeric pricing keys on each system and does not return pricing objects. ' +
-        'Requires Raw Data API Access. A missing or null design returns design_available false. A 402 means Raw Data is missing. ' +
+        'Requires Raw Data API Access. On API Access OpenSolar omits or nulls design, so the result is design_available false. ' +
         'The compressed string is not returned. get_project verbose still replaces design with [REDACTED].',
       inputSchema: designInput,
       outputSchema: ProjectDesignOutputSchema,

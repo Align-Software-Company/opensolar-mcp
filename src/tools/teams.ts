@@ -27,6 +27,9 @@ export interface TeamsContext {
 
 const CONNECTED_ORG_LIMIT =
   'Connected-org calls are limited to 100 a day per user and per org. This server does not count them.';
+// OpenSolar's throttle page lists only create, update, and list for connected orgs.
+const UNLISTED_CONNECTED_ORG_LIMIT =
+  'OpenSolar does not publish a quota for this call; treat it like the 100-a-day connected-org limit. This server does not count calls.';
 
 const PARTNER_ORG_ID = /\/orgs\/(\d+)\/?$/;
 const PERMISSION_ROLE_ID = /\/permissions_role\/(\d+)\/?/;
@@ -88,8 +91,9 @@ const createConnectionInput = z
     org_name: z.string().min(1).describe('Partner org name. Must match exactly.'),
     notify_roles: z
       .array(positiveId)
-      .optional()
-      .describe('Role ids in this org to notify when the partner shares a project.'),
+      .describe(
+        'Role ids in this org to notify when the partner shares a project. OpenSolar lists this field as required.',
+      ),
     is_active: z.boolean().optional().describe('When false, the connection is created disabled.'),
     permission_role_id: positiveId
       .optional()
@@ -362,7 +366,7 @@ function registerListConnectionRequests(server: McpServer, ctx: TeamsContext): v
     'list_connection_requests',
     {
       title: 'List connection requests',
-      description: `Lists pending connection requests. ${CONNECTED_ORG_LIMIT}`,
+      description: `Lists pending connection requests. ${UNLISTED_CONNECTED_ORG_LIMIT}`,
       inputSchema: z.object({}).strict(),
       outputSchema: ConnectionRequestListSchema,
       annotations: readAnnotations,
@@ -404,10 +408,10 @@ function registerCreateConnectionRequest(server: McpServer, ctx: TeamsContext): 
     },
     async (input) =>
       runOpenSolarTool(async () => {
-        const payload: Record<string, unknown> = { org_name: input.org_name };
-        if (input.notify_roles !== undefined) {
-          payload.notify_roles = input.notify_roles;
-        }
+        const payload: Record<string, unknown> = {
+          org_name: input.org_name,
+          notify_roles: input.notify_roles,
+        };
         if (input.is_active !== undefined) {
           payload.is_active = input.is_active;
         }
@@ -433,7 +437,7 @@ function registerAcceptConnectionRequest(server: McpServer, ctx: TeamsContext): 
     'accept_connection_request',
     {
       title: 'Accept connection request',
-      description: `Accepts a pending connection. org_to_id comes from list_connection_requests. This call is not retried. ${CONNECTED_ORG_LIMIT}`,
+      description: `Accepts a pending connection. org_to_id comes from list_connection_requests. This call is not retried. ${UNLISTED_CONNECTED_ORG_LIMIT}`,
       inputSchema: acceptConnectionInput,
       outputSchema: AcceptConnectionRequestOutputSchema,
       annotations: createAnnotations,
@@ -482,7 +486,7 @@ function registerDeleteConnection(server: McpServer, ctx: TeamsContext): void {
     'delete_connection',
     {
       title: 'Delete connection',
-      description: `Deletes a connection and its sharing settings. This call is not retried. ${CONNECTED_ORG_LIMIT}`,
+      description: `Deletes a connection and its sharing settings. This call is not retried. ${UNLISTED_CONNECTED_ORG_LIMIT}`,
       inputSchema: connectionIdInput,
       outputSchema: DeletedRecordSchema,
       annotations: deleteAnnotations,

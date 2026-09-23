@@ -6,6 +6,7 @@ const WorkflowStageSchema = z
     title: z.string().nullish(),
     milestone: z.number().nullish(),
     order: z.number().nullish(),
+    is_archived: z.boolean().nullish(),
   })
   .passthrough();
 
@@ -28,6 +29,7 @@ const CuratedWorkflowStageSchema = z.object({
   title: z.string().nullish(),
   milestone: z.number().nullish(),
   order: z.number().nullish(),
+  is_archived: z.boolean().nullish(),
 });
 
 export const CuratedWorkflowSchema = z.object({
@@ -51,6 +53,7 @@ export function curateWorkflow(workflow: Workflow): CuratedWorkflow {
       title: stage.title,
       milestone: stage.milestone,
       order: stage.order,
+      is_archived: stage.is_archived,
     })),
   };
 }

@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { runCli } from '../../src/cli/run.js';
 import { ConfigError, parseFlags, resolveHttpBind } from '../../src/lib/config.js';
+import { readPackageVersion } from '../../src/lib/package-version.js';
 import { AGENT_PROFILE_TOOLS } from '../fixtures/agent-profile.js';
 
 afterEach(() => {
@@ -11,6 +12,8 @@ afterEach(() => {
 describe('CLI flags', () => {
   it('parses help, http bind, and check flags', () => {
     expect(parseFlags(['--help'])).toMatchObject({ help: true });
+    expect(parseFlags(['--version'])).toMatchObject({ version: true });
+    expect(parseFlags(['-v'])).toMatchObject({ version: true });
     expect(parseFlags(['--http', '--host', '0.0.0.0', '--port', '8080', '--path', '/mcp'])).toEqual(
       expect.objectContaining({
         http: true,
@@ -70,6 +73,18 @@ describe('CLI commands', () => {
     await runCli(['--help']);
     write.mockRestore();
     expect(chunks.join('')).toContain('Usage: opensolar-mcp');
+  });
+
+  it('prints the package version to stdout', async () => {
+    const chunks: string[] = [];
+    const write = vi.spyOn(process.stdout, 'write').mockImplementation((chunk) => {
+      chunks.push(String(chunk));
+      return true;
+    });
+
+    await runCli(['--version']);
+    write.mockRestore();
+    expect(chunks.join('')).toBe(`${readPackageVersion()}\n`);
   });
 
   it('lists the default tool surface without credentials', async () => {

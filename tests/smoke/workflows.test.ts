@@ -36,7 +36,7 @@ describe('list_workflows', () => {
         title: 'Example Workflow',
         is_default: true,
         is_archived: false,
-        workflow_stages: [{ id: 17, title: 'New', milestone: 0, order: 0 }],
+        workflow_stages: [{ id: 17, title: 'New', milestone: 0, order: 0, is_archived: false }],
       },
     ]);
     expect(serialized).not.toContain('actions');
@@ -68,7 +68,7 @@ describe('get_workflow', () => {
       title: 'Example Workflow',
       is_default: true,
       is_archived: false,
-      workflow_stages: [{ id: 17, title: 'New', milestone: 0, order: 0 }],
+      workflow_stages: [{ id: 17, title: 'New', milestone: 0, order: 0, is_archived: false }],
     });
     expect(serialized).not.toContain('actions');
     expect(serialized).not.toContain('Design Systems');
@@ -122,7 +122,9 @@ describe('create_workflow', () => {
         },
       },
     ]);
-    expect(payload.workflow_stages).toEqual([{ id: 17, title: 'New', milestone: 0, order: 0 }]);
+    expect(payload.workflow_stages).toEqual([
+      { id: 17, title: 'New', milestone: 0, order: 0, is_archived: false },
+    ]);
     expect(serialized).not.toContain('actions');
     expect(serialized).not.toContain('Design Systems');
     expect(serialized).not.toContain('Dropped from the curated row');

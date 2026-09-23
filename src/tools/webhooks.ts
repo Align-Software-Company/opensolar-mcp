@@ -24,7 +24,7 @@ export interface WebhookContext {
 }
 
 const FAIR_USE =
-  'The fair-use ceiling is 2,000 webhook events a month. This server does not count them.';
+  "OpenSolar's User Terms limit webhook calls to 2,000 a month unless a commercial plan or written agreement says otherwise. This server does not count them.";
 
 const readAnnotations = { readOnlyHint: true, openWorldHint: true } as const;
 
@@ -236,7 +236,7 @@ function registerListWebhookQueue(server: McpServer, ctx: WebhookContext): void 
       title: 'List webhook queue',
       description:
         'Lists one page of the webhook queue as `{ webhook_queue, page, limit }`. ' +
-        'Each row is id, webhook_id, event_queue_name, next_attempt_at, and processing_started_at. ' +
+        'Each row is id, webhook_id, model_name, event, number_of_attempts, next_attempt_at, and processing_started_at. ' +
         FAIR_USE,
       inputSchema: listWebhookQueueInput,
       outputSchema: ListWebhookQueueOutputSchema,

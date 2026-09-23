@@ -104,7 +104,9 @@ export const WebhookQueueSchema = z
   .object({
     id: z.number().int().positive(),
     webhook: z.union([z.string(), z.number()]).nullish(),
-    event_queue_name: z.string().nullish(),
+    model_name: z.string().nullish(),
+    event: z.string().nullish(),
+    number_of_attempts: z.number().int().nullish(),
     next_attempt_at: z.string().nullish(),
     processing_started_at: z.string().nullish(),
   })
@@ -115,7 +117,9 @@ export type WebhookQueueItem = z.infer<typeof WebhookQueueSchema>;
 export const CuratedWebhookQueueSchema = z.object({
   id: z.number().int().positive(),
   webhook_id: z.number().int().positive().nullable(),
-  event_queue_name: z.string().nullable(),
+  model_name: z.string().nullable(),
+  event: z.string().nullable(),
+  number_of_attempts: z.number().int().nullable(),
   next_attempt_at: z.string().nullable(),
   processing_started_at: z.string().nullable(),
 });
@@ -126,7 +130,9 @@ export function curateWebhookQueueItem(
   return {
     id: item.id,
     webhook_id: webhookIdFromReference(item.webhook),
-    event_queue_name: item.event_queue_name ?? null,
+    model_name: item.model_name ?? null,
+    event: item.event ?? null,
+    number_of_attempts: item.number_of_attempts ?? null,
     next_attempt_at: item.next_attempt_at ?? null,
     processing_started_at: item.processing_started_at ?? null,
   };

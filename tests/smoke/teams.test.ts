@@ -159,11 +159,33 @@ describe('create_connection_request', () => {
     await withMcpClient(mcp, (session) =>
       session.callTool({
         name: 'create_connection_request',
+        arguments: { org_name: 'Partner Org', notify_roles: [7] },
+      }),
+    );
+
+    expect(posts[0]?.body).toEqual({ org_name: 'Partner Org', notify_roles: [7] });
+  });
+
+  it('requires notify_roles because OpenSolar does not list it as optional', async () => {
+    const posts: unknown[] = [];
+    const client = testClient(async () => {
+      throw new Error('unexpected OpenSolar read');
+    });
+    client.post = async (_path, body) => {
+      posts.push(body);
+      return connectionRecord;
+    };
+    const mcp = buildServer({ client, orgId: 1, filters: ALL_TOOL_FILTERS });
+
+    const result = await withMcpClient(mcp, (session) =>
+      session.callTool({
+        name: 'create_connection_request',
         arguments: { org_name: 'Partner Org' },
       }),
     );
 
-    expect(posts[0]?.body).toEqual({ org_name: 'Partner Org' });
+    expect(result.isError).toBe(true);
+    expect(posts).toEqual([]);
   });
 });
 

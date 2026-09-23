@@ -13,7 +13,7 @@ const signedReference =
   'https://api.opensolar.com/api/orgs/1/private_files/44/?Expires=1&Signature=fixture';
 
 describe('generate_project_document', () => {
-  it('posts action=save on the path for each format and returns only the id', async () => {
+  it('posts action=save on the documented path for each format and returns only the id', async () => {
     const posts: Array<{ path: string; body: unknown }> = [];
     const client = testClient(async () => {
       throw new Error('unexpected OpenSolar read');
@@ -24,16 +24,22 @@ describe('generate_project_document', () => {
     };
     const mcp = buildServer({ client, orgId: 1, filters: ALL_TOOL_FILTERS });
 
-    const html = await withMcpClient(mcp, (session) =>
+    const typeDefault = await withMcpClient(mcp, (session) =>
       session.callTool({
         name: 'generate_project_document',
-        arguments: { project_id: 9, document_type: 'proposal', format: 'html' },
+        arguments: { project_id: 9, document_type: 'proposal' },
       }),
     );
     const pdf = await withMcpClient(mcp, (session) =>
       session.callTool({
         name: 'generate_project_document',
         arguments: { project_id: 9, document_type: 'contract', format: 'pdf' },
+      }),
+    );
+    const csv = await withMcpClient(mcp, (session) =>
+      session.callTool({
+        name: 'generate_project_document',
+        arguments: { project_id: 9, document_type: 'financials_report', format: 'csv' },
       }),
     );
     const docx = await withMcpClient(mcp, (session) =>
@@ -49,7 +55,11 @@ describe('generate_project_document', () => {
         body: undefined,
       },
       {
-        path: 'orgs/1/projects/9/generate_document_pdf/contract/?action=save',
+        path: 'orgs/1/projects/9/generate_document/contract/?action=save&file_format=pdf',
+        body: undefined,
+      },
+      {
+        path: 'orgs/1/projects/9/generate_document/financials_report/?action=save&file_format=csv',
         body: undefined,
       },
       {
@@ -57,7 +67,7 @@ describe('generate_project_document', () => {
         body: undefined,
       },
     ]);
-    for (const result of [html, pdf, docx]) {
+    for (const result of [typeDefault, pdf, csv, docx]) {
       expect(GeneratedDocumentOutputSchema.parse(requireStructuredContent(result))).toEqual({
         id: 44,
       });
@@ -76,7 +86,7 @@ describe('generate_project_document', () => {
     const result = await withMcpClient(mcp, (session) =>
       session.callTool({
         name: 'generate_project_document',
-        arguments: { project_id: 9, document_type: 'shade_report', format: 'html' },
+        arguments: { project_id: 9, document_type: 'shade_report', format: 'pdf' },
       }),
     );
 
@@ -127,6 +137,28 @@ describe('generate_project_document', () => {
     ]);
   });
 
+  it('rejects the undocumented html format before HTTP', async () => {
+    const posts: string[] = [];
+    const client = testClient(async () => {
+      throw new Error('unexpected OpenSolar read');
+    });
+    client.post = async (path) => {
+      posts.push(path);
+      return { id: 1 };
+    };
+    const mcp = buildServer({ client, orgId: 1, filters: ALL_TOOL_FILTERS });
+
+    const result = await withMcpClient(mcp, (session) =>
+      session.callTool({
+        name: 'generate_project_document',
+        arguments: { project_id: 9, document_type: 'proposal', format: 'html' },
+      }),
+    );
+
+    expect(result.isError).toBe(true);
+    expect(posts).toEqual([]);
+  });
+
   it('rejects an unknown field before HTTP', async () => {
     const posts: string[] = [];
     const client = testClient(async () => {
@@ -144,7 +176,7 @@ describe('generate_project_document', () => {
         arguments: {
           project_id: 9,
           document_type: 'proposal',
-          format: 'html',
+          format: 'pdf',
           system_uuid: 'abc',
         },
       }),

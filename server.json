@@ -14,6 +14,7 @@
       "registryType": "npm",
       "identifier": "@alignco/opensolar-mcp",
       "version": "0.1.0",
+      "runtimeHint": "npx",
       "transport": {
         "type": "stdio"
       },
@@ -32,6 +33,46 @@
           "isRequired": true,
           "isSecret": false,
           "placeholder": "12345"
+        },
+        {
+          "name": "OPENSOLAR_PROFILE",
+          "description": "Tool profile: agent (curated default) or full (every registered tool)",
+          "format": "string",
+          "isRequired": false,
+          "isSecret": false,
+          "default": "agent",
+          "choices": ["agent", "full"]
+        },
+        {
+          "name": "OPENSOLAR_READ_ONLY",
+          "description": "Hide every tool that can change OpenSolar data",
+          "format": "boolean",
+          "isRequired": false,
+          "isSecret": false,
+          "default": "false"
+        },
+        {
+          "name": "OPENSOLAR_PLAN",
+          "description": "OpenSolar access plan; api_access hides tools that need Raw Data API Access",
+          "format": "string",
+          "isRequired": false,
+          "isSecret": false,
+          "choices": ["api_access", "raw_data"]
+        },
+        {
+          "name": "OPENSOLAR_TOOLSETS",
+          "description": "Comma-separated toolsets that replace the profile's tool selection",
+          "format": "string",
+          "isRequired": false,
+          "isSecret": false,
+          "placeholder": "projects,contacts,systems"
+        },
+        {
+          "name": "OPENSOLAR_UPLOAD_ROOT",
+          "description": "Directory that create_private_file may read from; uploads stay disabled when unset",
+          "format": "filepath",
+          "isRequired": false,
+          "isSecret": false
         }
       ]
     }

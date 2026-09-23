@@ -1,6 +1,7 @@
 FROM node:24-bookworm-slim AS build
 WORKDIR /app
-RUN corepack enable && corepack prepare pnpm@10 --activate
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+RUN corepack enable
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY tsup.config.ts tsconfig.json ./
 COPY src ./src
@@ -8,8 +9,14 @@ RUN pnpm install --frozen-lockfile
 RUN pnpm build
 
 FROM node:24-bookworm-slim
+LABEL org.opencontainers.image.title="OpenSolar MCP" \
+      org.opencontainers.image.description="Unofficial, self-hosted MCP server for the documented OpenSolar API." \
+      org.opencontainers.image.source="https://github.com/Align-Software-Company/opensolar-mcp" \
+      org.opencontainers.image.licenses="MIT" \
+      io.modelcontextprotocol.server.name="io.github.align-software-company/opensolar-mcp"
 WORKDIR /app
-RUN corepack enable && corepack prepare pnpm@10 --activate
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+RUN corepack enable
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile --prod
 COPY --from=build /app/dist ./dist
