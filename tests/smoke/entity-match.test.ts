@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { classifyMatches, rankContact, rankProject } from '../../src/lib/entity-match.js';
+import { rankContact, rankProject } from '../../src/lib/entity-match.js';
 
 describe('rankContact', () => {
   const contact = {
@@ -74,8 +74,8 @@ describe('rankProject', () => {
   });
 });
 
-describe('classifyMatches', () => {
-  it('keeps two equal name matches ambiguous', () => {
+describe('equal-rank matches', () => {
+  it('keeps equal name matches at the same rank for the scan-level resolver', () => {
     const left = rankContact('Pat Example', {
       first_name: 'Pat',
       family_name: 'Example',
@@ -85,8 +85,5 @@ describe('classifyMatches', () => {
       family_name: 'Example',
     });
     expect(left).toEqual(right);
-    expect(classifyMatches(2)).toBe('ambiguous');
-    expect(classifyMatches(1)).toBe('unique');
-    expect(classifyMatches(0)).toBe('none');
   });
 });
