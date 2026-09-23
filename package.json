@@ -2,6 +2,8 @@
   "name": "@alignco/opensolar-mcp",
   "version": "0.1.0-rc.1",
   "description": "Unofficial, self-hosted Model Context Protocol server for the OpenSolar API",
+  "mcpName": "io.github.align-software-company/opensolar-mcp",
+  "packageManager": "pnpm@10.34.5",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -41,11 +43,12 @@
     "typecheck": "tsc --noEmit",
     "lint": "biome check .",
     "lint:repo": "node scripts/repo-hygiene.mjs",
+    "check:registry": "node scripts/registry-check.mjs",
     "format": "biome format --write .",
     "test": "vitest run",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:docker": "node scripts/docker-smoke.mjs",
-    "check:all": "pnpm lint:repo && pnpm lint && pnpm typecheck && pnpm test"
+    "check:all": "pnpm lint:repo && pnpm check:registry && pnpm lint && pnpm typecheck && pnpm test"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.1",
