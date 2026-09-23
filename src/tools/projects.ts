@@ -11,11 +11,7 @@ import {
 import { loadProjectSnapshot } from '../lib/project-snapshot.js';
 import { DEFAULT_REDACTION, redactSensitive } from '../lib/redaction.js';
 import { resolveWorkflowStage } from '../lib/resolve-workflow-stage.js';
-import {
-  BareListPageError,
-  scanPaginatedCollection,
-  searchResolution,
-} from '../lib/scan-pages.js';
+import { BareListPageError, scanPaginatedCollection, searchResolution } from '../lib/scan-pages.js';
 import type { ToolName } from '../lib/tier-policy.js';
 import { ContactWriteSchema } from '../schemas/contact.js';
 import {
