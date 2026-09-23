@@ -1,4 +1,4 @@
-FROM node:24-bookworm-slim AS build
+FROM node:25-bookworm-slim AS build
 WORKDIR /app
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 RUN corepack enable
@@ -8,7 +8,7 @@ COPY src ./src
 RUN pnpm install --frozen-lockfile
 RUN pnpm build
 
-FROM node:24-bookworm-slim
+FROM node:25-bookworm-slim
 LABEL org.opencontainers.image.title="OpenSolar MCP" \
       org.opencontainers.image.description="Unofficial, self-hosted MCP server for the documented OpenSolar API." \
       org.opencontainers.image.source="https://github.com/Align-Software-Company/opensolar-mcp" \
