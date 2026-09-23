@@ -4,7 +4,7 @@ Contractual and operational gates for publishing or hosting this MCP.
 Architecture detail: `dev-docs/decisions/004-byo-token.md` (local).
 Sources and dates: [source-log.md](./source-log.md).
 
-Last reviewed: 2026-09-22
+Last reviewed: 2026-09-23
 
 ---
 
@@ -73,20 +73,26 @@ MCP policy:
 
 ---
 
-## Managed and public activation
+## Self-hosted distribution and managed hosting
 
-This package is a self-hosted template. It is not a multi-tenant proxy.
+This repository distributes a self-hosted client. It does not operate a multi-tenant OpenSolar proxy.
 
-| Gate | Requirement |
+| Area | Requirement |
 |------|-------------|
-| Auth | Bring-your-own token. Env `OPENSOLAR_API_TOKEN`, or HTTP `Authorization: Bearer` on that request. No OAuth, no disk persistence, no token logs. |
-| Hosting | Users run their own process (stdio, Docker, or their HTTP deploy). A hosted service that brokers many customers' OpenSolar accounts needs OpenSolar's prior written consent (User Terms 17.7). |
-| npm / GHCR publish | Redaction rules covered in ADR 005; no secrets in git; 401, 402, and 403 stay distinct; README states unofficial status. Not published. |
+| Stdio auth | The local process receives `OPENSOLAR_API_TOKEN`. No OAuth, disk persistence, or token logs. |
+| Loopback HTTP auth | A request `Authorization: Bearer` token takes precedence; the local env token may be used as fallback. |
+| Non-loopback HTTP auth | Every MCP request must supply `Authorization: Bearer <OpenSolar token>`. The server deliberately ignores `OPENSOLAR_API_TOKEN` as a request fallback. `MCP_HTTP_ALLOWED_HOSTS` is Host/DNS-rebinding protection, not authentication. Public traffic must be protected by TLS termination. |
+| Local uploads | `create_private_file` is disabled unless `OPENSOLAR_UPLOAD_ROOT` is set, and resolved paths must remain inside that root. |
+| Package distribution | README identifies the project as unofficial and self-hosted. Secret scans and artifact smoke tests run before release. |
 | Machine user | Document that default tokens expire in 7 days; recommend a dedicated machine user. Do not PATCH `is_machine_user` for the operator. |
+| Future managed hosting | Any Align-operated shared/multi-customer service is a separate operating model and must be reviewed separately before it goes live. |
 
-Public activation means: the operator of **their** OpenSolar org enables
-API Access in Wallet, generates a token, and points this binary at it.
-It does not mean Align runs OpenSolar on their behalf.
+A user running this package enables API Access for **their** OpenSolar org,
+supplies their own credentials, and points their own MCP client at the
+process. Package publication and any future Align-operated managed service
+are separate release decisions. This document does not make a legal
+conclusion about whether distributing the self-hosted package requires
+OpenSolar consent.
 
 ---
 

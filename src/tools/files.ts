@@ -1,6 +1,6 @@
 import { openAsBlob } from 'node:fs';
-import { stat } from 'node:fs/promises';
-import { basename } from 'node:path';
+import { realpath, stat } from 'node:fs/promises';
+import { basename, isAbsolute, relative, resolve, sep } from 'node:path';
 import type { McpServer } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 import { openSolarSuccess, runOpenSolarTool } from '../client/errors.js';
@@ -34,6 +34,7 @@ import { DeletedRecordSchema } from '../schemas/project.js';
 export interface FilesContext {
   client: OpenSolarClient;
   orgId: number;
+  uploadRoot?: string;
 }
 
 const readAnnotations = { readOnlyHint: true, openWorldHint: true } as const;
@@ -139,7 +140,7 @@ const createPrivateFileInput = z
       .string()
       .min(1)
       .describe(
-        'Filesystem path on the machine running this server. The server streams that file. File bytes are not accepted here.',
+        'File path under OPENSOLAR_UPLOAD_ROOT on the machine running this server. Relative paths resolve from that root; absolute paths are accepted only when their resolved real path remains inside it.',
       ),
     title: z.string().min(1).describe('File title. Sent as the multipart title field.'),
   })
@@ -186,25 +187,65 @@ function curatedDetail(raw: unknown): PrivateFileDetail {
   });
 }
 
-async function privateFileForm(
+async function confinedUploadPath(
   filePath: string,
-  title: string,
-): Promise<FormData | { isError: true; content: [{ type: 'text'; text: string }] }> {
-  let info: Awaited<ReturnType<typeof stat>>;
+  uploadRoot: string | undefined,
+): Promise<string | { isError: true; content: [{ type: 'text'; text: string }] }> {
+  if (uploadRoot === undefined) {
+    return pathError(
+      'Local file uploads are disabled. Set OPENSOLAR_UPLOAD_ROOT to a directory before using create_private_file.',
+    );
+  }
+
+  let root: string;
   try {
-    info = await stat(filePath);
+    root = await realpath(uploadRoot);
+  } catch (error) {
+    if (isEnoent(error)) {
+      return pathError('OPENSOLAR_UPLOAD_ROOT was not found.');
+    }
+    throw error;
+  }
+  const rootInfo = await stat(root);
+  if (!rootInfo.isDirectory()) {
+    return pathError('OPENSOLAR_UPLOAD_ROOT is not a directory.');
+  }
+
+  const candidate = isAbsolute(filePath) ? filePath : resolve(root, filePath);
+  let resolvedFile: string;
+  try {
+    resolvedFile = await realpath(candidate);
   } catch (error) {
     if (isEnoent(error)) {
       return pathError('Private file path was not found.');
     }
     throw error;
   }
+
+  const fromRoot = relative(root, resolvedFile);
+  if (isAbsolute(fromRoot) || fromRoot === '..' || fromRoot.startsWith(`..${sep}`)) {
+    return pathError('Private file path is outside OPENSOLAR_UPLOAD_ROOT.');
+  }
+
+  const info = await stat(resolvedFile);
   if (!info.isFile()) {
     return pathError('Private file path is not a file.');
   }
+  return resolvedFile;
+}
+
+async function privateFileForm(
+  filePath: string,
+  title: string,
+  uploadRoot: string | undefined,
+): Promise<FormData | { isError: true; content: [{ type: 'text'; text: string }] }> {
+  const resolved = await confinedUploadPath(filePath, uploadRoot);
+  if (typeof resolved !== 'string') {
+    return resolved;
+  }
   const form = new FormData();
   form.append('title', title);
-  form.append('file_contents', await openAsBlob(filePath), basename(filePath));
+  form.append('file_contents', await openAsBlob(resolved), basename(resolved));
   return form;
 }
 
@@ -306,7 +347,7 @@ function registerGetPrivateFile(server: McpServer, ctx: FilesContext): void {
         'Returns one private file by id: title, file tag titles, project id, and size when OpenSolar sent it. ' +
         'The download URL stays on the server. `include_contents: true` downloads the file and refuses a body over 10 MB. ' +
         'Text is included for the model, capped at 100,000 characters. Images are image content. ' +
-        'PDFs include extracted text and a PDF resource. That resource URI is not the download URL.',
+        'PDFs include extracted text and a PDF resource; other binary files use an embedded resource. Binary bytes are not duplicated in structuredContent. That resource URI is not the download URL.',
       inputSchema: privateFileIdInput,
       outputSchema: PrivateFileDetailSchema,
       annotations: readAnnotations,
@@ -317,7 +358,7 @@ function registerGetPrivateFile(server: McpServer, ctx: FilesContext): void {
         const file = PrivateFileSchema.parse(raw);
         const row = curatePrivateFile(file);
         let contentType = file.content_type ?? null;
-        let contents: { encoding: 'text' | 'base64'; body: string; truncated?: true } | undefined;
+        let contents: { encoding: 'text'; body: string; truncated?: true } | undefined;
         let modelBlocks: FileModelBlock[] = [];
         let pageCount: number | null = null;
 
@@ -358,10 +399,7 @@ function registerGetPrivateFile(server: McpServer, ctx: FilesContext): void {
                 body: model.textBody ?? '',
                 ...(model.omitted > 0 ? { truncated: true as const } : {}),
               }
-            : {
-                encoding: 'base64',
-                body: Buffer.from(downloaded.bytes).toString('base64'),
-              };
+            : undefined;
         }
 
         const payload = PrivateFileDetailSchema.parse({
@@ -389,7 +427,8 @@ function registerCreatePrivateFile(server: McpServer, ctx: FilesContext): void {
     {
       title: 'Create private file',
       description:
-        'Creates a private file in the live org from a filesystem path on this server. ' +
+        'Creates a private file in the live org from a path confined to OPENSOLAR_UPLOAD_ROOT on this server. ' +
+        'Uploads are disabled until that root is configured. The resolved real path must remain inside the root, including through symlinks. ' +
         'The server streams that file as multipart title and file_contents. File bytes are not accepted from the model. ' +
         'The download URL is omitted. This call is not retried.',
       inputSchema: createPrivateFileInput,
@@ -398,7 +437,7 @@ function registerCreatePrivateFile(server: McpServer, ctx: FilesContext): void {
     },
     async ({ path, title }) =>
       runOpenSolarTool(async () => {
-        const form = await privateFileForm(path, title);
+        const form = await privateFileForm(path, title, ctx.uploadRoot);
         if ('isError' in form) {
           return form;
         }

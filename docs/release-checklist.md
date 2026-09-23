@@ -1,6 +1,6 @@
 # Release checklist
 
-Technical readiness is separate from a decision to publish or to host a shared service.
+Technical readiness, package publication, and any future managed hosting are separate decisions.
 
 Last reviewed: 2026-09-23
 
@@ -8,31 +8,46 @@ The package version under review is `0.1.0-rc.1`. This checklist does not publis
 
 ## Technical artifact
 
-- [x] `pnpm check:all` is green. That suite does not call OpenSolar.
-- [x] `pnpm build` is green.
-- [x] `npm pack` contents are `package.json`, `README.md`, `LICENSE`, and `dist/`.
-- [x] A clean `npm install` of the tarball runs `--help`, the 32-tool agent profile, the 75-tool full profile, the five webhook tools, and rejects an unknown profile.
-- [x] The installed binary completes stdio `initialize`, `tools/list`, and one read (`get_org`) against a local mock. Logs stay on stderr.
-- [x] The installed binary serves `/health` and `/ready`, initializes Streamable HTTP, and lists the agent profile. Binding `0.0.0.0` without `MCP_HTTP_ALLOWED_HOSTS` fails closed.
-- [x] Docker image `opensolar-mcp:rc` starts, the healthcheck becomes healthy, and `/health`, `/ready`, and the MCP endpoint answer. `MCP_HTTP_HOST=0.0.0.0` with `MCP_HTTP_ALLOWED_HOSTS=127.0.0.1` is reachable from the host. The image was not pushed.
-- [x] GitHub Dependabot reports 0 open alerts on 2026-09-23.
-- [x] The tarball does not contain `.env`, `.env.local`, `dev-docs/`, eval runs, tests, fixtures, source-log material, git metadata, or a local OpenSolar token. README mentions `.env.local` and `OPENSOLAR_API_TOKEN=` only as setup instructions.
+The original RC artifact was verified at `6e1bd14`. The pre-release audit that followed changes HTTP authentication, local-upload confinement, and binary result shaping, so the exact post-audit artifact must pass these checks again before a final release.
 
-`prepack` runs `pnpm check:all && pnpm build`. Packaging does not need `OPENSOLAR_API_TOKEN` or `OPENSOLAR_ORG_ID` and does not call OpenSolar.
+- [x] `pnpm check:all` is green. The ordinary suite does not call OpenSolar. Post-audit CI passed 39 files / 258 tests.
+- [x] `pnpm build` is green. Post-audit CI built the release bundle successfully.
+- [x] `npm pack` contains only `package.json`, `README.md`, `LICENSE`, and `dist/` (five files total including the source map).
+- [x] A clean `npm install` of the tarball runs `--help`, the 32-tool agent profile, the 75-tool full profile, the five webhook tools, and rejects an unknown profile.
+- [x] Installed stdio completes `initialize`, `tools/list`, and one mocked read. Logs stay on stderr.
+- [x] Installed loopback HTTP serves `/health`, `/ready`, initializes MCP, and lists the agent profile.
+- [x] Installed non-loopback HTTP requires a per-request Bearer token even when `OPENSOLAR_API_TOKEN` is set in the server environment, and succeeds with an explicit Bearer token. The release smoke passed `http_public_requires_request_bearer=ok`.
+- [x] Binding `0.0.0.0` without `MCP_HTTP_ALLOWED_HOSTS` fails closed.
+- [x] `create_private_file` is disabled without `OPENSOLAR_UPLOAD_ROOT` and cannot escape the configured real path, including through symlinks; the offline test suite covers both cases.
+- [x] Binary private files and system images are not duplicated as base64 in `structuredContent`; the offline test suite covers image, PDF, and generic binary behavior.
+- [x] The release-smoke implementation checks both supported local env files without printing token values. CI had no local tokens to search and its tarball secret scan was clear.
+- [ ] Re-run Docker against the post-audit auth behavior before the final `0.1.0` release. The earlier RC Docker test predates the non-loopback Bearer hardening.
+- [x] GitHub Dependabot reported 0 open alerts on 2026-09-23.
+
+`prepack` runs `pnpm check:all && pnpm build`. Packaging must not require OpenSolar credentials or call OpenSolar.
 
 ## OpenSolar/API
 
 - [x] Tools call the official OpenSolar API only.
-- [x] Throttle behavior is documented. Reads retry a bounded 429. Writes are not retried.
+- [x] Throttle behavior is documented. Ordinary JSON reads use bounded 429 retry; writes are not retried.
 - [x] Writes whose request contracts are not established stay unregistered.
-- [x] The process is self-hosted. The caller brings their own token. There is no token vault and no multi-customer service.
+- [x] The package is self-hosted software. The caller supplies their own OpenSolar access; there is no token vault or multi-customer service in this repository.
 - [x] Raw Data entitlement is documented. `OPENSOLAR_PLAN=api_access` omits `get_proposal_data` and `get_project_design`.
 
-## Publication authorization
+## Package publication decision
 
-OpenSolar's current User Terms prohibit operating the platform as a proxy, aggregator, or third-party service interface without prior written consent (clause 17.7). Whether public distribution of this self-hosted package independently requires that consent is a human decision. This document does not make that legal conclusion.
+Publishing this self-hosted source/package is a maintainer release decision. This checklist does not make a legal conclusion that OpenSolar consent is or is not required for software distribution.
 
-- [ ] Public distribution reviewed/approved
-- [ ] Managed/shared hosting remains disabled unless separately authorized
+- [ ] Maintainer approves the public GitHub/npm release of the self-hosted package.
+- [x] The `0.1.0` release does not include an Align-operated shared or multi-customer OpenSolar service.
 
-Do not `npm publish`, create a GitHub Release, or push a container image until those boxes are decided.
+## Managed hosting — separate future track
+
+OpenSolar's current User Terms include restrictions on operating as a proxy, aggregator, or third-party service interface without prior written consent. That issue is materially more direct for any future Align-operated shared service than for this self-hosted package.
+
+Managed/shared hosting is outside the `0.1.0` package release:
+
+- [x] No managed/shared OpenSolar service is part of this release.
+- [ ] Before any future Align-operated shared service goes live, review and authorize that operating model separately.
+
+Do not treat the managed-hosting checkbox as a blocker to testing or packaging the self-hosted client. Do not publish until the maintainer makes the package-publication decision above.

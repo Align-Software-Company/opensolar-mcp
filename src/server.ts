@@ -8,6 +8,7 @@ export interface ServerRequestContext {
   client: OpenSolarClient;
   orgId: number;
   filters: ToolFilters;
+  uploadRoot?: string;
 }
 
 export function buildServer(requestContext: ServerRequestContext): McpServer {
@@ -17,7 +18,11 @@ export function buildServer(requestContext: ServerRequestContext): McpServer {
   );
   registerAllToolsets(
     server,
-    { client: requestContext.client, orgId: requestContext.orgId },
+    {
+      client: requestContext.client,
+      orgId: requestContext.orgId,
+      uploadRoot: requestContext.uploadRoot,
+    },
     requestContext.filters,
   );
   return server;

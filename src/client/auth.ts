@@ -1,6 +1,6 @@
 import { ConfigError } from '../lib/config-error.js';
 
-const BEARER_PREFIX = /^Bearer\s+(\S+)/i;
+const BEARER_PREFIX = /^Bearer[ \t]+(\S+)$/i;
 
 export function tokenFromAuthorizationHeader(
   header: string | null | undefined,
@@ -16,15 +16,26 @@ export function tokenFromAuthorizationHeader(
 export function resolveToken(options: {
   header: string | null | undefined;
   envToken: string | undefined;
+  allowEnvFallback: boolean;
 }): string {
-  const fromHeader = tokenFromAuthorizationHeader(options.header);
-  if (fromHeader !== undefined) {
+  const header = options.header?.trim() ?? '';
+  if (header !== '') {
+    const fromHeader = tokenFromAuthorizationHeader(header);
+    if (fromHeader === undefined) {
+      throw new ConfigError('Authorization header must be exactly Bearer <token>.');
+    }
     return fromHeader;
   }
-  if (options.envToken !== undefined && options.envToken !== '') {
-    return options.envToken;
+
+  if (options.allowEnvFallback) {
+    const fromEnv = options.envToken?.trim() ?? '';
+    if (fromEnv !== '') {
+      return fromEnv;
+    }
   }
-  throw new ConfigError(
-    'OpenSolar API token missing. Pass Authorization: Bearer <token> or set OPENSOLAR_API_TOKEN.',
-  );
+
+  const message = options.allowEnvFallback
+    ? 'OpenSolar API token missing. Pass Authorization: Bearer <token> or set OPENSOLAR_API_TOKEN.'
+    : 'OpenSolar API token missing. Non-loopback HTTP requires Authorization: Bearer <token> on each MCP request.';
+  throw new ConfigError(message);
 }

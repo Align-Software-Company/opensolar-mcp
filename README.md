@@ -1,31 +1,56 @@
-# @alignco/opensolar-mcp
+# OpenSolar MCP
 
-Unofficial Model Context Protocol server for the [OpenSolar API](https://developers.opensolar.com/api/).
+[![CI](https://github.com/Align-Software-Company/opensolar-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/Align-Software-Company/opensolar-mcp/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-This package is not affiliated with, endorsed by, or maintained by OpenSolar Pty Ltd. You run the process on your own machine or in your own hosting account, with your own OpenSolar token. This project does not host a shared server.
+An unofficial, self-hosted [Model Context Protocol](https://modelcontextprotocol.io/) server for the documented [OpenSolar API](https://developers.opensolar.com/api/).
+
+It gives MCP-capable agents a smaller operational tool surface by default, while retaining a full API-oriented surface for advanced use. OpenSolar credentials stay with the process or MCP client you control; this project does not operate a shared OpenSolar service.
+
+> **Release status:** `0.1.0-rc.1` is a release candidate. The package is not yet published to npm.
+
+This project is not affiliated with, endorsed by, or maintained by OpenSolar Pty Ltd.
+
+## Features
+
+- **Agent-oriented default:** 32 operational tools, selected from 75 registered tools.
+- **Semantic workflows:** local project/contact search, project snapshots, stage-name resolution, system comparison, design projections, and project-share preflight.
+- **Two transports:** stdio for local MCP clients and stateless Streamable HTTP for self-hosted deployments.
+- **BYO OpenSolar access:** your OpenSolar organisation ID and API token; no token vault or account service.
+- **Safer writes:** mutation tools are explicit, writes are never automatically retried, and uncertain write contracts stay unregistered.
+- **Bounded reads:** ordinary JSON GET requests retry HTTP 429 at most three attempts with bounded backoff.
+- **Redacted output:** known credentials and large/raw fields are removed or projected before they reach model context.
+- **File safeguards:** private downloads are capped at 10 MB; local uploads are disabled unless an upload root is explicitly configured.
 
 ## Requirements
 
-- Node.js 24
+- Node.js **24 or newer**
 - An OpenSolar organisation with paid [API Access](https://developers.opensolar.com/api/api-access-plans/)
-- `OPENSOLAR_API_TOKEN` and `OPENSOLAR_ORG_ID`
+- `OPENSOLAR_ORG_ID`
+- An OpenSolar bearer token
+- Raw Data API Access only if you want `get_proposal_data` or `get_project_design`
 
-Normal OpenSolar user tokens expire after 7 days. A dedicated machine user does not expire. This server will not set `is_machine_user` for you. Stay inside the published [throttle limits](https://developers.opensolar.com/api/throttle/).
+OpenSolar says normal user tokens expire after seven days; a dedicated machine user does not expire. This server does not change `is_machine_user` for you. Follow OpenSolar's published [throttle limits](https://developers.opensolar.com/api/throttle/).
 
-## Install
+## Quick start from source
+
+The release candidate is not on npm yet, so build the current checkout:
 
 ```bash
-pnpm install
+git clone https://github.com/Align-Software-Company/opensolar-mcp.git
+cd opensolar-mcp
+corepack enable
+pnpm install --frozen-lockfile
 pnpm build
 ```
 
-`--list-tools` does not need credentials:
+List the default agent tools without credentials:
 
 ```bash
 node dist/index.js --list-tools
 ```
 
-`--check --no-probe` needs the token and org id:
+Check local configuration without contacting OpenSolar:
 
 ```bash
 export OPENSOLAR_API_TOKEN=your_token
@@ -33,28 +58,68 @@ export OPENSOLAR_ORG_ID=12345
 node dist/index.js --check --no-probe
 ```
 
-Copy `.env.example` if you want a local env file. Integration tests load gitignored `.env.local`.
-
-## Package install
-
-These commands apply after the package is published to the npm registry. It is not published yet. Until then, build from this checkout.
+Run over stdio:
 
 ```bash
-npx -y @alignco/opensolar-mcp
+node dist/index.js
 ```
+
+After npm publication, the intended package entry point will also be:
+
+```bash
+npx -y @alignco/opensolar-mcp --list-tools
+```
+
+or:
 
 ```bash
 npm install -g @alignco/opensolar-mcp
 opensolar-mcp --list-tools
 ```
 
-This server is unofficial. You supply your own OpenSolar credentials and run it in your own environment. Mutations change the live OpenSolar organisation those credentials belong to. An agent can choose the wrong tool, so review consequential writes before you rely on them.
+## Configuration
 
-## Tools
+| Variable | Purpose | Default |
+| --- | --- | --- |
+| `OPENSOLAR_API_TOKEN` | OpenSolar bearer token. Required by stdio and `--check`. Loopback HTTP may also use it as a fallback. | none |
+| `OPENSOLAR_ORG_ID` | OpenSolar organisation ID used in org-scoped endpoints. | required |
+| `OPENSOLAR_BASE_URL` | OpenSolar API base URL. | `https://api.opensolar.com/api/` |
+| `OPENSOLAR_PROFILE` | Tool profile: `agent` or `full`. | `agent` |
+| `OPENSOLAR_TOOLSETS` | Comma-separated toolsets. When set, overrides profile membership. | unset |
+| `OPENSOLAR_READ_ONLY` | `1`, `true`, `yes`, or `on` hides every registered mutation. | off |
+| `OPENSOLAR_PLAN` | `api_access` hides Raw Data-only tools; `raw_data` keeps them. | unset |
+| `OPENSOLAR_UPLOAD_ROOT` | Directory from which `create_private_file` may read local files. Uploads are disabled when unset. | unset |
+| `MCP_TRANSPORT` | Set to `http` to use Streamable HTTP instead of stdio. | stdio |
+| `MCP_HTTP_HOST` | HTTP bind host. | `127.0.0.1` |
+| `MCP_HTTP_PORT` | HTTP port. | `3000` |
+| `MCP_HTTP_PATH` | Streamable HTTP MCP path. | `/mcp` |
+| `MCP_HTTP_ALLOWED_HOSTS` | Comma-separated Host values for non-loopback/wildcard binds. Required for `0.0.0.0` and `::`. | unset |
 
-The registered full surface is 75 tools. The default `OPENSOLAR_PROFILE=agent` exposes a smaller operational subset. `OPENSOLAR_PROFILE=full` exposes every registered tool, still subject to `OPENSOLAR_READ_ONLY` and `OPENSOLAR_PLAN`. An explicit `OPENSOLAR_TOOLSETS` list overrides profile membership and can include a toolset the agent profile leaves out.
+`OPENSOLAR_TOOLSETS`, when present, takes precedence over profile membership. `OPENSOLAR_READ_ONLY` and `OPENSOLAR_PLAN` are applied afterward.
 
-Registered tools, in full-profile `--list-tools` order:
+Copy [`.env.example`](.env.example) for a reference configuration. The runtime does not automatically load `.env.local`; the live integration tests do.
+
+## Tool profiles
+
+| Surface | Count | Purpose |
+| --- | ---: | --- |
+| `agent` | 32 | Default operational surface for agents |
+| `agent` + `OPENSOLAR_READ_ONLY=1` | 22 | Agent reads only |
+| `agent` + `OPENSOLAR_PLAN=api_access` | 30 | Agent surface without Raw Data-only tools |
+| `full` | 75 | Every registered tool before read-only/plan filtering |
+
+Use the binary as the source of truth:
+
+```bash
+node dist/index.js --list-tools
+OPENSOLAR_PROFILE=full node dist/index.js --list-tools
+OPENSOLAR_TOOLSETS=webhooks node dist/index.js --list-tools
+```
+
+The default profile includes common project, contact, system, commercial configuration, file, Teams, and Raw Data workflows. Administrative catalog, workflow, webhook, delete, and other specialized primitives remain available through `full` or explicit toolsets.
+
+<details>
+<summary>Full toolsets</summary>
 
 | Toolset | Tools |
 | --- | --- |
@@ -74,23 +139,15 @@ Registered tools, in full-profile `--list-tools` order:
 | teams | `list_connected_orgs`, `preflight_project_share`, `list_connection_requests`, `create_connection_request`, `accept_connection_request`, `update_connection`, `delete_connection`, `share_project`, `share_entities`, `create_permission_role` |
 | raw_data | `get_proposal_data`, `get_project_design` |
 
-`OPENSOLAR_READ_ONLY=1` omits every registered create, update, and delete. The reads stay. Phase 4 writes on that list are `delete_module_activation`, `delete_inverter_activation`, `delete_battery_activation`, `delete_other_component_activation`, `create_workflow`, `delete_workflow`, `delete_payment_option`, `delete_pricing_scheme`, and `delete_costing`. Phase 5 writes are `create_private_file`, `update_private_file`, `delete_private_file`, `generate_project_document`, and `get_system_image`. `get_system_image` is omitted because the first call can create a private file. Phase 6 writes are `create_webhook` and `update_webhook`. There is no webhook delete. Phase 7 writes are `create_connection_request`, `accept_connection_request`, `update_connection`, `delete_connection`, `share_project`, `share_entities`, and `create_permission_role`.
+</details>
 
-`search_projects` and `search_contacts` page those documented lists and match locally. They do not send an OpenSolar `search` query. OpenSolar does not document those two MCP tools. `documented` in the contract matrix names the list GET each one pages.
+Several documented OpenSolar write operations remain intentionally unregistered because their request contracts have not been established with sufficient confidence. The server does not guess write bodies.
 
-`get_project_snapshot` reads one project together with its workflow, systems, and file metadata. A section that fails comes back as a gap. `update_project_stage` accepts a stage id or a stage title. A title that matches two stages is not patched.
+## Connect over stdio
 
-`compare_project_systems` returns the columns each system payload actually has and does not pick a winner. `get_project_design` takes an optional section. `components` and `energy` stay unmapped until the decompress section names those keys. `OPENSOLAR_PLAN=api_access` still omits `get_project_design`.
+For local MCP clients, set the token and org ID in the server environment.
 
-`preflight_project_share` reads the connection list, the project, one systems page, and filtered entity lists. It does not share the project or any entity. `connection` is `ready` only when `is_active`, `is_other_active`, and `is_other_enabled` are all true. A filtered `shared_with` list decides whether a referenced payment option, pricing scheme, costing, or module activation is shared. An unfinished list stays `unknown`.
-
-Catalog activation creates, `create_pricing_scheme`, `create_payment_option`, `create_costing`, `update_workflow`, and `update_org` are not registered. A write stays unsupported when its request contract has not been established with sufficient confidence. The contract may be established through sufficient official OpenSolar documentation or deliberate live verification recorded in the API contract and quirk docs. Absence of an example request alone does not make an operation unsupported. The public release checklist is not done.
-
-Filter the surface with `OPENSOLAR_PROFILE` or `OPENSOLAR_TOOLSETS`. `OPENSOLAR_PLAN=api_access` omits `get_proposal_data` and `get_project_design` from whichever profile or toolset list is active. Default `--list-tools` prints the agent profile. `OPENSOLAR_PROFILE=full node dist/index.js --list-tools` prints all 75.
-
-## Cursor (stdio)
-
-In MCP settings, point at the built binary:
+### Cursor
 
 ```json
 {
@@ -107,9 +164,7 @@ In MCP settings, point at the built binary:
 }
 ```
 
-## Claude Desktop (stdio)
-
-Same command, in Claude Desktop's MCP config (`claude_desktop_config.json`):
+### Claude Desktop
 
 ```json
 {
@@ -126,43 +181,139 @@ Same command, in Claude Desktop's MCP config (`claude_desktop_config.json`):
 }
 ```
 
-## HTTP
+## Streamable HTTP
 
-Default bind is loopback:
+Start a loopback server:
 
 ```bash
+export OPENSOLAR_API_TOKEN=your_token
+export OPENSOLAR_ORG_ID=12345
 node dist/index.js --http
 ```
 
-That serves Streamable HTTP at `http://127.0.0.1:3000/mcp`, plus `/health` and `/ready`. Pass the OpenSolar token as `Authorization: Bearer` on each request, or set `OPENSOLAR_API_TOKEN`.
+It serves:
 
-Binding a public interface (`0.0.0.0` or `::`) requires `MCP_HTTP_ALLOWED_HOSTS` so DNS-rebinding protection can allow your hostname:
+- MCP: `http://127.0.0.1:3000/mcp`
+- health: `/health`
+- readiness: `/ready`
+
+For loopback HTTP, an `Authorization: Bearer <token>` request header takes precedence over `OPENSOLAR_API_TOKEN`; the environment token may be used as a local fallback.
+
+### Non-loopback / remote HTTP
+
+A non-loopback HTTP server **requires the OpenSolar bearer token on each MCP request**. `OPENSOLAR_API_TOKEN` is deliberately ignored as an HTTP request fallback when the server is bound to a non-loopback address.
 
 ```bash
-MCP_HTTP_ALLOWED_HOSTS=mcp.example.com node dist/index.js --http --host 0.0.0.0
+export OPENSOLAR_ORG_ID=12345
+export MCP_HTTP_HOST=0.0.0.0
+export MCP_HTTP_ALLOWED_HOSTS=mcp.example.com
+node dist/index.js --http
 ```
+
+Your MCP client then sends:
+
+```http
+Authorization: Bearer <your OpenSolar token>
+```
+
+Important:
+
+- `MCP_HTTP_ALLOWED_HOSTS` protects Host handling / DNS rebinding. **It is not authentication.**
+- The built-in HTTP server is plain HTTP. Terminate TLS at a trusted reverse proxy or hosting platform before sending an OpenSolar token over the public internet.
+- `/health` and `/ready` do not require the OpenSolar token and return only process status.
+- A malformed `Authorization` header is rejected rather than falling back to an environment token.
 
 ## Docker
 
-Build a Node 24 image that runs the HTTP server. Default bind inside the container is still loopback (`127.0.0.1:3000`). Publish a host port only after setting `MCP_HTTP_HOST=0.0.0.0` and `MCP_HTTP_ALLOWED_HOSTS`. Deploy this image in an account you control. This project does not operate a shared server.
+The image runs the Streamable HTTP transport.
+
+For a container reachable only from the local host, bind the host port to loopback while the process listens on the container interface:
 
 ```bash
 docker build -t opensolar-mcp .
 docker run --rm \
-  -e OPENSOLAR_API_TOKEN=your_token \
   -e OPENSOLAR_ORG_ID=12345 \
   -e MCP_HTTP_HOST=0.0.0.0 \
-  -e MCP_HTTP_ALLOWED_HOSTS=localhost \
+  -e MCP_HTTP_ALLOWED_HOSTS=localhost,127.0.0.1 \
+  -p 127.0.0.1:3000:3000 \
+  opensolar-mcp
+```
+
+Because the process uses a non-loopback bind inside the container, the MCP client must send `Authorization: Bearer <OpenSolar token>`.
+
+For an externally reachable deployment, configure the public Host allowlist similarly. Do not rely on `OPENSOLAR_API_TOKEN` as the remote HTTP credential:
+
+```bash
+docker run --rm \
+  -e OPENSOLAR_ORG_ID=12345 \
+  -e MCP_HTTP_HOST=0.0.0.0 \
+  -e MCP_HTTP_ALLOWED_HOSTS=mcp.example.com \
   -p 3000:3000 \
   opensolar-mcp
 ```
 
-Health:
+The remote MCP client must send the OpenSolar bearer token in `Authorization`, and public traffic should be behind TLS.
+
+## Local file uploads
+
+`create_private_file` reads from the filesystem of the machine running this server. It is disabled by default.
+
+Enable it by setting a directory:
 
 ```bash
-curl http://127.0.0.1:3000/health
+export OPENSOLAR_UPLOAD_ROOT=/absolute/path/to/uploads
 ```
+
+Relative tool paths resolve from that directory. Absolute paths are accepted only when their resolved real path remains inside it. Symlinks cannot be used to escape the configured root.
+
+Private-file downloads and system images are capped at 10 MB. Text content may appear in structured output; images and other binary files use MCP content/resource blocks instead of duplicating their bytes into structured JSON.
+
+## Safety and operational notes
+
+- Mutation tools change the live OpenSolar organisation. Review consequential writes.
+- `OPENSOLAR_READ_ONLY=1` removes every registered mutation from the exposed surface.
+- Ordinary JSON GET requests retry HTTP 429 at most three attempts; writes, file GETs, downloads, and uploads are not automatically retried.
+- Search tools use bounded local scans over documented list endpoints. An incomplete scan is not proof that a record does not exist.
+- `preflight_project_share` is read-only; an `unknown` share/readiness state is not treated as safe.
+- The package uses documented OpenSolar API endpoints and deliberately leaves insufficiently established writes unregistered.
+- This repository distributes self-hosted software. It does not operate a shared or multi-customer OpenSolar service.
+
+## Development
+
+```bash
+pnpm install --frozen-lockfile
+pnpm check:all
+pnpm build
+```
+
+The ordinary test suite is offline and does not call OpenSolar.
+
+Live integration tests use a gitignored `.env.local` (or `dev-docs/private/.env.local`) when credentials are present:
+
+```bash
+pnpm test:integration
+```
+
+Credentials alone run read-only live checks. Live mutation tests require:
+
+```bash
+OPENSOLAR_INTEGRATION_WRITES=1 pnpm test:integration
+```
+
+Some mutation/preflight cases also require dedicated fixture IDs; see [`.env.example`](.env.example).
+
+Packaging runs the offline checks and build through `prepack`. CI also packs the npm artifact and installs/smoke-tests that tarball without contacting OpenSolar.
+
+## Documentation
+
+- [Current implementation](docs/current-state.md)
+- [API contract matrix](docs/api-contract-matrix.md)
+- [API quirks](docs/api-quirks.md)
+- [Source log](docs/source-log.md)
+- [Agent-profile evaluation](docs/agent-profile-evaluation.md)
+- [Release checklist](docs/release-checklist.md)
+- [Release constraints](docs/terms-release-gate.md)
 
 ## License
 
-MIT. See `LICENSE`.
+[MIT](LICENSE) © 2026 Align Software Company.

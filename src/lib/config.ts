@@ -16,7 +16,7 @@ export const BaseUrlSchema = z
   .transform((value) => (value.endsWith('/') ? value : `${value}/`));
 
 const CredentialsSchema = z.object({
-  OPENSOLAR_API_TOKEN: z.string().min(1, 'OPENSOLAR_API_TOKEN is required'),
+  OPENSOLAR_API_TOKEN: z.string().trim().min(1, 'OPENSOLAR_API_TOKEN is required'),
   OPENSOLAR_ORG_ID: z.coerce.number().int().positive('OPENSOLAR_ORG_ID must be a positive integer'),
   BASE_URL: BaseUrlSchema,
 });
@@ -48,6 +48,10 @@ const DEFAULT_HTTP_PORT = 3000;
 const DEFAULT_HTTP_PATH = '/mcp';
 const LOCAL_HOSTS = new Set(['127.0.0.1', 'localhost', '::1']);
 const WILDCARD_HOSTS = new Set(['0.0.0.0', '::']);
+
+export function isLoopbackHttpHost(host: string): boolean {
+  return LOCAL_HOSTS.has(host.trim().toLowerCase());
+}
 
 function formatZodIssues(error: z.ZodError): string {
   return error.issues.map((issue) => `  - ${issue.path.join('.')}: ${issue.message}`).join('\n');
@@ -81,6 +85,11 @@ export function loadOrgId(env: NodeJS.ProcessEnv = process.env): number {
     );
   }
   return parsed.data;
+}
+
+export function loadUploadRoot(env: NodeJS.ProcessEnv = process.env): string | undefined {
+  const value = env.OPENSOLAR_UPLOAD_ROOT?.trim();
+  return value === undefined || value === '' ? undefined : value;
 }
 
 export function loadBaseUrl(env: NodeJS.ProcessEnv = process.env): string {
@@ -274,7 +283,7 @@ export function resolveHttpBind(
   flags: ParsedFlags,
   env: NodeJS.ProcessEnv = process.env,
 ): HttpBind {
-  const host = flags.host ?? env.MCP_HTTP_HOST ?? DEFAULT_HTTP_HOST;
+  const host = (flags.host ?? env.MCP_HTTP_HOST ?? DEFAULT_HTTP_HOST).trim();
   const portRaw =
     flags.port ?? (env.MCP_HTTP_PORT !== undefined ? Number(env.MCP_HTTP_PORT) : DEFAULT_HTTP_PORT);
   if (!Number.isInteger(portRaw) || portRaw < 1 || portRaw > 65535) {
@@ -283,7 +292,11 @@ export function resolveHttpBind(
   const path = normalizeHttpPath(flags.path ?? env.MCP_HTTP_PATH ?? DEFAULT_HTTP_PATH);
   const allowedHosts = parseAllowedHosts(env.MCP_HTTP_ALLOWED_HOSTS);
 
-  if (WILDCARD_HOSTS.has(host) && (allowedHosts === undefined || allowedHosts.length === 0)) {
+  const normalizedHost = host.toLowerCase();
+  if (
+    WILDCARD_HOSTS.has(normalizedHost) &&
+    (allowedHosts === undefined || allowedHosts.length === 0)
+  ) {
     throw new ConfigError(
       `Binding HTTP to ${host} requires MCP_HTTP_ALLOWED_HOSTS so DNS-rebinding protection can allow your public hostname.`,
     );
@@ -293,8 +306,8 @@ export function resolveHttpBind(
     host,
     port: portRaw,
     path,
-    allowedHosts: LOCAL_HOSTS.has(host)
+    allowedHosts: isLoopbackHttpHost(host)
       ? undefined
-      : (allowedHosts ?? (WILDCARD_HOSTS.has(host) ? undefined : [host])),
+      : (allowedHosts ?? (WILDCARD_HOSTS.has(normalizedHost) ? undefined : [host])),
   };
 }

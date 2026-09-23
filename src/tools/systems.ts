@@ -7,7 +7,7 @@ import {
   type OpenSolarClient,
 } from '../client/index.js';
 import { loadSystemComparison } from '../lib/compare-project-systems.js';
-import { fileModelBlocks, isTextMedia, mediaType } from '../lib/file-contents.js';
+import { fileModelBlocks } from '../lib/file-contents.js';
 import type { ToolName } from '../lib/tier-policy.js';
 import {
   curateSystem,
@@ -274,7 +274,7 @@ export function registerSystemsToolset(
           'Gets a system image. Width and height are required. The server follows redirects. ' +
           'The first call can create a private file on the project, and a later design change regenerates it. ' +
           'The default result is the private file id when the response exposes one, plus content type. ' +
-          'include_contents returns the image and refuses a body over 10 MB. The image URL is not returned.',
+          'include_contents returns the image as MCP image content and refuses a body over 10 MB. Image bytes are not duplicated in structuredContent. The image URL is not returned.',
         inputSchema: getSystemImageInput,
         outputSchema: SystemImageOutputSchema,
         annotations: imageAnnotations,
@@ -310,7 +310,6 @@ export function registerSystemsToolset(
             return oversizeImage;
           }
           const contentType = file.contentType;
-          let contents: { encoding: 'text' | 'base64'; body: string; truncated?: true } | undefined;
           let modelBlocks: Awaited<ReturnType<typeof fileModelBlocks>>['blocks'] = [];
           if (include_contents && file.bytes !== null) {
             const model = await fileModelBlocks({
@@ -319,22 +318,10 @@ export function registerSystemsToolset(
               contentType,
             });
             modelBlocks = model.blocks;
-            const text = isTextMedia(mediaType(contentType));
-            contents = text
-              ? {
-                  encoding: 'text',
-                  body: model.textBody ?? '',
-                  ...(model.omitted > 0 ? { truncated: true as const } : {}),
-                }
-              : {
-                  encoding: 'base64',
-                  body: Buffer.from(file.bytes).toString('base64'),
-                };
           }
           const payload = SystemImageOutputSchema.parse({
             id: file.privateFileId,
             content_type: contentType,
-            ...(contents !== undefined ? { contents } : {}),
           });
           const summary =
             payload.id === null

@@ -1,4 +1,5 @@
-import { readFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
@@ -83,7 +84,12 @@ function assertDownloadUrlAbsent(serialized: string): void {
 describe('list_private_files', () => {
   it('requests one page and omits the download URL', async () => {
     const { client, calls, downloads } = fileClient();
-    const mcp = buildServer({ client, orgId: 1, filters: ALL_TOOL_FILTERS });
+    const mcp = buildServer({
+      client,
+      orgId: 1,
+      filters: ALL_TOOL_FILTERS,
+      uploadRoot: dirname(uploadPath),
+    });
 
     const result = await withMcpClient(mcp, (session) =>
       session.callTool({ name: 'list_private_files', arguments: {} }),
@@ -106,7 +112,12 @@ describe('list_private_files', () => {
 
   it('sends documented filters only when they are set', async () => {
     const { client, calls } = fileClient();
-    const mcp = buildServer({ client, orgId: 1, filters: ALL_TOOL_FILTERS });
+    const mcp = buildServer({
+      client,
+      orgId: 1,
+      filters: ALL_TOOL_FILTERS,
+      uploadRoot: dirname(uploadPath),
+    });
 
     await withMcpClient(mcp, (session) =>
       session.callTool({
@@ -129,7 +140,12 @@ describe('list_private_files', () => {
 
   it('rejects an unknown filter before HTTP', async () => {
     const { client, calls } = fileClient();
-    const mcp = buildServer({ client, orgId: 1, filters: ALL_TOOL_FILTERS });
+    const mcp = buildServer({
+      client,
+      orgId: 1,
+      filters: ALL_TOOL_FILTERS,
+      uploadRoot: dirname(uploadPath),
+    });
 
     const result = await withMcpClient(mcp, (session) =>
       session.callTool({
@@ -146,7 +162,12 @@ describe('list_private_files', () => {
 describe('get_private_file', () => {
   it('returns size and omits the download URL', async () => {
     const { client, calls, downloads } = fileClient();
-    const mcp = buildServer({ client, orgId: 1, filters: ALL_TOOL_FILTERS });
+    const mcp = buildServer({
+      client,
+      orgId: 1,
+      filters: ALL_TOOL_FILTERS,
+      uploadRoot: dirname(uploadPath),
+    });
 
     const result = await withMcpClient(mcp, (session) =>
       session.callTool({ name: 'get_private_file', arguments: { id: 501 } }),
@@ -171,7 +192,12 @@ describe('get_private_file', () => {
       bytes: new TextEncoder().encode('{"ok":true}'),
       contentType: 'application/geo+json',
     }));
-    const mcp = buildServer({ client, orgId: 1, filters: ALL_TOOL_FILTERS });
+    const mcp = buildServer({
+      client,
+      orgId: 1,
+      filters: ALL_TOOL_FILTERS,
+      uploadRoot: dirname(uploadPath),
+    });
 
     const result = await withMcpClient(mcp, (session) =>
       session.callTool({
@@ -198,7 +224,12 @@ describe('get_private_file', () => {
       bytes: new TextEncoder().encode(body),
       contentType: 'text/plain',
     }));
-    const mcp = buildServer({ client, orgId: 1, filters: ALL_TOOL_FILTERS });
+    const mcp = buildServer({
+      client,
+      orgId: 1,
+      filters: ALL_TOOL_FILTERS,
+      uploadRoot: dirname(uploadPath),
+    });
 
     const result = await withMcpClient(mcp, (session) =>
       session.callTool({
@@ -222,12 +253,17 @@ describe('get_private_file', () => {
     ]);
   });
 
-  it('returns binary contents as base64', async () => {
+  it('returns image contents as an MCP image block without duplicating base64 in structured content', async () => {
     const { client } = fileClient(async () => ({
       bytes: Uint8Array.from([1, 2, 3]),
       contentType: 'image/png; charset=binary',
     }));
-    const mcp = buildServer({ client, orgId: 1, filters: ALL_TOOL_FILTERS });
+    const mcp = buildServer({
+      client,
+      orgId: 1,
+      filters: ALL_TOOL_FILTERS,
+      uploadRoot: dirname(uploadPath),
+    });
 
     const result = await withMcpClient(mcp, (session) =>
       session.callTool({
@@ -238,10 +274,7 @@ describe('get_private_file', () => {
     const payload = PrivateFileDetailSchema.parse(requireStructuredContent(result));
 
     const encoded = Buffer.from([1, 2, 3]).toString('base64');
-    expect(payload.contents).toEqual({
-      encoding: 'base64',
-      body: encoded,
-    });
+    expect(payload.contents).toBeUndefined();
     expect(payload.content_type).toBe('image/png; charset=binary');
     expect(result.content).toEqual([
       { type: 'text', text: 'Private file 501: site-model.geojson.' },
@@ -255,7 +288,12 @@ describe('get_private_file', () => {
       bytes,
       contentType: 'application/pdf',
     }));
-    const mcp = buildServer({ client, orgId: 1, filters: ALL_TOOL_FILTERS });
+    const mcp = buildServer({
+      client,
+      orgId: 1,
+      filters: ALL_TOOL_FILTERS,
+      uploadRoot: dirname(uploadPath),
+    });
 
     const result = await withMcpClient(mcp, (session) =>
       session.callTool({
@@ -266,8 +304,8 @@ describe('get_private_file', () => {
     const payload = PrivateFileDetailSchema.parse(requireStructuredContent(result));
     const serialized = JSON.stringify({ payload, text: result.content });
 
-    expect(payload.contents?.encoding).toBe('base64');
-    expect(Buffer.from(payload.contents?.body ?? '', 'base64')).toEqual(Buffer.from(bytes));
+    const encoded = Buffer.from(bytes).toString('base64');
+    expect(payload.contents).toBeUndefined();
     expect(result.content).toEqual([
       { type: 'text', text: 'Private file 501: site-model.geojson. 1 page.' },
       { type: 'text', text: 'Hello solar' },
@@ -276,7 +314,7 @@ describe('get_private_file', () => {
         resource: {
           uri: 'opensolar://private-files/501',
           mimeType: 'application/pdf',
-          blob: payload.contents?.body,
+          blob: encoded,
         },
       },
     ]);
@@ -288,7 +326,12 @@ describe('get_private_file', () => {
       bytes: Uint8Array.from([1, 2, 3]),
       contentType: 'application/pdf',
     }));
-    const mcp = buildServer({ client, orgId: 1, filters: ALL_TOOL_FILTERS });
+    const mcp = buildServer({
+      client,
+      orgId: 1,
+      filters: ALL_TOOL_FILTERS,
+      uploadRoot: dirname(uploadPath),
+    });
 
     const result = await withMcpClient(mcp, (session) =>
       session.callTool({
@@ -311,12 +354,17 @@ describe('get_private_file', () => {
     ]);
   });
 
-  it('leaves other binary files out of the model text', async () => {
+  it('returns other binary files as embedded resources without structured base64', async () => {
     const { client } = fileClient(async () => ({
       bytes: Uint8Array.from([1, 2, 3]),
       contentType: 'application/octet-stream',
     }));
-    const mcp = buildServer({ client, orgId: 1, filters: ALL_TOOL_FILTERS });
+    const mcp = buildServer({
+      client,
+      orgId: 1,
+      filters: ALL_TOOL_FILTERS,
+      uploadRoot: dirname(uploadPath),
+    });
 
     const result = await withMcpClient(mcp, (session) =>
       session.callTool({
@@ -326,12 +374,18 @@ describe('get_private_file', () => {
     );
     const payload = PrivateFileDetailSchema.parse(requireStructuredContent(result));
 
-    expect(payload.contents).toEqual({
-      encoding: 'base64',
-      body: Buffer.from([1, 2, 3]).toString('base64'),
-    });
+    const encoded = Buffer.from([1, 2, 3]).toString('base64');
+    expect(payload.contents).toBeUndefined();
     expect(result.content).toEqual([
       { type: 'text', text: 'Private file 501: site-model.geojson.' },
+      {
+        type: 'resource',
+        resource: {
+          uri: 'opensolar://private-files/501',
+          mimeType: 'application/octet-stream',
+          blob: encoded,
+        },
+      },
     ]);
   });
 
@@ -340,7 +394,12 @@ describe('get_private_file', () => {
       bytes: new Uint8Array(MAX_PRIVATE_FILE_BYTES + 1),
       contentType: 'application/octet-stream',
     }));
-    const mcp = buildServer({ client, orgId: 1, filters: ALL_TOOL_FILTERS });
+    const mcp = buildServer({
+      client,
+      orgId: 1,
+      filters: ALL_TOOL_FILTERS,
+      uploadRoot: dirname(uploadPath),
+    });
 
     const result = await withMcpClient(mcp, (session) =>
       session.callTool({
@@ -356,6 +415,62 @@ describe('get_private_file', () => {
 });
 
 describe('create_private_file', () => {
+  it('is disabled until OPENSOLAR_UPLOAD_ROOT is configured', async () => {
+    const { client, calls } = fileClient();
+    const mcp = buildServer({ client, orgId: 1, filters: ALL_TOOL_FILTERS });
+
+    const result = await withMcpClient(mcp, (session) =>
+      session.callTool({
+        name: 'create_private_file',
+        arguments: { path: uploadPath, title: 'My Document' },
+      }),
+    );
+
+    expect(result.isError).toBe(true);
+    expect(result.content).toEqual([
+      {
+        type: 'text',
+        text: 'Local file uploads are disabled. Set OPENSOLAR_UPLOAD_ROOT to a directory before using create_private_file.',
+      },
+    ]);
+    expect(calls).toEqual([]);
+  });
+
+  it('rejects a resolved path outside OPENSOLAR_UPLOAD_ROOT, including through a symlink', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'opensolar-upload-root-'));
+    const outside = await mkdtemp(join(tmpdir(), 'opensolar-upload-outside-'));
+    try {
+      const secret = join(outside, 'secret.txt');
+      const link = join(root, 'linked-secret.txt');
+      await writeFile(secret, 'do not upload');
+      await symlink(secret, link);
+
+      const { client, calls } = fileClient();
+      const mcp = buildServer({
+        client,
+        orgId: 1,
+        filters: ALL_TOOL_FILTERS,
+        uploadRoot: root,
+      });
+
+      const result = await withMcpClient(mcp, (session) =>
+        session.callTool({
+          name: 'create_private_file',
+          arguments: { path: 'linked-secret.txt', title: 'Nope' },
+        }),
+      );
+
+      expect(result.isError).toBe(true);
+      expect(result.content).toEqual([
+        { type: 'text', text: 'Private file path is outside OPENSOLAR_UPLOAD_ROOT.' },
+      ]);
+      expect(calls).toEqual([]);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+      await rm(outside, { recursive: true, force: true });
+    }
+  });
+
   it('streams the file as multipart title and file_contents', async () => {
     const forms: FormData[] = [];
     const { client, calls } = fileClient();
@@ -364,7 +479,12 @@ describe('create_private_file', () => {
       forms.push(form);
       return loadOpenSolarFixture('private-files', 'detail');
     };
-    const mcp = buildServer({ client, orgId: 1, filters: ALL_TOOL_FILTERS });
+    const mcp = buildServer({
+      client,
+      orgId: 1,
+      filters: ALL_TOOL_FILTERS,
+      uploadRoot: dirname(uploadPath),
+    });
 
     const result = await withMcpClient(mcp, (session) =>
       session.callTool({
@@ -398,7 +518,12 @@ describe('create_private_file', () => {
 
   it('rejects an unknown field before HTTP', async () => {
     const { client, calls } = fileClient();
-    const mcp = buildServer({ client, orgId: 1, filters: ALL_TOOL_FILTERS });
+    const mcp = buildServer({
+      client,
+      orgId: 1,
+      filters: ALL_TOOL_FILTERS,
+      uploadRoot: dirname(uploadPath),
+    });
 
     const result = await withMcpClient(mcp, (session) =>
       session.callTool({
@@ -413,7 +538,12 @@ describe('create_private_file', () => {
 
   it('does not call OpenSolar when the path is missing', async () => {
     const { client, calls } = fileClient();
-    const mcp = buildServer({ client, orgId: 1, filters: ALL_TOOL_FILTERS });
+    const mcp = buildServer({
+      client,
+      orgId: 1,
+      filters: ALL_TOOL_FILTERS,
+      uploadRoot: dirname(uploadPath),
+    });
 
     const result = await withMcpClient(mcp, (session) =>
       session.callTool({
@@ -432,7 +562,12 @@ describe('create_private_file', () => {
 
   it('does not call OpenSolar when the path is a directory', async () => {
     const { client, calls } = fileClient();
-    const mcp = buildServer({ client, orgId: 1, filters: ALL_TOOL_FILTERS });
+    const mcp = buildServer({
+      client,
+      orgId: 1,
+      filters: ALL_TOOL_FILTERS,
+      uploadRoot: dirname(uploadPath),
+    });
 
     const result = await withMcpClient(mcp, (session) =>
       session.callTool({
@@ -456,7 +591,12 @@ describe('update_private_file', () => {
       patches.push(body);
       return loadOpenSolarFixture('private-files', 'detail');
     };
-    const mcp = buildServer({ client, orgId: 1, filters: ALL_TOOL_FILTERS });
+    const mcp = buildServer({
+      client,
+      orgId: 1,
+      filters: ALL_TOOL_FILTERS,
+      uploadRoot: dirname(uploadPath),
+    });
 
     const result = await withMcpClient(mcp, (session) =>
       session.callTool({
@@ -474,7 +614,12 @@ describe('update_private_file', () => {
 
   it('rejects an unknown field before HTTP', async () => {
     const { client, calls } = fileClient();
-    const mcp = buildServer({ client, orgId: 1, filters: ALL_TOOL_FILTERS });
+    const mcp = buildServer({
+      client,
+      orgId: 1,
+      filters: ALL_TOOL_FILTERS,
+      uploadRoot: dirname(uploadPath),
+    });
 
     const result = await withMcpClient(mcp, (session) =>
       session.callTool({
@@ -495,7 +640,12 @@ describe('delete_private_file', () => {
       calls.push(path);
       return { file_contents: downloadUrl, secret: 'HASH-SHOULD-NOT-LEAK' };
     };
-    const mcp = buildServer({ client, orgId: 1, filters: ALL_TOOL_FILTERS });
+    const mcp = buildServer({
+      client,
+      orgId: 1,
+      filters: ALL_TOOL_FILTERS,
+      uploadRoot: dirname(uploadPath),
+    });
 
     const result = await withMcpClient(mcp, (session) =>
       session.callTool({ name: 'delete_private_file', arguments: { id: 501 } }),

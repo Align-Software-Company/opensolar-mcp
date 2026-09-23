@@ -10,7 +10,7 @@ export type FileModelBlock =
   | { type: 'image'; data: string; mimeType: string }
   | {
       type: 'resource';
-      resource: { uri: string; mimeType: 'application/pdf'; blob: string };
+      resource: { uri: string; mimeType: string; blob: string };
     };
 
 export function mediaType(contentType: string | null): string | null {
@@ -58,12 +58,12 @@ function pageSentence(pageCount: number): string {
   return `PDF has ${pages} and no extractable text.`;
 }
 
-function pdfResource(id: number, bytes: Uint8Array): FileModelBlock {
+function binaryResource(id: number, bytes: Uint8Array, mimeType: string): FileModelBlock {
   return {
     type: 'resource',
     resource: {
       uri: `opensolar://private-files/${id}`,
-      mimeType: 'application/pdf',
+      mimeType,
       blob: Buffer.from(bytes).toString('base64'),
     },
   };
@@ -121,7 +121,7 @@ export async function fileModelBlocks(input: {
   }
   if (media === 'application/pdf') {
     const pdf = await readPdf(input.bytes);
-    const resource = pdfResource(input.id, input.bytes);
+    const resource = binaryResource(input.id, input.bytes, 'application/pdf');
     if (pdf === null) {
       return {
         blocks: [{ type: 'text', text: PDF_TEXT_FAILED }, resource],
@@ -139,5 +139,10 @@ export async function fileModelBlocks(input: {
       omitted,
     };
   }
-  return { blocks: [], pageCount: null, textBody: null, omitted: 0 };
+  return {
+    blocks: [binaryResource(input.id, input.bytes, media ?? 'application/octet-stream')],
+    pageCount: null,
+    textBody: null,
+    omitted: 0,
+  };
 }

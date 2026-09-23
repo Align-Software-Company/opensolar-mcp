@@ -120,4 +120,112 @@ describe('stateless HTTP transport', () => {
       await listening.close();
     }
   });
+
+  it('allows loopback HTTP to use the environment token when no header is supplied', async () => {
+    vi.stubEnv('OPENSOLAR_ORG_ID', '1');
+    vi.stubEnv('OPENSOLAR_API_TOKEN', 'loopback-token');
+    vi.stubEnv('OPENSOLAR_BASE_URL', 'https://api.opensolar.com/api/');
+
+    const seenTokens: string[] = [];
+    const payload = loadOpenSolarFixture('org', 'summary');
+    const originalFetch = globalThis.fetch.bind(globalThis);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: URL | Request | string, init?: RequestInit) => {
+        const url = new URL(String(input instanceof Request ? input.url : input));
+        if (url.hostname === 'api.opensolar.com') {
+          const headers = new Headers(input instanceof Request ? input.headers : init?.headers);
+          seenTokens.push(headers.get('authorization') ?? '');
+          return new Response(JSON.stringify(payload), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
+        return originalFetch(input, init);
+      }),
+    );
+
+    const app = createHttpApp({
+      host: '127.0.0.1',
+      port: 3000,
+      path: '/mcp',
+      allowedHosts: undefined,
+    });
+    const listening = await listenApp(app);
+    const transport = new StreamableHTTPClientTransport(new URL(`${listening.origin}/mcp`));
+    const client = new Client({ name: 'http-loopback-test', version: '0.0.0' });
+    try {
+      await client.connect(transport);
+      await client.callTool({ name: 'get_org', arguments: {} });
+      expect(seenTokens).toEqual(['Bearer loopback-token']);
+    } finally {
+      await client.close();
+      await listening.close();
+    }
+  });
+
+  it('requires a per-request bearer token on non-loopback HTTP and ignores the env token', async () => {
+    vi.stubEnv('OPENSOLAR_ORG_ID', '1');
+    vi.stubEnv('OPENSOLAR_API_TOKEN', 'server-env-token');
+    vi.stubEnv('OPENSOLAR_BASE_URL', 'https://api.opensolar.com/api/');
+
+    const seenTokens: string[] = [];
+    const payload = loadOpenSolarFixture('org', 'summary');
+    const originalFetch = globalThis.fetch.bind(globalThis);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: URL | Request | string, init?: RequestInit) => {
+        const url = new URL(String(input instanceof Request ? input.url : input));
+        if (url.hostname === 'api.opensolar.com') {
+          const headers = new Headers(input instanceof Request ? input.headers : init?.headers);
+          seenTokens.push(headers.get('authorization') ?? '');
+          return new Response(JSON.stringify(payload), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
+        return originalFetch(input, init);
+      }),
+    );
+
+    const app = createHttpApp({
+      host: '0.0.0.0',
+      port: 3000,
+      path: '/mcp',
+      allowedHosts: ['127.0.0.1'],
+    });
+    const listening = await listenApp(app);
+    try {
+      const anonymousResponse = await fetch(`${listening.origin}/mcp`);
+      expect(anonymousResponse.status).toBe(401);
+      expect(anonymousResponse.headers.get('www-authenticate')).toBe('Bearer');
+
+      const malformedResponse = await fetch(`${listening.origin}/mcp`, {
+        headers: { Authorization: 'Bearer request-token extra' },
+      });
+      expect(malformedResponse.status).toBe(401);
+
+      const anonymousTransport = new StreamableHTTPClientTransport(
+        new URL(`${listening.origin}/mcp`),
+      );
+      const anonymousClient = new Client({ name: 'http-anonymous-test', version: '0.0.0' });
+      await expect(anonymousClient.connect(anonymousTransport)).rejects.toThrow();
+      await anonymousClient.close().catch(() => undefined);
+      expect(seenTokens).toEqual([]);
+
+      const transport = new StreamableHTTPClientTransport(new URL(`${listening.origin}/mcp`), {
+        requestInit: { headers: { Authorization: 'Bearer request-token' } },
+      });
+      const client = new Client({ name: 'http-public-test', version: '0.0.0' });
+      await client.connect(transport);
+      try {
+        await client.callTool({ name: 'get_org', arguments: {} });
+        expect(seenTokens).toEqual(['Bearer request-token']);
+      } finally {
+        await client.close();
+      }
+    } finally {
+      await listening.close();
+    }
+  });
 });

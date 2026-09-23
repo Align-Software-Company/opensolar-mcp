@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { loadConfig } from '../../src/lib/config.js';
+import { loadConfig, loadUploadRoot } from '../../src/lib/config.js';
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -8,6 +8,13 @@ afterEach(() => {
 describe('loadConfig', () => {
   it('throws when the API token is missing', () => {
     vi.stubEnv('OPENSOLAR_API_TOKEN', '');
+    vi.stubEnv('OPENSOLAR_ORG_ID', '1');
+
+    expect(() => loadConfig()).toThrow(/OPENSOLAR_API_TOKEN/);
+  });
+
+  it('throws when the API token is only whitespace', () => {
+    vi.stubEnv('OPENSOLAR_API_TOKEN', '   ');
     vi.stubEnv('OPENSOLAR_ORG_ID', '1');
 
     expect(() => loadConfig()).toThrow(/OPENSOLAR_API_TOKEN/);
@@ -29,6 +36,12 @@ describe('loadConfig', () => {
     expect(config.OPENSOLAR_API_TOKEN).toBe('test-token');
     expect(config.OPENSOLAR_ORG_ID).toBe(42);
     expect(config.BASE_URL).toBe('https://api.opensolar.com/api/');
+  });
+
+  it('loads and trims an optional upload root', () => {
+    expect(loadUploadRoot({ OPENSOLAR_UPLOAD_ROOT: '  /tmp/uploads  ' })).toBe('/tmp/uploads');
+    expect(loadUploadRoot({ OPENSOLAR_UPLOAD_ROOT: '   ' })).toBeUndefined();
+    expect(loadUploadRoot({})).toBeUndefined();
   });
 
   it('appends a trailing slash to a custom base URL', () => {
