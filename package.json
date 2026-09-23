@@ -60,7 +60,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.4.15",
+    "@biomejs/biome": "^2.5.14",
     "@modelcontextprotocol/client": "^2.0.0",
     "@types/node": "^24.13.3",
     "tsup": "^8.5.1",
