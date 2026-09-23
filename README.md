@@ -228,26 +228,23 @@ Important:
 
 The image runs the Streamable HTTP transport.
 
-For a container reachable only from the local host, bind the host port to loopback while the process listens on the container interface:
+The image runs as an unprivileged user and defaults to `MCP_HTTP_HOST=0.0.0.0` with `localhost,127.0.0.1` allowed as Host/Origin values. For a container reachable only from the local host:
 
 ```bash
 docker build -t opensolar-mcp .
 docker run --rm \
   -e OPENSOLAR_ORG_ID=12345 \
-  -e MCP_HTTP_HOST=0.0.0.0 \
-  -e MCP_HTTP_ALLOWED_HOSTS=localhost,127.0.0.1 \
   -p 127.0.0.1:3000:3000 \
   opensolar-mcp
 ```
 
-Because the process uses a non-loopback bind inside the container, the MCP client must send `Authorization: Bearer <OpenSolar token>`.
+Because the process uses a non-loopback bind inside the container, the MCP client must send `Authorization: Bearer <OpenSolar token>`. The image healthcheck follows `MCP_HTTP_PORT` when you change the container port.
 
 For an externally reachable deployment, configure the public Host allowlist similarly. Do not rely on `OPENSOLAR_API_TOKEN` as the remote HTTP credential:
 
 ```bash
 docker run --rm \
   -e OPENSOLAR_ORG_ID=12345 \
-  -e MCP_HTTP_HOST=0.0.0.0 \
   -e MCP_HTTP_ALLOWED_HOSTS=mcp.example.com \
   -p 3000:3000 \
   opensolar-mcp
@@ -285,6 +282,7 @@ Private-file downloads and system images are capped at 10 MB. Text content may a
 pnpm install --frozen-lockfile
 pnpm check:all
 pnpm build
+pnpm test:docker
 ```
 
 The ordinary test suite is offline and does not call OpenSolar.
@@ -303,7 +301,7 @@ OPENSOLAR_INTEGRATION_WRITES=1 pnpm test:integration
 
 Some mutation/preflight cases also require dedicated fixture IDs; see [`.env.example`](.env.example).
 
-Packaging runs the offline checks and build through `prepack`. CI also packs the npm artifact and installs/smoke-tests that tarball without contacting OpenSolar.
+Packaging runs the offline checks and build through `prepack`. CI also packs the npm artifact, installs/smoke-tests that tarball without contacting OpenSolar, and builds/smoke-tests the Docker image.
 
 ## Documentation
 
