@@ -92,7 +92,62 @@ describe('compare_project_systems', () => {
     expect(serialized).not.toContain('rank');
   });
 
-  it('does not call system details when the list already includes hardware', async () => {
+  it('requests one details call for a missing group and does not replace hardware the list already sent', async () => {
+    const paths: string[] = [];
+    const mcp = buildServer({
+      client: testClient(async (path) => {
+        paths.push(path);
+        if (path.startsWith('orgs/1/systems/?')) {
+          return [
+            {
+              id: 1,
+              modules: [{ manufacturer_name: 'List Modules', code: 'LIST', quantity: 8 }],
+            },
+          ];
+        }
+        if (path.includes('/systems/details/')) {
+          return {
+            systems: [
+              {
+                id: 1,
+                modules: [{ manufacturer_name: 'Details Modules', code: 'DET', quantity: 1 }],
+                inverters: [{ manufacturer_name: 'Details Inverters', code: 'INV', quantity: 1 }],
+                batteries: [{ manufacturer_name: 'Details Batteries', code: 'BAT', quantity: 1 }],
+              },
+            ],
+          };
+        }
+        throw new Error(`unexpected read ${path}`);
+      }),
+      orgId: 1,
+      filters: ALL_TOOL_FILTERS,
+    });
+
+    const result = await withMcpClient(mcp, (session) =>
+      session.callTool({ name: 'compare_project_systems', arguments: { project_id: 1001 } }),
+    );
+    const payload = requireStructuredContent(result) as {
+      systems: Array<{
+        modules?: Array<{ manufacturer_name?: string }>;
+        inverters?: Array<{ manufacturer_name?: string }>;
+        batteries?: Array<{ manufacturer_name?: string }>;
+      }>;
+    };
+    const detailsCalls = paths.filter((path) => path.includes('/systems/details/'));
+
+    expect(detailsCalls).toHaveLength(1);
+    expect(payload.systems[0]?.modules).toEqual([
+      { manufacturer_name: 'List Modules', code: 'LIST', quantity: 8 },
+    ]);
+    expect(payload.systems[0]?.inverters).toEqual([
+      { manufacturer_name: 'Details Inverters', code: 'INV', quantity: 1 },
+    ]);
+    expect(payload.systems[0]?.batteries).toEqual([
+      { manufacturer_name: 'Details Batteries', code: 'BAT', quantity: 1 },
+    ]);
+  });
+
+  it('does not call system details when every hardware group is present, including empty arrays', async () => {
     const paths: string[] = [];
     const mcp = buildServer({
       client: testClient(async (path) => {

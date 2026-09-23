@@ -22,7 +22,7 @@ export async function loadSystemComparison(
 ): Promise<CompareProjectSystems> {
   const listPath = `orgs/${orgId}/systems/?fieldset=list&project=${projectId}&page=1&limit=${SYSTEMS_PAGE_SIZE}`;
   const listed = SystemListSchema.parse(await client.get(listPath));
-  const needsDetails = listed.some((system) => !hasHardware(system));
+  const needsDetails = listed.some((system) => !hasAllHardwareGroups(system));
   const details = needsDetails ? await hardwareById(client, orgId, projectId) : undefined;
 
   const comparison: CompareProjectSystems = {
@@ -108,8 +108,8 @@ async function hardwareById(
   }
 }
 
-function hasHardware(system: System): boolean {
-  return system.modules != null || system.inverters != null || system.batteries != null;
+function hasAllHardwareGroups(system: System): boolean {
+  return system.modules != null && system.inverters != null && system.batteries != null;
 }
 
 function namedHardware(items: HardwareList | null | undefined): NamedHardware[] | undefined {

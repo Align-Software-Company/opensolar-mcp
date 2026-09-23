@@ -141,7 +141,7 @@ Errors return `isError: true` with no `structuredContent`.
 | `get_event` | `src/tools/events.ts` | `api_access`, read | `GET orgs/:org_id/events/:event_id/` | Implemented |
 | `list_event_types` | `src/tools/events.ts` | `api_access`, read | none (copied docs table) | Implemented |
 | `list_project_systems` | `src/tools/systems.ts` | `api_access`, read | `GET orgs/:org_id/systems/?fieldset=list&project=&page=&limit=` | Implemented |
-| `compare_project_systems` | `src/tools/systems.ts` | `api_access`, read | systems list, then system details only when hardware names are missing | Implemented |
+| `compare_project_systems` | `src/tools/systems.ts` | `api_access`, read | systems list, then one system-details call when a listed system is missing a hardware group | Implemented |
 | `get_system` | `src/tools/systems.ts` | `api_access`, read | `GET orgs/:org_id/systems/:id/?fieldset=list` | Implemented |
 | `get_system_details` | `src/tools/systems.ts` | `api_access`, read, `degradesWith: ['custom_data']` | `GET orgs/:org_id/projects/:project_id/systems/details/` | Implemented |
 | `get_system_image` | `src/tools/systems.ts` | `api_access`, mutation | `GET orgs/:org_id/projects/:project_id/systems/:uuid/image/?width=&height=` | Implemented |
@@ -308,9 +308,10 @@ missing. `get_project` verbose still replaces `design` with `[REDACTED]`.
 `compare_project_systems` takes one `project_id`. It reads one systems
 list page. kWh per kW and price per watt are calculated only when both
 inputs are present and kW is greater than zero. A column that is absent
-on that system is omitted. Hardware names come from the list when it
-already includes them. Otherwise one system-details call requests
-modules, inverters, and batteries. A failed details call sets
+on that system is omitted. One system-details call runs when a listed
+system is missing one or more of modules, inverters, or batteries. An
+empty array counts as present. Details fills only the missing groups and
+does not replace a group the list already sent. A failed details call sets
 `hardware_gap` and still returns the list columns. No system is ranked.
 
 See [api-contract-matrix.md](./api-contract-matrix.md).

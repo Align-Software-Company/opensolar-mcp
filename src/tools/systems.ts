@@ -188,7 +188,8 @@ export function registerSystemsToolset(
         title: 'Compare project systems',
         description:
           'Compares the systems on one project. Columns are included only when that system payload has them: kW, module count, annual kWh, kWh per kW, price, price per watt, battery kWh, and hardware names. ' +
-          'No system is ranked. Hardware names come from the systems list when it already includes them. Otherwise one system-details call supplies modules, inverters, and batteries. ' +
+          'No system is ranked. One system-details call runs when a listed system is missing modules, inverters, or batteries. ' +
+          'An empty array counts as present. Groups already on the list are not replaced. ' +
           'A failed details call leaves hardware_gap and still returns the list columns.',
         inputSchema: z
           .object({
