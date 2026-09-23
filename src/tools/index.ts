@@ -101,6 +101,7 @@ export const TOOLSET_TOOLS: Record<ToolsetName, readonly ToolName[]> = {
   ],
   teams: [
     'list_connected_orgs',
+    'preflight_project_share',
     'list_connection_requests',
     'create_connection_request',
     'accept_connection_request',

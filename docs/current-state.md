@@ -18,7 +18,7 @@ Last reviewed: 2026-09-22
 | Module | ESM (`"type": "module"`) |
 | Package manager | pnpm |
 | License | MIT (`LICENSE`; copyright Align Software Company 2026) |
-| README | Install instructions and the 74 registered tools. Public release checklist is not done. |
+| README | Install instructions and the 75 registered tools. Public release checklist is not done. |
 
 The annotated tag `pre-rebase-baseline` still points at the earlier
 walking-skeleton snapshot. This file describes the tree through phase 8
@@ -184,6 +184,7 @@ Errors return `isError: true` with no `structuredContent`.
 | `list_webhook_logs` | `src/tools/webhooks.ts` | `api_access`, read | `GET orgs/:org_id/webhook_process_logs/?page=&limit=` | Implemented |
 | `list_webhook_queue` | `src/tools/webhooks.ts` | `api_access`, read | `GET orgs/:org_id/webhook_queue_models/?page=&limit=` | Implemented |
 | `list_connected_orgs` | `src/tools/teams.ts` | `api_access`, read | `GET orgs/:org_id/connected_orgs/?fieldset=list&page=&limit=` | Implemented |
+| `preflight_project_share` | `src/tools/teams.ts` | `api_access`, read | connected orgs, project detail, systems list | Implemented |
 | `list_connection_requests` | `src/tools/teams.ts` | `api_access`, read | `GET orgs/:org_id/connected_orgs/pending/` | Implemented |
 | `create_connection_request` | `src/tools/teams.ts` | `api_access`, mutation | `POST orgs/:org_id/connected_orgs/` | Implemented |
 | `accept_connection_request` | `src/tools/teams.ts` | `api_access`, mutation | `POST orgs/:org_id/connected_orgs/accept_connection/` | Implemented |
@@ -195,7 +196,7 @@ Errors return `isError: true` with no `structuredContent`.
 | `get_proposal_data` | `src/tools/raw-data.ts` | `raw_data`, read | `GET user_logins/?project_ids=` | Implemented |
 | `get_project_design` | `src/tools/raw-data.ts` | `raw_data`, read | `GET orgs/:org_id/projects/:id/` | Implemented |
 
-74 tools are registered. `compare_project_systems` returns only the columns each system payload has and does not rank a winner. `get_project_snapshot` joins one project with its workflow, systems, and file metadata. A failed section is a gap. `search_projects` and `search_contacts` page the documented lists and match locally. They do not send a `search` query. OpenSolar does not document those MCP tools. Nine writes from the documented inventory are
+75 tools are registered. `preflight_project_share` checks a connection and a project share without writing. A resource share of `unknown` is not treated as safe. `compare_project_systems` returns only the columns each system payload has and does not rank a winner. `get_project_snapshot` joins one project with its workflow, systems, and file metadata. A failed section is a gap. `search_projects` and `search_contacts` page the documented lists and match locally. They do not send a `search` query. OpenSolar does not document those MCP tools. Nine writes from the documented inventory are
 not registered, because their request contracts are not established with sufficient confidence:
 `create_module_activation`, `create_inverter_activation`,
 `create_battery_activation`, `create_other_component_activation`,
@@ -269,7 +270,10 @@ Log rows are `id`, `webhook_id`, `event_queue_name`, `created_date`,
 `modified_date`, and `event_timestamp`. Queue rows use `next_attempt_at`
 and `processing_started_at` for the timestamps. Delivery notes and
 queue attempt fields are omitted. The fair-use ceiling is 2,000 webhook
-events a month. The server does not count them.
+events a month. The server does not count them. A derived webhook
+diagnostic is not a public tool. Those three reads are the documented
+surface. The logs page does not define a health rule a new tool could
+apply without inventing one.
 
 `list_connected_orgs` returns `{ connected_orgs, page, limit }`. Each
 connection is `id`, `org_name`, `partner_org_id`, `permission_role_id`,
@@ -284,6 +288,18 @@ same value as `entity_type`. `create_permission_role` sends `role_type`
 1 and the page's permission keys as a JSON string. Connected-org calls
 are limited to 100 a day per user and per org. The server does not
 count them.
+
+`preflight_project_share` takes `project_id` and `target_org_id`. It
+reads up to three connected-org pages, the project, and one systems
+page. It does not call `share_project` or `share_entities`. `connection`
+is `active` only when the scan finishes and one match has `is_active`
+true. An unfinished scan is `unknown`, not `not_connected`.
+`project_share` uses `shared_with`. Payment option, pricing scheme,
+costing, and module activation rows carry ids when the documented
+payload has them. Their `share` stays `unknown` because those reads do
+not list the orgs an entity is shared with. Inverter, battery, and other
+activation ids stay `unknown` because the systems list example does not
+name those keys. `unknown` is not safe to share.
 
 `get_proposal_data` takes one `project_id` and calls
 `GET user_logins/?project_ids=`. It returns system name, annual kWh,
@@ -408,8 +424,8 @@ is historical (it still describes a 19-tool v1). Phase 2 reads, phase 3 writes, 
 | HTTP transport | Stateless Streamable HTTP via `createMcpHandler` |
 | `--check` / `--list-tools` | Implemented |
 | Tool titles, `outputSchema`, `structuredContent` | Implemented for the registered reads and writes |
-| Documented inventory | 74 tools registered, including derived `search_projects`, `search_contacts`, and `compare_project_systems`, and composite `get_project_snapshot`. Nine writes stay unsupported until their request contracts are established with sufficient confidence. Absence of an example request alone does not decide that. The public release checklist is not done. |
-| `OPENSOLAR_TOOLSETS` / `OPENSOLAR_READ_ONLY` | Read at registration |
+| Documented inventory | 75 tools registered, including derived `search_projects`, `search_contacts`, `compare_project_systems`, and `preflight_project_share`, and composite `get_project_snapshot`. Nine writes stay unsupported until their request contracts are established with sufficient confidence. Absence of an example request alone does not decide that. The public release checklist is not done. |
+| `OPENSOLAR_TOOLSETS` / `OPENSOLAR_READ_ONLY` | Read at registration. `OPENSOLAR_PROFILE` is not implemented. A later plan may add `agent` for the common operational tools plus settled derived tools, and `full` for every tool. An explicit `OPENSOLAR_TOOLSETS` list would still override either profile. |
 | Client GET timeout | Implemented (30s default; per-call override) |
 | Client auth / errors | Present |
 | Client tier / pagination / rate-limit modules | Still missing |

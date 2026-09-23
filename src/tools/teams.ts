@@ -4,8 +4,10 @@ import { openSolarSuccess, runOpenSolarTool } from '../client/errors.js';
 import type { OpenSolarClient } from '../client/index.js';
 import { SHARE_ENTITY_TYPES } from '../lib/enums/share-entities.js';
 import { TEAM_PERMISSION_KEYS } from '../lib/enums/team-permissions.js';
+import { loadProjectSharePreflight } from '../lib/preflight-project-share.js';
 import type { ToolName } from '../lib/tier-policy.js';
 import { DeletedRecordSchema } from '../schemas/project.js';
+import { PreflightProjectShareSchema } from '../schemas/project-share-preflight.js';
 import {
   AcceptConnectionRequestOutputSchema,
   type ConnectedOrg,
@@ -249,6 +251,9 @@ export function registerTeamsToolset(
   if (enabled.has('list_connected_orgs')) {
     registerListConnectedOrgs(server, ctx);
   }
+  if (enabled.has('preflight_project_share')) {
+    registerPreflightProjectShare(server, ctx);
+  }
   if (enabled.has('list_connection_requests')) {
     registerListConnectionRequests(server, ctx);
   }
@@ -312,6 +317,39 @@ function registerListConnectedOrgs(server: McpServer, ctx: TeamsContext): void {
         return openSolarSuccess(
           output,
           `Connected orgs: ${output.connected_orgs.length} (page ${page}, limit ${limit}).`,
+        );
+      }),
+  );
+}
+
+function registerPreflightProjectShare(server: McpServer, ctx: TeamsContext): void {
+  server.registerTool(
+    'preflight_project_share',
+    {
+      title: 'Preflight project share',
+      description:
+        'Checks whether a project can be shared with a connected org. This does not share the project or any entity. ' +
+        'connection is active only when one completed list match has is_active true. ' +
+        'project_share comes from shared_with on the project. ' +
+        'A resource share of unknown means the documented reads do not show whether that entity is shared. unknown is not safe to share. ' +
+        'Payment options, pricing schemes, costings, and component activations are included. Inverter, battery, and other activation ids are unknown because the systems list example does not name those keys.',
+      inputSchema: z
+        .object({
+          project_id: positiveId.describe('Project id from list_projects or search_projects.'),
+          target_org_id: positiveId.describe('Partner org id, not the connection id.'),
+        })
+        .strict(),
+      outputSchema: PreflightProjectShareSchema,
+      annotations: readAnnotations,
+    },
+    async ({ project_id, target_org_id }) =>
+      runOpenSolarTool(async () => {
+        const payload = PreflightProjectShareSchema.parse(
+          await loadProjectSharePreflight(ctx.client, ctx.orgId, project_id, target_org_id),
+        );
+        return openSolarSuccess(
+          payload,
+          `Share preflight for project ${project_id} and org ${target_org_id}: connection ${payload.connection.status}, project ${payload.project_share.status}.`,
         );
       }),
   );

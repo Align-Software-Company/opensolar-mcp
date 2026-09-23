@@ -71,6 +71,7 @@ export const TIER_POLICY = {
   list_webhook_logs: { requires: 'api_access', mutation: false },
   list_webhook_queue: { requires: 'api_access', mutation: false },
   list_connected_orgs: { requires: 'api_access', mutation: false },
+  preflight_project_share: { requires: 'api_access', mutation: false },
   list_connection_requests: { requires: 'api_access', mutation: false },
   create_connection_request: { requires: 'api_access', mutation: true },
   accept_connection_request: { requires: 'api_access', mutation: true },

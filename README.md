@@ -54,7 +54,7 @@ Tools registered today, in `--list-tools` order:
 | reference | `list_roof_types`, `list_file_tags` |
 | files | `list_private_files`, `get_private_file`, `create_private_file`, `update_private_file`, `delete_private_file`, `generate_project_document` |
 | webhooks | `list_webhooks`, `create_webhook`, `update_webhook`, `list_webhook_logs`, `list_webhook_queue` |
-| teams | `list_connected_orgs`, `list_connection_requests`, `create_connection_request`, `accept_connection_request`, `update_connection`, `delete_connection`, `share_project`, `share_entities`, `create_permission_role` |
+| teams | `list_connected_orgs`, `preflight_project_share`, `list_connection_requests`, `create_connection_request`, `accept_connection_request`, `update_connection`, `delete_connection`, `share_project`, `share_entities`, `create_permission_role` |
 | raw_data | `get_proposal_data`, `get_project_design` |
 
 `OPENSOLAR_READ_ONLY=1` omits every registered create, update, and delete. The reads stay. Phase 4 writes on that list are `delete_module_activation`, `delete_inverter_activation`, `delete_battery_activation`, `delete_other_component_activation`, `create_workflow`, `delete_workflow`, `delete_payment_option`, `delete_pricing_scheme`, and `delete_costing`. Phase 5 writes are `create_private_file`, `update_private_file`, `delete_private_file`, `generate_project_document`, and `get_system_image`. `get_system_image` is omitted because the first call can create a private file. Phase 6 writes are `create_webhook` and `update_webhook`. There is no webhook delete. Phase 7 writes are `create_connection_request`, `accept_connection_request`, `update_connection`, `delete_connection`, `share_project`, `share_entities`, and `create_permission_role`.
@@ -64,6 +64,8 @@ Tools registered today, in `--list-tools` order:
 `get_project_snapshot` reads one project together with its workflow, systems, and file metadata. A section that fails comes back as a gap. `update_project_stage` accepts a stage id or a stage title. A title that matches two stages is not patched.
 
 `compare_project_systems` returns the columns each system payload actually has and does not pick a winner. `get_project_design` takes an optional section. `components` and `energy` stay unmapped until the decompress section names those keys. `OPENSOLAR_PLAN=api_access` still omits `get_project_design`.
+
+`preflight_project_share` reads the connection list, the project, and one systems page. It does not share the project or any entity. `unknown` on a resource means those reads do not show whether it is shared with the target org.
 
 Catalog activation creates, `create_pricing_scheme`, `create_payment_option`, `create_costing`, `update_workflow`, and `update_org` are not registered. A write stays unsupported when its request contract has not been established with sufficient confidence. The contract may be established through sufficient official OpenSolar documentation or deliberate live verification recorded in the API contract and quirk docs. Absence of an example request alone does not make an operation unsupported. The public release checklist is not done.
 

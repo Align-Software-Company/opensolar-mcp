@@ -73,6 +73,7 @@ const expectedOrder = [
   'list_webhook_logs',
   'list_webhook_queue',
   'list_connected_orgs',
+  'preflight_project_share',
   'list_connection_requests',
   'create_connection_request',
   'accept_connection_request',
