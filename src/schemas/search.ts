@@ -42,6 +42,7 @@ export const SearchReportSchema = z
     pages_scanned: z.number().int().nonnegative(),
     complete: z.boolean(),
     results_truncated: z.boolean(),
+    resolution: z.enum(['none', 'unique', 'ambiguous', 'incomplete']),
     stopped_by: z.enum(['end', 'max_pages']),
   })
   .strict();
