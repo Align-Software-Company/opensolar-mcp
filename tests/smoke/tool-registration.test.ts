@@ -10,6 +10,7 @@ afterEach(() => {
 
 const expectedOrder = [
   'list_projects',
+  'search_projects',
   'get_project',
   'create_project',
   'update_project',
@@ -20,6 +21,7 @@ const expectedOrder = [
   'list_roles',
   'get_role',
   'list_contacts',
+  'search_contacts',
   'get_contact',
   'create_contact',
   'update_contact',
@@ -460,6 +462,8 @@ describe('selectTools', () => {
       ...reads,
     ]);
     expect(reads).toContain('list_projects');
+    expect(reads).toContain('search_projects');
+    expect(reads).toContain('search_contacts');
     expect(reads).not.toContain('create_contact');
     expect(reads).not.toContain('create_project');
     expect(reads).not.toContain('update_project');

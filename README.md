@@ -41,9 +41,9 @@ Tools registered today, in `--list-tools` order:
 
 | Toolset | Tools |
 | --- | --- |
-| projects | `list_projects`, `get_project`, `create_project`, `update_project`, `update_project_stage`, `update_project_usage`, `delete_project` |
+| projects | `list_projects`, `search_projects`, `get_project`, `create_project`, `update_project`, `update_project_stage`, `update_project_usage`, `delete_project` |
 | org | `get_org`, `list_roles`, `get_role` |
-| contacts | `list_contacts`, `get_contact`, `create_contact`, `update_contact`, `delete_contact` |
+| contacts | `list_contacts`, `search_contacts`, `get_contact`, `create_contact`, `update_contact`, `delete_contact` |
 | events | `get_event`, `list_event_types` |
 | systems | `list_project_systems`, `get_system`, `get_system_details`, `get_system_image` |
 | components | `list_modules`, `get_module`, `delete_module_activation`, `list_inverters`, `get_inverter`, `delete_inverter_activation`, `list_batteries`, `get_battery`, `delete_battery_activation`, `list_other_components`, `get_other_component`, `delete_other_component_activation` |
@@ -60,6 +60,8 @@ Tools registered today, in `--list-tools` order:
 `OPENSOLAR_READ_ONLY=1` omits every registered create, update, and delete. The reads stay. Phase 4 writes on that list are `delete_module_activation`, `delete_inverter_activation`, `delete_battery_activation`, `delete_other_component_activation`, `create_workflow`, `delete_workflow`, `delete_payment_option`, `delete_pricing_scheme`, and `delete_costing`. Phase 5 writes are `create_private_file`, `update_private_file`, `delete_private_file`, `generate_project_document`, and `get_system_image`. `get_system_image` is omitted because the first call can create a private file. Phase 6 writes are `create_webhook` and `update_webhook`. There is no webhook delete. Phase 7 writes are `create_connection_request`, `accept_connection_request`, `update_connection`, `delete_connection`, `share_project`, `share_entities`, and `create_permission_role`.
 
 Catalog activation creates, `create_pricing_scheme`, `create_payment_option`, `create_costing`, `update_workflow`, and `update_org` are not registered. Those pages list the write and show no request example.
+
+`search_projects` and `search_contacts` page those documented lists and match locally. They do not send an OpenSolar `search` query.
 
 Nine writes from the documented inventory are not registered. Those pages list the method and show no request example. The public release checklist is not done.
 

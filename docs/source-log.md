@@ -24,7 +24,7 @@ Base: https://developers.opensolar.com/api/
 | API access FAQs | https://developers.opensolar.com/api/api-access-faqs/ | 2026-08-22 |
 | Getting bearer tokens | https://developers.opensolar.com/api/getting-bearer-tokens/ | 2026-08-22 |
 | Schema overview | https://developers.opensolar.com/api/schema-overview/ | 2026-08-22 |
-| Projects | https://developers.opensolar.com/api/projects/ | 2026-08-22 |
+| Projects | https://developers.opensolar.com/api/projects/ | 2026-09-22 |
 | Contacts | https://developers.opensolar.com/api/contacts/ | 2026-08-22 |
 | Systems | https://developers.opensolar.com/api/system/ | 2026-08-22 |
 | System details | https://developers.opensolar.com/api/system-details/ | 2026-08-22 |
@@ -155,7 +155,8 @@ ordering were re-checked on 2026-09-22 via `pnpm test:integration`
 | Design module, code, and annual keys | The projects decompress section (retrieved 2026-09-22) names `systems` and `system_price_including_tax`. It does not name keys for module quantity, inverter or battery codes, or annual production. `get_project_design` does not invent them. |
 | Connected org list `ordering` and `range` | The listing sample (retrieved 2026-09-22) also sends `ordering=-id` and `range`. `list_connected_orgs` sends `fieldset=list`, `page`, and `limit`. |
 | Team writes | The team pages show request curls (retrieved 2026-09-22). Those calls were not made against a live org. Accept, share, and permission-role responses are not shown, so those tools return the request confirmation rather than the upstream body. |
-| `GET /contacts/?search=` | Absent from official Contacts query table; no live check in this log |
+| `GET /contacts/?search=` | Absent from official Contacts query table; no live check in this log. `search_contacts` does not send it. |
+| Project list fields used by `search_projects` | Projects page retrieved 2026-09-22. The list example includes `title`, `address`, `business_name`, and `contacts_data` with `email`, `phone`, `first_name`, `family_name`, and `display`. Project `identifier`, `locality`, `state`, and `zip` are on the detail example, not the list example. No search call was made. No response body was stored. |
 | Nested `GET /projects/:project_id/systems/` | Systems docs specify `GET /systems/?fieldset=list&project=` |
 | Conventions doc claim that `-` means ascending | Contradicted by Private Files docs and org-48389 contacts |
 

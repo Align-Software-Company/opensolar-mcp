@@ -39,6 +39,7 @@ export type ToolsetName = (typeof TOOLSET_NAMES)[number];
 export const TOOLSET_TOOLS: Record<ToolsetName, readonly ToolName[]> = {
   projects: [
     'list_projects',
+    'search_projects',
     'get_project',
     'create_project',
     'update_project',
@@ -47,7 +48,14 @@ export const TOOLSET_TOOLS: Record<ToolsetName, readonly ToolName[]> = {
     'delete_project',
   ],
   org: ['get_org', 'list_roles', 'get_role'],
-  contacts: ['list_contacts', 'get_contact', 'create_contact', 'update_contact', 'delete_contact'],
+  contacts: [
+    'list_contacts',
+    'search_contacts',
+    'get_contact',
+    'create_contact',
+    'update_contact',
+    'delete_contact',
+  ],
   events: ['get_event', 'list_event_types'],
   systems: ['list_project_systems', 'get_system', 'get_system_details', 'get_system_image'],
   components: [
@@ -146,6 +154,7 @@ export function registerAllToolsets(
   const enabled = new Set(selectTools(filters));
   if (
     enabled.has('list_projects') ||
+    enabled.has('search_projects') ||
     enabled.has('get_project') ||
     enabled.has('create_project') ||
     enabled.has('update_project') ||
@@ -160,6 +169,7 @@ export function registerAllToolsets(
   }
   if (
     enabled.has('list_contacts') ||
+    enabled.has('search_contacts') ||
     enabled.has('get_contact') ||
     enabled.has('create_contact') ||
     enabled.has('update_contact') ||

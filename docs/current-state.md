@@ -18,7 +18,7 @@ Last reviewed: 2026-09-22
 | Module | ESM (`"type": "module"`) |
 | Package manager | pnpm |
 | License | MIT (`LICENSE`; copyright Align Software Company 2026) |
-| README | Install instructions and the 70 registered tools. Public release checklist is not done. |
+| README | Install instructions and the 72 registered tools. Public release checklist is not done. |
 
 The annotated tag `pre-rebase-baseline` still points at the earlier
 walking-skeleton snapshot. This file describes the tree through phase 8
@@ -121,6 +121,7 @@ Errors return `isError: true` with no `structuredContent`.
 | Tool | Toolset file | `TIER_POLICY` | HTTP | Status |
 |------|--------------|---------------|------|--------|
 | `list_projects` | `src/tools/projects.ts` | `api_access`, read | `GET orgs/:org_id/projects/?limit=&page=` | Implemented |
+| `search_projects` | `src/tools/projects.ts` | `api_access`, read | `GET orgs/:org_id/projects/?page=&limit=100` | Implemented |
 | `get_project` | `src/tools/projects.ts` | `api_access`, read, `degradesWith: ['design']` | `GET orgs/:org_id/projects/:id/` | Implemented |
 | `create_project` | `src/tools/projects.ts` | `api_access`, mutation | `POST orgs/:org_id/projects/` | Implemented |
 | `update_project` | `src/tools/projects.ts` | `api_access`, mutation | `PATCH orgs/:org_id/projects/:id/` | Implemented |
@@ -131,6 +132,7 @@ Errors return `isError: true` with no `structuredContent`.
 | `list_roles` | `src/tools/org.ts` | `api_access`, read | `GET orgs/:org_id/roles/` | Implemented |
 | `get_role` | `src/tools/org.ts` | `api_access`, read | `GET orgs/:org_id/roles/:id/` | Implemented |
 | `list_contacts` | `src/tools/crm.ts` | `api_access`, read | `GET orgs/:org_id/contacts/?page=&limit=&ordering=` | Implemented |
+| `search_contacts` | `src/tools/crm.ts` | `api_access`, read | `GET orgs/:org_id/contacts/?page=&limit=100` | Implemented |
 | `get_contact` | `src/tools/crm.ts` | `api_access`, read | `GET orgs/:org_id/contacts/:id/` | Implemented |
 | `create_contact` | `src/tools/crm.ts` | `api_access`, mutation | `POST orgs/:org_id/contacts/` | Implemented |
 | `update_contact` | `src/tools/crm.ts` | `api_access`, mutation | `PUT orgs/:org_id/contacts/:id/` | Implemented |
@@ -191,7 +193,7 @@ Errors return `isError: true` with no `structuredContent`.
 | `get_proposal_data` | `src/tools/raw-data.ts` | `raw_data`, read | `GET user_logins/?project_ids=` | Implemented |
 | `get_project_design` | `src/tools/raw-data.ts` | `raw_data`, read | `GET orgs/:org_id/projects/:id/` | Implemented |
 
-70 tools are registered. Nine writes from the documented inventory are
+72 tools are registered. `search_projects` and `search_contacts` page the documented lists and match locally. They do not send a `search` query. Nine writes from the documented inventory are
 not, because those pages list the method and show no request example:
 `create_module_activation`, `create_inverter_activation`,
 `create_battery_activation`, `create_other_component_activation`,
@@ -393,7 +395,7 @@ is historical (it still describes a 19-tool v1). Phase 2 reads, phase 3 writes, 
 | HTTP transport | Stateless Streamable HTTP via `createMcpHandler` |
 | `--check` / `--list-tools` | Implemented |
 | Tool titles, `outputSchema`, `structuredContent` | Implemented for the registered reads and writes |
-| Documented inventory | 70 tools registered. Nine writes wait on a published request example. The public release checklist is not done. |
+| Documented inventory | 72 tools registered, including derived `search_projects` and `search_contacts`. Nine writes wait on a published request example. The public release checklist is not done. |
 | `OPENSOLAR_TOOLSETS` / `OPENSOLAR_READ_ONLY` | Read at registration |
 | Client GET timeout | Implemented (30s default; per-call override) |
 | Client auth / errors | Present |

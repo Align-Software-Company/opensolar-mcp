@@ -2,7 +2,9 @@ import type { McpServer } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 import { openSolarSuccess, runOpenSolarTool } from '../client/errors.js';
 import type { OpenSolarClient } from '../client/index.js';
+import { type ProjectMatchSource, rankProject } from '../lib/entity-match.js';
 import { DEFAULT_REDACTION, redactSensitive } from '../lib/redaction.js';
+import { BareListPageError, scanPaginatedCollection } from '../lib/scan-pages.js';
 import type { ToolName } from '../lib/tier-policy.js';
 import { ContactWriteSchema } from '../schemas/contact.js';
 import {
@@ -15,9 +17,15 @@ import {
   ProjectFullSchema,
   ProjectListSchema,
   ProjectStageResultSchema,
+  ProjectSummarySchema,
   ProjectUsageResultSchema,
   ProjectWriteResultSchema,
 } from '../schemas/project.js';
+import {
+  SEARCH_PAGE_SIZE,
+  SearchInputSchema,
+  SearchProjectsOutputSchema,
+} from '../schemas/search.js';
 
 export interface ProjectsContext {
   client: OpenSolarClient;
@@ -391,6 +399,74 @@ export function registerProjectsToolset(
     );
   }
 
+  if (enabled.has('search_projects')) {
+    server.registerTool(
+      'search_projects',
+      {
+        title: 'Search projects',
+        description:
+          'Finds projects by paging the documented project list and matching locally. It does not call get_project and it does not send a search query. ' +
+          'The documented list includes title, address, business_name, and embedded contact name, email, and phone. ' +
+          'identifier, locality, state, and zip match only when that list row carries them. ' +
+          '`complete` is false when further pages were not read. `results_truncated` is true when some matches on the scanned pages were not returned. ' +
+          'The 20-page cap is an MCP work bound, not an OpenSolar quota. This server does not count that quota.',
+        inputSchema: SearchInputSchema,
+        outputSchema: SearchProjectsOutputSchema,
+        annotations: readAnnotations,
+      },
+      async ({ query, max_pages, max_results }) =>
+        runOpenSolarTool(async () => {
+          try {
+            const scan = await scanPaginatedCollection({
+              pageSize: SEARCH_PAGE_SIZE,
+              maxPages: max_pages,
+              maxResults: max_results,
+              match: (item: unknown) => matchProject(query, item),
+              fetchPage: async (page) => {
+                const params = new URLSearchParams({
+                  page: String(page),
+                  limit: String(SEARCH_PAGE_SIZE),
+                });
+                const raw = await ctx.client.get(
+                  `orgs/${ctx.orgId}/projects/?${params.toString()}`,
+                );
+                if (!Array.isArray(raw)) {
+                  throw new BareListPageError('Project list was not an array.');
+                }
+                return raw;
+              },
+            });
+            const payload = SearchProjectsOutputSchema.parse({
+              matches: scan.matches,
+              search: {
+                query,
+                records_scanned: scan.records_scanned,
+                pages_scanned: scan.pages_scanned,
+                complete: scan.complete,
+                results_truncated: scan.results_truncated,
+                stopped_by: scan.stopped_by,
+              },
+            });
+            const finished = payload.search.complete
+              ? 'The list was exhausted.'
+              : 'Further pages were not read.';
+            const dropped = payload.search.results_truncated
+              ? ' Some matches were not returned.'
+              : '';
+            return openSolarSuccess(
+              payload,
+              `${payload.matches.length} projects. ${finished}${dropped}`,
+            );
+          } catch (error) {
+            if (error instanceof BareListPageError) {
+              return { isError: true, content: [{ type: 'text', text: error.message }] };
+            }
+            throw error;
+          }
+        }),
+    );
+  }
+
   if (enabled.has('get_project')) {
     server.registerTool(
       'get_project',
@@ -539,4 +615,62 @@ export function registerProjectsToolset(
         }),
     );
   }
+}
+
+function matchProject(query: string, item: unknown): Record<string, unknown> | null {
+  const parsed = ProjectSummarySchema.safeParse(item);
+  if (!parsed.success) {
+    return null;
+  }
+  const redacted = redactSensitive(parsed.data, DEFAULT_REDACTION);
+  const ranked = rankProject(query, projectMatchSource(redacted));
+  if (ranked === null) {
+    return null;
+  }
+  return { ...curateProjectListRow(parsed.data), match: ranked };
+}
+
+function projectMatchSource(value: unknown): ProjectMatchSource {
+  const record = asRecord(value);
+  if (record === null) {
+    return {};
+  }
+  const contacts = Array.isArray(record.contacts_data)
+    ? record.contacts_data.flatMap((entry) => {
+        const contact = asRecord(entry);
+        if (contact === null) {
+          return [];
+        }
+        return [
+          {
+            email: stringField(contact.email),
+            phone: stringField(contact.phone),
+            first_name: stringField(contact.first_name),
+            family_name: stringField(contact.family_name),
+            display: stringField(contact.display),
+          },
+        ];
+      })
+    : [];
+  return {
+    title: stringField(record.title),
+    address: stringField(record.address),
+    identifier: stringField(record.identifier),
+    business_name: stringField(record.business_name),
+    locality: stringField(record.locality),
+    state: stringField(record.state),
+    zip: stringField(record.zip),
+    contacts,
+  };
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return null;
+  }
+  return Object.fromEntries(Object.entries(value));
+}
+
+function stringField(value: unknown): string | null {
+  return typeof value === 'string' ? value : null;
 }

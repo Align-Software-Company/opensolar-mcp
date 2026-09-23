@@ -8,7 +8,9 @@ export type ToolPolicy = {
 
 export const TIER_POLICY = {
   list_projects: { requires: 'api_access', mutation: false },
+  search_projects: { requires: 'api_access', mutation: false },
   list_contacts: { requires: 'api_access', mutation: false },
+  search_contacts: { requires: 'api_access', mutation: false },
   get_contact: { requires: 'api_access', mutation: false },
   create_contact: { requires: 'api_access', mutation: true },
   update_contact: { requires: 'api_access', mutation: true },

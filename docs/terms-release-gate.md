@@ -19,7 +19,9 @@ Binding rules:
 
 - Map each tool to a row in [api-contract-matrix.md](./api-contract-matrix.md).
 - If the matrix marks a parameter `deferred` or not live-verified, do not
-  ship it. Contact `search` is the standing example.
+  ship that parameter. OpenSolar `GET /contacts/?search=` stays deferred.
+  `search_contacts` is a separate derived tool: it pages the documented
+  list and matches locally.
 - Do not hide bulk work inside a tool (N sequential POSTs presented as
   one call). OpenSolar has no batch project API; looping belongs with
   the caller so per-item failures stay visible.

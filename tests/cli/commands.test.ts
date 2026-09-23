@@ -56,6 +56,7 @@ describe('CLI commands', () => {
     write.mockRestore();
     expect(chunks.join('').trim().split('\n')).toEqual([
       'list_projects',
+      'search_projects',
       'get_project',
       'create_project',
       'update_project',
@@ -66,6 +67,7 @@ describe('CLI commands', () => {
       'list_roles',
       'get_role',
       'list_contacts',
+      'search_contacts',
       'get_contact',
       'create_contact',
       'update_contact',
