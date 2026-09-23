@@ -379,8 +379,8 @@ See [api-contract-matrix.md](./api-contract-matrix.md).
 - GET, POST, PUT, PATCH, and DELETE share one request path
 - POST, PUT, and PATCH send JSON. DELETE sends no body. Writes are not retried
 - `postForm` sends multipart and does not set `Content-Type`
-- `download` fetches a signed media URL with no API bearer and refuses a body over 10 MB
-- `getFile` follows redirects on an API path, keeps the bearer, and does not return the final URL
+- `download` fetches a signed HTTPS media URL with no API bearer, rejects a non-HTTPS final redirect, and stops streaming once a body exceeds 10 MB
+- `getFile` follows redirects on an API path, keeps the bearer, does not return the final URL, and stops streaming once requested file bytes exceed 10 MB
 - A non-GET path that does not already end in `/` gets one trailing slash
 - `resourceUrl` builds an absolute URL from the configured base URL
 - 30s timeout via `AbortSignal.timeout`; a call may pass `timeoutMs` (`get_system_details` and `get_system_image` use 120s); timeout becomes HTTP 504
@@ -402,7 +402,7 @@ Not present as modules (planned in `dev-docs/directory.md`):
 - `src/client/rate-limit.ts` — not a module. Bounded 429 retry for ordinary JSON GET lives in `src/client/index.ts`.
 
 Config: [`src/lib/config.ts`](../src/lib/config.ts). Zod-validated.
-Stdio and `--check` fail if token or org id is missing. HTTP requires
+Invalid `OPENSOLAR_READ_ONLY` and `MCP_TRANSPORT` values fail closed, and an empty HTTP host is rejected. Stdio and `--check` fail if token or org id is missing. HTTP requires
 org id at startup. Loopback HTTP may use the env token; non-loopback
 HTTP returns 401 unless each MCP request carries a valid Bearer-shaped
 OpenSolar token. Host and browser-Origin allowlisting are separate from authentication; on non-loopback binds the Origin allowlist defaults to the Host allowlist.
