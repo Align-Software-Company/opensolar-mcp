@@ -78,7 +78,7 @@ Accepted decisions (local `dev-docs/decisions/`):
 Env vars: `OPENSOLAR_API_TOKEN`, `OPENSOLAR_ORG_ID`, `OPENSOLAR_BASE_URL`,
 `OPENSOLAR_PROFILE`, `OPENSOLAR_TOOLSETS`, `OPENSOLAR_READ_ONLY`, `OPENSOLAR_PLAN`,
 `OPENSOLAR_UPLOAD_ROOT`, `MCP_TRANSPORT`, `MCP_HTTP_HOST`, `MCP_HTTP_PORT`, `MCP_HTTP_PATH`,
-`MCP_HTTP_ALLOWED_HOSTS`. Live tests also read
+`MCP_HTTP_ALLOWED_HOSTS`, `MCP_HTTP_ALLOWED_ORIGINS`. Live tests also read
 `OPENSOLAR_INTEGRATION_WRITES`, `OPENSOLAR_TEST_PROJECT_ID`, and
 `OPENSOLAR_TEST_CONNECTED_ORG_ID`. Those three are not server settings.
 
@@ -94,7 +94,7 @@ Env vars: `OPENSOLAR_API_TOKEN`, `OPENSOLAR_ORG_ID`, `OPENSOLAR_BASE_URL`,
 | `--list-tools` | Implemented | `src/cli/list-tools.ts` (registration order, not sorted) |
 | `--help` | Implemented | `src/cli/help.ts` |
 | `--http` / bind / path | Implemented | `src/lib/config.ts` + `src/transports/http.ts` |
-| Dockerfile | Implemented | Node 24 image, `CMD --http`, healthcheck on `/health`. Default bind stays loopback. |
+| Dockerfile | Implemented | Node 24 image, non-root runtime, `CMD --http`, healthcheck on `/health` using `MCP_HTTP_PORT`. The image defaults to `0.0.0.0` with localhost Host/Origin values allowed. |
 
 MCP server identity: name `@alignco/opensolar-mcp`, version read from `package.json` (`0.1.0-rc.1`).
 The server advertises tools only (no empty resources/prompts handlers).
@@ -405,7 +405,7 @@ Config: [`src/lib/config.ts`](../src/lib/config.ts). Zod-validated.
 Stdio and `--check` fail if token or org id is missing. HTTP requires
 org id at startup. Loopback HTTP may use the env token; non-loopback
 HTTP returns 401 unless each MCP request carries a valid Bearer-shaped
-OpenSolar token. Host allowlisting is separate from authentication.
+OpenSolar token. Host and browser-Origin allowlisting are separate from authentication; on non-loopback binds the Origin allowlist defaults to the Host allowlist.
 
 Logging: [`src/lib/log.ts`](../src/lib/log.ts) writes JSON lines to stderr
 for every level so stdio stdout stays protocol-clean.
@@ -458,7 +458,7 @@ clean temporary project, and runs stdio/HTTP artifact smoke tests. The
 release smoke also verifies non-loopback HTTP requires a per-request
 Bearer token and scans all supported local env locations for tokens
 without printing them. CI does not set OpenSolar credentials or the
-write flag. `tests/integration` stays out of `check:all`.
+write flag. `tests/integration` stays out of `check:all`. CI also builds the Docker image and runs the non-root/auth/Origin/tool-surface smoke.
 
 ---
 
