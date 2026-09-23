@@ -1,6 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { runCli } from '../../src/cli/run.js';
-import { ConfigError, parseFlags, resolveHttpBind } from '../../src/lib/config.js';
+import {
+  ConfigError,
+  parseFlags,
+  resolveHttpBind,
+  useHttpTransport,
+} from '../../src/lib/config.js';
 import { AGENT_PROFILE_TOOLS } from '../fixtures/agent-profile.js';
 
 afterEach(() => {
@@ -26,9 +31,23 @@ describe('CLI flags', () => {
     expect(() => parseFlags(['--not-a-flag'])).toThrow(ConfigError);
   });
 
+  it('validates MCP_TRANSPORT instead of silently falling back to stdio', () => {
+    const flags = parseFlags([]);
+    expect(useHttpTransport(flags, {})).toBe(false);
+    expect(useHttpTransport(flags, { MCP_TRANSPORT: 'stdio' })).toBe(false);
+    expect(useHttpTransport(flags, { MCP_TRANSPORT: 'http' })).toBe(true);
+    expect(() => useHttpTransport(flags, { MCP_TRANSPORT: 'htpp' })).toThrow(/MCP_TRANSPORT/);
+  });
+
   it('requires allowed hosts when binding a wildcard HTTP address', () => {
     expect(() => resolveHttpBind(parseFlags(['--http', '--host', '0.0.0.0']))).toThrow(
       /MCP_HTTP_ALLOWED_HOSTS/,
+    );
+  });
+
+  it('rejects an empty HTTP host', () => {
+    expect(() => resolveHttpBind(parseFlags(['--http']), { MCP_HTTP_HOST: '   ' })).toThrow(
+      /MCP_HTTP_HOST/,
     );
   });
 
