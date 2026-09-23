@@ -83,7 +83,7 @@ opensolar-mcp --list-tools
 | --- | --- | --- |
 | `OPENSOLAR_API_TOKEN` | OpenSolar bearer token. Required by stdio and `--check`. Loopback HTTP may also use it as a fallback. | none |
 | `OPENSOLAR_ORG_ID` | OpenSolar organisation ID used in org-scoped endpoints. | required |
-| `OPENSOLAR_BASE_URL` | OpenSolar API base URL. | `https://api.opensolar.com/api/` |
+| `OPENSOLAR_BASE_URL` | OpenSolar API base URL. HTTPS is required except HTTP loopback URLs for local development/tests; embedded credentials, query strings, and fragments are rejected. | `https://api.opensolar.com/api/` |
 | `OPENSOLAR_PROFILE` | Tool profile: `agent` or `full`. | `agent` |
 | `OPENSOLAR_TOOLSETS` | Comma-separated toolsets. When set, overrides profile membership. | unset |
 | `OPENSOLAR_READ_ONLY` | `1`, `true`, `yes`, or `on` hides every registered mutation; `0`, `false`, `no`, or `off` explicitly disables it. Any other value is rejected. | off |
