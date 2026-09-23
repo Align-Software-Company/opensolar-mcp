@@ -4,6 +4,7 @@ import { createMcpHandler } from '@modelcontextprotocol/server';
 import { resolveToken } from '../client/auth.js';
 import { createClient } from '../client/index.js';
 import {
+  ConfigError,
   type HttpBind,
   isLoopbackHttpHost,
   loadBaseUrl,
@@ -40,6 +41,19 @@ export function createHttpApp(bind: HttpBind): ReturnType<typeof createMcpHonoAp
   app.get('/health', (c) => c.json({ status: 'ok' }));
   app.get('/ready', (c) => c.json({ status: 'ready' }));
   app.all(bind.path, (c) => {
+    try {
+      resolveToken({
+        header: c.req.raw.headers.get('authorization'),
+        envToken,
+        allowEnvFallback,
+      });
+    } catch (error) {
+      if (error instanceof ConfigError) {
+        c.header('WWW-Authenticate', 'Bearer');
+        return c.json({ error: 'Unauthorized' }, 401);
+      }
+      throw error;
+    }
     const parsedBody: unknown = c.get('parsedBody' as never);
     return handler.fetch(c.req.raw, { parsedBody });
   });
