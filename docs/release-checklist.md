@@ -10,18 +10,18 @@ The package version under review is `0.1.0-rc.1`. This checklist does not publis
 
 The original RC artifact was verified at `6e1bd14`. The pre-release audit that followed changes HTTP authentication, local-upload confinement, and binary result shaping, so the exact post-audit artifact must pass these checks again before a final release.
 
-- [ ] `pnpm check:all` is green. The ordinary suite must not call OpenSolar.
-- [ ] `pnpm build` is green.
-- [ ] `npm pack` contains only `package.json`, `README.md`, `LICENSE`, and `dist/`.
-- [ ] A clean `npm install` of the tarball runs `--help`, the 32-tool agent profile, the 75-tool full profile, the five webhook tools, and rejects an unknown profile.
-- [ ] Installed stdio completes `initialize`, `tools/list`, and one mocked read. Logs stay on stderr.
-- [ ] Installed loopback HTTP serves `/health`, `/ready`, initializes MCP, and lists the agent profile.
-- [ ] Installed non-loopback HTTP returns 401 without a per-request Bearer token even when `OPENSOLAR_API_TOKEN` is set in the server environment, and succeeds with an explicit Bearer token.
-- [ ] Binding `0.0.0.0` without `MCP_HTTP_ALLOWED_HOSTS` fails closed.
-- [ ] `create_private_file` is disabled without `OPENSOLAR_UPLOAD_ROOT` and cannot escape the configured real path, including through symlinks.
-- [ ] Binary private files and system images are not duplicated as base64 in `structuredContent`.
-- [ ] The release tarball secret scan checks every supported local env source without printing token values.
-- [ ] Docker starts, becomes healthy, and serves the MCP endpoint with the documented bind/auth behavior, or an unavailable Docker environment is recorded explicitly.
+- [x] `pnpm check:all` is green. The ordinary suite does not call OpenSolar. Post-audit CI passed 39 files / 258 tests.
+- [x] `pnpm build` is green. Post-audit CI built the release bundle successfully.
+- [x] `npm pack` contains only `package.json`, `README.md`, `LICENSE`, and `dist/` (five files total including the source map).
+- [x] A clean `npm install` of the tarball runs `--help`, the 32-tool agent profile, the 75-tool full profile, the five webhook tools, and rejects an unknown profile.
+- [x] Installed stdio completes `initialize`, `tools/list`, and one mocked read. Logs stay on stderr.
+- [x] Installed loopback HTTP serves `/health`, `/ready`, initializes MCP, and lists the agent profile.
+- [x] Installed non-loopback HTTP requires a per-request Bearer token even when `OPENSOLAR_API_TOKEN` is set in the server environment, and succeeds with an explicit Bearer token. The release smoke passed `http_public_requires_request_bearer=ok`.
+- [x] Binding `0.0.0.0` without `MCP_HTTP_ALLOWED_HOSTS` fails closed.
+- [x] `create_private_file` is disabled without `OPENSOLAR_UPLOAD_ROOT` and cannot escape the configured real path, including through symlinks; the offline test suite covers both cases.
+- [x] Binary private files and system images are not duplicated as base64 in `structuredContent`; the offline test suite covers image, PDF, and generic binary behavior.
+- [x] The release-smoke implementation checks both supported local env files without printing token values. CI had no local tokens to search and its tarball secret scan was clear.
+- [ ] Re-run Docker against the post-audit auth behavior before the final `0.1.0` release. The earlier RC Docker test predates the non-loopback Bearer hardening.
 - [x] GitHub Dependabot reported 0 open alerts on 2026-09-23.
 
 `prepack` runs `pnpm check:all && pnpm build`. Packaging must not require OpenSolar credentials or call OpenSolar.
