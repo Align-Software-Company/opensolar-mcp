@@ -293,7 +293,10 @@ export function resolveHttpBind(
   const allowedHosts = parseAllowedHosts(env.MCP_HTTP_ALLOWED_HOSTS);
 
   const normalizedHost = host.toLowerCase();
-  if (WILDCARD_HOSTS.has(normalizedHost) && (allowedHosts === undefined || allowedHosts.length === 0)) {
+  if (
+    WILDCARD_HOSTS.has(normalizedHost) &&
+    (allowedHosts === undefined || allowedHosts.length === 0)
+  ) {
     throw new ConfigError(
       `Binding HTTP to ${host} requires MCP_HTTP_ALLOWED_HOSTS so DNS-rebinding protection can allow your public hostname.`,
     );
