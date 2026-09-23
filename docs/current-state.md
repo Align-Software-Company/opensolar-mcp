@@ -338,7 +338,8 @@ and other activation ids stay `unknown` because the systems list example
 does not name those keys. `unknown` is not safe to share.
 
 `get_proposal_data` takes one `project_id` and calls
-`GET user_logins/?project_ids=`. It returns system name, annual kWh,
+`GET user_logins/?project_ids=`. Compressed JSON expansion is capped at
+64 MB before parsing. It returns system name, annual kWh,
 monthly kWh, payback year, net present value, IRR, and return on
 investment. A compressed `output` string is decoded before those numbers
 are read. Design blobs, panel coordinates, pricing objects, and the
@@ -348,7 +349,8 @@ means Raw Data API Access is missing.
 
 `get_project_design` reads `design` from `GET orgs/:org_id/projects/:id/`.
 A missing or null design returns `{ design_available: false }`. A present
-design is gunzipped. `section` defaults to `summary`: `system_count` and
+design is gunzipped with a 64 MB maximum decompressed output before JSON
+parsing. `section` defaults to `summary`: `system_count` and
 `system_price_including_tax`. `components` and `energy` return
 `unmapped: true` because the decompress section still does not name those
 keys. `geometry` reports whether `autoFacetsGeoJson` is present and does
