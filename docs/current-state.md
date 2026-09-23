@@ -21,10 +21,12 @@ Last reviewed: 2026-09-22
 | README | Install instructions and the 75 registered tools. Public release checklist is not done. |
 
 The annotated tag `pre-rebase-baseline` still points at the earlier
-walking-skeleton snapshot. This file describes the tree through phase 8
-of `dev-docs/plan/v1-2026-09-22.md` (phase 2 reads, phase 3 writes,
-registered phase 4 writes, phase 5 file tools, phase 6 webhooks, phase 7
-team tools, and the raw-data tools).
+walking-skeleton snapshot. The documented native inventory in
+`dev-docs/plan/v1-2026-09-22.md` is the foundation. Agent-oriented
+Batches A–D have shipped on top of it: `search_projects`,
+`search_contacts`, `get_project_snapshot`, `update_project_stage`
+stage-name resolution, `compare_project_systems`, `get_project_design`
+projections, and `preflight_project_share`.
 
 ---
 
@@ -37,7 +39,7 @@ Runtime dependencies:
 | `@modelcontextprotocol/server` | `^2.0.0` |
 | `@modelcontextprotocol/hono` | `^2.0.0` |
 | `@hono/node-server` | `^2.1.1` |
-| `hono` | `^4.13.3` |
+| `hono` | `^4.13.8` |
 | `zod` | `^4.4.3` |
 | `unpdf` | `^1.8.1` |
 
@@ -77,7 +79,9 @@ Accepted decisions (local `dev-docs/decisions/`):
 Env vars: `OPENSOLAR_API_TOKEN`, `OPENSOLAR_ORG_ID`, `OPENSOLAR_BASE_URL`,
 `OPENSOLAR_TOOLSETS`, `OPENSOLAR_READ_ONLY`, `OPENSOLAR_PLAN`,
 `MCP_TRANSPORT`, `MCP_HTTP_HOST`, `MCP_HTTP_PORT`, `MCP_HTTP_PATH`,
-`MCP_HTTP_ALLOWED_HOSTS`.
+`MCP_HTTP_ALLOWED_HOSTS`. Live tests also read
+`OPENSOLAR_INTEGRATION_WRITES`, `OPENSOLAR_TEST_PROJECT_ID`, and
+`OPENSOLAR_TEST_CONNECTED_ORG_ID`. Those three are not server settings.
 
 ---
 
@@ -97,9 +101,11 @@ MCP server identity: `{ name: '@alignco/opensolar-mcp', version: '0.0.1' }`.
 The server advertises tools only (no empty resources/prompts handlers).
 
 Server instructions are five lines in `src/lib/server-instructions.ts`:
-read before mutate, one page per list call, access-plan omissions, no
-invented IDs or bulk loops, do not open repository files for OpenSolar
-answers.
+read before mutate, one page per list call, access-plan omissions, do
+not invent IDs or simulate bulk work by looping mutation calls, and do
+not open repository files for OpenSolar answers. A documented bulk
+operation is used only when the MCP exposes it. `share_entities` is that
+case.
 
 ---
 
@@ -110,6 +116,24 @@ Registration: `src/tools/index.ts` registers toolsets in this order:
 `workflow`, `payment`, `pricing`, `costing`, `reference`, `files`,
 `webhooks`, `teams`, `raw_data`. Filtered by `OPENSOLAR_TOOLSETS`, `OPENSOLAR_READ_ONLY`, and
 `OPENSOLAR_PLAN`. `OPENSOLAR_PLAN=api_access` omits `get_proposal_data` and `get_project_design`.
+
+Tool kind is separate from evidence. `native` is one documented OpenSolar
+operation. `safe_wrapper` adds MCP-side checks around one operation;
+`update_project_stage` is that kind because a stage title is resolved
+before the documented PATCH. `derived` is local logic over documented
+reads: `search_projects`, `search_contacts`, `compare_project_systems`,
+`get_project_design`, and `preflight_project_share`. `composite` joins
+several reads: `get_project_snapshot`. `static_reference` is a copied
+docs table with no HTTP call. `unsupported` means the request contract
+is not established well enough to register. On 2026-09-22, org 48389
+live-checked `search_contacts`, `search_projects`, `get_project_snapshot`,
+`compare_project_systems`, and the mapped `get_project_design` sections.
+`preflight_project_share` was skipped because
+`OPENSOLAR_TEST_CONNECTED_ORG_ID` was unset. `update_project_stage` stays
+documented and was not live-checked because no dedicated fixture project
+was configured. A phone-only contact PUT on a disposable fixture kept
+`first_name`, `family_name`, and `email`, so `update_contact` still sends
+only the supplied supported fields.
 
 Every registered tool has `title`, a short description, `outputSchema`,
 and `openWorldHint`, and returns `structuredContent` plus a one-line
@@ -410,19 +434,27 @@ Related libraries: `src/lib/redaction.ts`, `src/lib/contact-enrich.ts`,
 
 `pnpm test` never reads `.env.local` and never calls OpenSolar.
 `pnpm test:integration` loads gitignored `.env.local` (or
-`dev-docs/private/.env.local`) when `OPENSOLAR_API_TOKEN` and
-`OPENSOLAR_ORG_ID` are set. It reads the org, an event URL from project
-`events_data`, and contact `ordering`. It also creates, updates, and
-deletes one fixture contact. CI runs `pnpm check:all`, which excludes
-`tests/integration`.
+`dev-docs/private/.env.local`). Credentials alone run read-only live
+checks: the org, an event from project `events_data`, contact
+`ordering`, and the agent-oriented reads (`search_contacts`,
+`search_projects`, `get_project_snapshot`, `compare_project_systems`,
+and `get_project_design` when Raw Data is present). Writes run only when
+`OPENSOLAR_INTEGRATION_WRITES=1`. A stage change also requires
+`OPENSOLAR_TEST_PROJECT_ID`. Share preflight requires
+`OPENSOLAR_TEST_CONNECTED_ORG_ID`. CI runs `pnpm check:all`, then
+`pnpm build` and `node dist/index.js --list-tools`. CI does not set
+OpenSolar credentials or the write flag. `tests/integration` stays out
+of `check:all`.
 
 ---
 
 ## Planned vs built
 
-The work order is `dev-docs/plan/v1-2026-09-22.md`. First public release
-is that plan's documented OpenSolar inventory. `dev-docs/tools-roadmap.md`
-is historical (it still describes a 19-tool v1). Phase 2 reads, phase 3 writes, the registered phase 4 writes, phase 5 file tools, phase 6 webhooks, phase 7 team tools, and the raw-data tools run today.
+`dev-docs/plan/v1-2026-09-22.md` is the shipped native inventory, not
+the current work order. Agent-oriented Batches A–D are in the tree.
+`dev-docs/tools-roadmap.md` is historical (it still describes a 19-tool
+cut). The registered surface is that native inventory plus the derived
+and composite tools named above.
 
 | Plan said | Code today |
 |-----------|------------|
@@ -433,8 +465,8 @@ is historical (it still describes a 19-tool v1). Phase 2 reads, phase 3 writes, 
 | `OPENSOLAR_TOOLSETS` / `OPENSOLAR_READ_ONLY` | Read at registration. `OPENSOLAR_PROFILE` is not implemented. A later plan may add `agent` for the common operational tools plus settled derived tools, and `full` for every tool. An explicit `OPENSOLAR_TOOLSETS` list would still override either profile. |
 | Client GET timeout | Implemented (30s default; per-call override) |
 | Client auth / errors | Present |
-| Client tier / pagination / rate-limit modules | Still missing |
-| POST/PUT/PATCH/DELETE client | Implemented. Writes are not retried |
+| Client GET 429 retry | Ordinary JSON `get()` retries at most three attempts. Wait is `Retry-After` when it is at most 5 seconds, otherwise 200 ms then 400 ms. A longer `Retry-After` is returned as 429 with no sleep. POST, PUT, PATCH, DELETE, `postForm`, `getFile`, and `download` are not retried. There is no quota store. |
+| POST/PUT/PATCH/DELETE client | Implemented. Writes are one attempt |
 | vitest, `pnpm test`, CI | Present; CI on Node 24 with pnpm 10 |
 | README + LICENSE | Present |
 | Dockerfile | Present (user-owned `--http` deploy) |

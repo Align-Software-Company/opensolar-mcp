@@ -13,6 +13,15 @@ export class OpenSolarApiError extends Error {
 
 export const DEFAULT_TIMEOUT_MS = 30_000;
 
+/** JSON GET attempts, including the first call. Writes stay at one attempt. */
+export const MAX_GET_ATTEMPTS = 3;
+
+/** A 429 whose Retry-After is longer than this is returned instead of slept. */
+export const MAX_READ_RETRY_WAIT_MS = 5_000;
+
+/** First backoff when a JSON GET is throttled and Retry-After is absent. */
+export const READ_RETRY_BASE_DELAY_MS = 200;
+
 export const MAX_PRIVATE_FILE_BYTES = 10 * 1024 * 1024;
 
 export interface DownloadedFile {
@@ -53,6 +62,37 @@ function isTimeoutError(error: unknown): boolean {
   return error instanceof DOMException && error.name === 'TimeoutError';
 }
 
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+export function readRetryDelayMs(
+  retryAfter: string | null,
+  failedAttempt: number,
+  now = Date.now(),
+): number | null {
+  const header = retryAfter?.trim() ?? '';
+  if (header !== '') {
+    return retryAfterWaitMs(header, now);
+  }
+  return READ_RETRY_BASE_DELAY_MS * 2 ** (failedAttempt - 1);
+}
+
+function retryAfterWaitMs(header: string, now: number): number | null {
+  if (/^\d+$/.test(header)) {
+    const waitMs = Number(header) * 1000;
+    return waitMs > MAX_READ_RETRY_WAIT_MS ? null : waitMs;
+  }
+  const parsed = Date.parse(header);
+  if (Number.isNaN(parsed)) {
+    return null;
+  }
+  const waitMs = Math.max(0, parsed - now);
+  return waitMs > MAX_READ_RETRY_WAIT_MS ? null : waitMs;
+}
+
 function withTrailingSlash(path: string): string {
   const queryIndex = path.indexOf('?');
   const pathname = queryIndex === -1 ? path : path.slice(0, queryIndex);
@@ -63,7 +103,12 @@ function withTrailingSlash(path: string): string {
   return queryIndex === -1 ? slashed : `${slashed}${path.slice(queryIndex)}`;
 }
 
-export function createClient(auth: { token: string; baseUrl: string }): OpenSolarClient {
+export function createClient(
+  auth: { token: string; baseUrl: string },
+  deps?: { sleep?: (ms: number) => Promise<void> },
+): OpenSolarClient {
+  const sleep = deps?.sleep ?? delay;
+
   async function request(
     method: 'GET' | WriteMethod,
     path: string,
@@ -73,54 +118,72 @@ export function createClient(auth: { token: string; baseUrl: string }): OpenSola
     const requestPath = method === 'GET' ? path : withTrailingSlash(path);
     const timeoutMs = options?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
     const url = new URL(requestPath.replace(/^\//, ''), auth.baseUrl);
-    const headers: Record<string, string> = {
-      Authorization: `Bearer ${auth.token}`,
-      Accept: 'application/json',
-    };
-    const init: RequestInit = {
-      method,
-      headers,
-      signal: AbortSignal.timeout(timeoutMs),
-    };
-    if (payload !== undefined && 'form' in payload) {
-      // fetch sets the multipart boundary. A manual Content-Type would drop it.
-      init.body = payload.form;
-    } else if (payload !== undefined) {
-      headers['Content-Type'] = 'application/json';
-      init.body = JSON.stringify(payload.json);
-    }
+    const maxAttempts = method === 'GET' ? MAX_GET_ATTEMPTS : 1;
 
-    let response: Response;
-    try {
-      response = await fetch(url, init);
-    } catch (error) {
-      if (isTimeoutError(error)) {
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      const headers: Record<string, string> = {
+        Authorization: `Bearer ${auth.token}`,
+        Accept: 'application/json',
+      };
+      const init: RequestInit = {
+        method,
+        headers,
+        signal: AbortSignal.timeout(timeoutMs),
+      };
+      if (payload !== undefined && 'form' in payload) {
+        // fetch sets the multipart boundary. A manual Content-Type would drop it.
+        init.body = payload.form;
+      } else if (payload !== undefined) {
+        headers['Content-Type'] = 'application/json';
+        init.body = JSON.stringify(payload.json);
+      }
+
+      let response: Response;
+      try {
+        response = await fetch(url, init);
+      } catch (error) {
+        if (isTimeoutError(error)) {
+          throw new OpenSolarApiError(
+            `OpenSolar API timed out after ${timeoutMs}ms on ${method} ${requestPath}`,
+            504,
+            '',
+          );
+        }
+        throw error;
+      }
+
+      const body = await response.text();
+      if (response.status === 429 && attempt < maxAttempts) {
+        const waitMs = readRetryDelayMs(response.headers.get('retry-after'), attempt);
+        if (waitMs === null) {
+          throw new OpenSolarApiError(
+            `OpenSolar API 429 ${response.statusText} on ${method} ${requestPath}`,
+            429,
+            body,
+          );
+        }
+        await sleep(waitMs);
+        continue;
+      }
+      if (!response.ok) {
         throw new OpenSolarApiError(
-          `OpenSolar API timed out after ${timeoutMs}ms on ${method} ${requestPath}`,
-          504,
-          '',
+          `OpenSolar API ${response.status} ${response.statusText} on ${method} ${requestPath}`,
+          response.status,
+          body,
         );
       }
-      throw error;
+      if (body === '') {
+        return null;
+      }
+      try {
+        const parsed: unknown = JSON.parse(body);
+        return parsed;
+      } catch {
+        throw new OpenSolarApiError(NON_JSON_BODY_MESSAGE, response.status, '');
+      }
     }
 
-    const body = await response.text();
-    if (!response.ok) {
-      throw new OpenSolarApiError(
-        `OpenSolar API ${response.status} ${response.statusText} on ${method} ${requestPath}`,
-        response.status,
-        body,
-      );
-    }
-    if (body === '') {
-      return null;
-    }
-    try {
-      const parsed: unknown = JSON.parse(body);
-      return parsed;
-    } catch {
-      throw new OpenSolarApiError(NON_JSON_BODY_MESSAGE, response.status, '');
-    }
+    throw new OpenSolarApiError(`OpenSolar API 429 on ${method} ${requestPath}`, 429, '');
   }
 
   function privateFileIdFromFileResponse(response: Response): number | null {

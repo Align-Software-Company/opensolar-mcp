@@ -60,12 +60,12 @@ OpenSolar may throttle, suspend, or terminate under clauses 13 or 15.
 
 Unlisted endpoints still have a quota.
 
-MCP policy (even before `src/client/rate-limit.ts` exists):
+MCP policy:
 
-- Honor 429. Exponential backoff belongs in the client, not in each tool.
+- Honor 429 on ordinary JSON GET. The client retries at most three attempts. `Retry-After` is used when it is at most 5 seconds. Without that header the waits are 200 ms and then 400 ms. A longer `Retry-After` is returned as 429 with no sleep. Writes, form upload, file GET, and download are not retried.
 - Fail fast rather than retry past a per-minute ceiling inside one tool
   call.
-- Do not ship Google Solar API tools in v1. The 200/day cap is too tight
+- Do not ship Google Solar API tools. The 200/day cap is too tight
   for typical agent traffic.
 - API Access uses project-level paid entitlement while enabled. A new
   project can be blocked when the wallet is empty. Other calls continue.

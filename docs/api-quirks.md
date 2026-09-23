@@ -351,6 +351,14 @@ On org 48389, project 10616552, `GET .../systems/20d0ad9c-7d92-4078-b8a3-6051f4a
 
 **What to do:** `get_system_image` returns `id: null` when no private file id is exposed. Find that file with `list_private_files`. Do not guess the id from the newest file inside the image tool.
 
+### Contact PUT keeps omitted supported fields
+
+The contacts page documents PUT as the update method and does not say whether omitted fields are cleared. On org 48389, 2026-09-22, a disposable contact was created with `first_name`, `family_name`, `email`, and `phone`. A following PUT sent only a new `phone`. The next GET kept the other three values and showed the new phone. The fixture was deleted.
+
+**Source:** live call 2026-09-22. [Contacts](https://developers.opensolar.com/api/contacts/)
+
+**What to do:** `update_contact` sends only the supported fields the caller supplied. It does not GET and merge first.
+
 ### Webhook logs return HTTP 500 for an empty page
 
 `GET /orgs/:org_id/webhook_process_logs/` documents that an empty `page` returns HTTP 500.
@@ -393,9 +401,9 @@ per org). Example: create project 10/min per user, 10,000/day per org.
 
 **What to do:**
 
-- Honor 429 with backoff in the client.
+- Honor 429 on ordinary JSON GET. The client retries at most three attempts. `Retry-After` is used when it is at most 5 seconds. Without that header the waits are 200 ms and then 400 ms. A longer `Retry-After` is returned as 429 with no sleep. POST, PUT, PATCH, DELETE, form upload, file GET, and download are not retried.
 - Do not batch through a rate limit inside one tool call.
-- Do not expose Google Solar API tools in v1.
+- Do not expose Google Solar API tools.
 
 ---
 
