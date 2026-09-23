@@ -103,6 +103,66 @@ function withTrailingSlash(path: string): string {
   return queryIndex === -1 ? slashed : `${slashed}${path.slice(queryIndex)}`;
 }
 
+async function readBoundedBytes(
+  response: Response,
+  maxBytes: number,
+  oversizeMessage: string,
+): Promise<Uint8Array> {
+  const declared = response.headers.get('content-length');
+  if (declared !== null) {
+    const declaredLength = Number(declared);
+    if (Number.isFinite(declaredLength) && declaredLength > maxBytes) {
+      await response.body?.cancel();
+      throw new OpenSolarApiError(oversizeMessage, 413, '');
+    }
+  }
+
+  if (response.body === null) {
+    return new Uint8Array();
+  }
+
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    while (true) {
+      const next = await reader.read();
+      if (next.done) {
+        break;
+      }
+      const chunk = next.value;
+      total += chunk.byteLength;
+      if (total > maxBytes) {
+        await reader.cancel().catch(() => undefined);
+        throw new OpenSolarApiError(oversizeMessage, 413, '');
+      }
+      chunks.push(chunk);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return bytes;
+}
+
+function isSafeHttpsDownloadResponse(response: Response): boolean {
+  if (response.url === '') {
+    return true;
+  }
+  try {
+    const finalUrl = new URL(response.url);
+    return finalUrl.protocol === 'https:' && finalUrl.username === '' && finalUrl.password === '';
+  } catch {
+    return false;
+  }
+}
+
 export function createClient(
   auth: { token: string; baseUrl: string },
   deps?: { sleep?: (ms: number) => Promise<void> },
@@ -259,15 +319,11 @@ export function createClient(
         return { contentType, privateFileId, bytes: null };
       }
 
-      const declaredLength = Number(response.headers.get('content-length'));
-      if (Number.isFinite(declaredLength) && declaredLength > MAX_PRIVATE_FILE_BYTES) {
-        await response.body?.cancel();
-        throw new OpenSolarApiError('System image is over 10 MB', 413, '');
-      }
-      const bytes = new Uint8Array(await response.arrayBuffer());
-      if (bytes.byteLength > MAX_PRIVATE_FILE_BYTES) {
-        throw new OpenSolarApiError('System image is over 10 MB', 413, '');
-      }
+      const bytes = await readBoundedBytes(
+        response,
+        MAX_PRIVATE_FILE_BYTES,
+        'System image is over 10 MB',
+      );
       return { contentType, privateFileId, bytes };
     },
     async download(url, options) {
@@ -304,17 +360,16 @@ export function createClient(
         await response.body?.cancel();
         throw new OpenSolarApiError('OpenSolar file download failed', response.status, '');
       }
-
-      const declaredLength = Number(response.headers.get('content-length'));
-      if (Number.isFinite(declaredLength) && declaredLength > MAX_PRIVATE_FILE_BYTES) {
+      if (!isSafeHttpsDownloadResponse(response)) {
         await response.body?.cancel();
-        throw new OpenSolarApiError('Private file is over 10 MB', 413, '');
+        throw new OpenSolarApiError('OpenSolar file download failed', 400, '');
       }
 
-      const bytes = new Uint8Array(await response.arrayBuffer());
-      if (bytes.byteLength > MAX_PRIVATE_FILE_BYTES) {
-        throw new OpenSolarApiError('Private file is over 10 MB', 413, '');
-      }
+      const bytes = await readBoundedBytes(
+        response,
+        MAX_PRIVATE_FILE_BYTES,
+        'Private file is over 10 MB',
+      );
       return {
         bytes,
         contentType: response.headers.get('content-type'),
