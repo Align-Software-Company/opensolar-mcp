@@ -6,30 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-### Added
-
-- Public contribution, security, agent-development, and MCP Registry metadata.
-- Repository and Docker release-hygiene checks.
-- Conservative bounded-search resolution states.
-
-### Changed
-
-- Hardened non-loopback HTTP authentication and browser-Origin validation.
-- Confined local private-file uploads to an explicit upload root.
-- Kept binary file/image bytes out of structured JSON output.
-- Bounded compressed Raw Data expansion.
-- Reworked the README into a release-facing user guide.
-- Hardened the Docker runtime and added image-level CI smoke coverage.
-
-## [0.1.0-rc.1] - 2026-09-23
+## [0.1.0] - 2026-09-23
 
 ### Added
 
-- Initial release-candidate package for the documented OpenSolar API.
 - 75 registered MCP tools across projects, contacts, systems, components, workflow, commercial configuration, files, webhooks, Teams, reference data, and Raw Data.
 - Curated 32-tool default `agent` profile and full profile.
 - Functional toolset overrides, read-only filtering, and OpenSolar plan filtering.
-- Semantic project/contact search with bounded scans.
+- Semantic project/contact search with bounded scans and conservative resolution states.
 - Project operational snapshots.
 - Human-readable project stage resolution.
 - Project-system comparison.
@@ -38,6 +22,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Stdio and stateless Streamable HTTP transports.
 - Bounded HTTP 429 retry for ordinary JSON reads.
 - Package, installed-artifact, stdio, HTTP, and Docker smoke testing.
+- Public contribution, security, agent-development, and MCP Registry metadata.
+- Repository and Docker release-hygiene checks.
+
+### Changed
+
+- Hardened non-loopback HTTP authentication and browser-Origin validation.
+- Confined local private-file uploads to an explicit upload root.
+- Kept binary file/image bytes out of structured JSON output.
+- Bounded compressed Raw Data expansion.
+- Reworked the README into a public, npm-first user guide.
+- Hardened the Docker runtime and added image-level CI smoke coverage.
 
 ### Security
 
@@ -45,7 +40,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Structured-output redaction.
 - Size limits for private-file downloads and system images.
 - Explicit gating for live integration writes.
-
-[Unreleased]: https://github.com/Align-Software-Company/opensolar-mcp/compare/6e1bd1419d8cab77d0f1b09def6be9200e25c837...HEAD
-[0.1.0-rc.1]: https://github.com/Align-Software-Company/opensolar-mcp/commit/6e1bd1419d8cab77d0f1b09def6be9200e25c837
+- Non-loopback HTTP requires an explicit per-request Bearer token.
+- Local uploads remain confined to `OPENSOLAR_UPLOAD_ROOT`.
 
