@@ -123,8 +123,6 @@ OPENSOLAR_TOOLSETS=webhooks node dist/index.js --list-tools
 
 The default profile includes common project, contact, system, commercial configuration, file, Teams, and Raw Data workflows. Administrative catalog, workflow, webhook, delete, and other specialized primitives remain available through `full` or explicit toolsets.
 
-**Profiles are curated operating surfaces. Toolsets are functional categories.** Profiles answer “what should this kind of agent normally see?”; toolsets answer “which OpenSolar areas did the operator explicitly request?”
-
 <details>
 <summary>Full toolsets</summary>
 
