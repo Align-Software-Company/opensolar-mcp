@@ -9,7 +9,7 @@ An unofficial, self-hosted [Model Context Protocol](https://modelcontextprotocol
 
 It gives MCP-capable agents a smaller operational tool surface by default, while retaining a full API-oriented surface for advanced use. OpenSolar credentials stay with the process or MCP client you control; this project does not operate a shared OpenSolar service.
 
-> **Release status:** `0.1.0-rc.1` is a release candidate. The package is not yet published to npm.
+> **Release status:** `0.1.0-rc.1` is a release candidate. The package is not yet published to npm or the MCP Registry.
 
 This project is not affiliated with, endorsed by, or maintained by OpenSolar Pty Ltd.
 
