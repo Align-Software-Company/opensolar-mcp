@@ -202,7 +202,11 @@ describe('search_contacts', () => {
     const full = [
       contact(1, { email: 'only-match@example.test' }),
       ...Array.from({ length: 99 }, (_, index) =>
-        contact(index + 2, { first_name: 'Other', family_name: String(index), display: `Other ${index}` }),
+        contact(index + 2, {
+          first_name: 'Other',
+          family_name: String(index),
+          display: `Other ${index}`,
+        }),
       ),
     ];
     const { payload } = await search('search_contacts', [full], {
