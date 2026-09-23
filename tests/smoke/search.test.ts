@@ -15,6 +15,7 @@ type SearchPayload = {
     results_truncated: boolean;
     stopped_by: string;
     pages_scanned: number;
+    resolution: 'none' | 'unique' | 'ambiguous' | 'incomplete';
   };
 };
 
@@ -58,6 +59,7 @@ describe('search_contacts', () => {
   it('matches exact email, punctuated phone, full name, and a name prefix', async () => {
     const email = await search('search_contacts', [page], { query: 'pat@example.test' });
     expect(email.payload.matches[0]?.match).toEqual({ field: 'email', type: 'exact' });
+    expect(email.payload.search.resolution).toBe('unique');
     expect(email.paths).toEqual(['orgs/1/contacts/?page=1&limit=100']);
 
     const phone = await search('search_contacts', [page], { query: '(202) 555-0100' });
@@ -86,6 +88,7 @@ describe('search_contacts', () => {
     expect(payload.search).toMatchObject({
       complete: true,
       results_truncated: false,
+      resolution: 'none',
       stopped_by: 'end',
     });
   });
@@ -99,6 +102,7 @@ describe('search_contacts', () => {
     expect(payload.search).toMatchObject({
       complete: false,
       results_truncated: false,
+      resolution: 'incomplete',
       stopped_by: 'max_pages',
       pages_scanned: 1,
     });
@@ -115,6 +119,7 @@ describe('search_contacts', () => {
     expect(payload.search).toMatchObject({
       complete: true,
       results_truncated: true,
+      resolution: 'ambiguous',
       stopped_by: 'end',
     });
   });
@@ -188,6 +193,7 @@ describe('search_contacts', () => {
     expect(payload.search).toMatchObject({
       complete: false,
       results_truncated: true,
+      resolution: 'ambiguous',
       stopped_by: 'max_pages',
     });
   });
