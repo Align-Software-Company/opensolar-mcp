@@ -86,10 +86,10 @@ opensolar-mcp --list-tools
 | `OPENSOLAR_BASE_URL` | OpenSolar API base URL. | `https://api.opensolar.com/api/` |
 | `OPENSOLAR_PROFILE` | Tool profile: `agent` or `full`. | `agent` |
 | `OPENSOLAR_TOOLSETS` | Comma-separated toolsets. When set, overrides profile membership. | unset |
-| `OPENSOLAR_READ_ONLY` | `1`, `true`, `yes`, or `on` hides every registered mutation. | off |
+| `OPENSOLAR_READ_ONLY` | `1`, `true`, `yes`, or `on` hides every registered mutation; `0`, `false`, `no`, or `off` explicitly disables it. Any other value is rejected. | off |
 | `OPENSOLAR_PLAN` | `api_access` hides Raw Data-only tools; `raw_data` keeps them. | unset |
 | `OPENSOLAR_UPLOAD_ROOT` | Directory from which `create_private_file` may read local files. Uploads are disabled when unset. | unset |
-| `MCP_TRANSPORT` | Set to `http` to use Streamable HTTP instead of stdio. | stdio |
+| `MCP_TRANSPORT` | `stdio` or `http`. Unknown values are rejected instead of falling back silently. | stdio |
 | `MCP_HTTP_HOST` | HTTP bind host. | `127.0.0.1` |
 | `MCP_HTTP_PORT` | HTTP port. | `3000` |
 | `MCP_HTTP_PATH` | Streamable HTTP MCP path. | `/mcp` |
@@ -264,7 +264,7 @@ export OPENSOLAR_UPLOAD_ROOT=/absolute/path/to/uploads
 
 Relative tool paths resolve from that directory. Absolute paths are accepted only when their resolved real path remains inside it. Symlinks cannot be used to escape the configured root.
 
-Private-file downloads and system images are capped at 10 MB. Text content may appear in structured output; images and other binary files use MCP content/resource blocks instead of duplicating their bytes into structured JSON.
+Private-file downloads and system images are capped while streaming at 10 MB, including responses without a Content-Length header. Private-file downloads must start and finish on HTTPS. Text content may appear in structured output; images and other binary files use MCP content/resource blocks instead of duplicating their bytes into structured JSON.
 
 ## Safety and operational notes
 
