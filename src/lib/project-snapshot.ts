@@ -3,7 +3,11 @@ import { OpenSolarApiError, type OpenSolarClient } from '../client/index.js';
 import { ContactSchema } from '../schemas/contact.js';
 import { curateProjectEvent, type Event } from '../schemas/event.js';
 import { curatePaymentOption, PaymentOptionSchema } from '../schemas/payment.js';
-import { curatePrivateFile, PrivateFileListSchema } from '../schemas/private-file.js';
+import {
+  curatePrivateFile,
+  type PrivateFile,
+  PrivateFileListSchema,
+} from '../schemas/private-file.js';
 import { ProjectFullSchema, stageMilestoneLabel } from '../schemas/project.js';
 import type { ProjectSnapshot } from '../schemas/project-snapshot.js';
 import { curateSystemListRow, SystemListSchema } from '../schemas/system.js';
@@ -81,6 +85,7 @@ export async function loadProjectSnapshot(
     return [
       {
         id: enriched.id,
+        display: stringOrNull(fields.display),
         email: stringOrNull(fields.email),
         phone: stringOrNull(fields.phone),
         is_synthetic_email: enriched.is_synthetic_email,
@@ -108,20 +113,24 @@ export async function loadProjectSnapshot(
 
   const workflowId = project.workflow?.workflow_id;
   const activeStageId = project.workflow?.active_stage_id;
-  if (workflowId !== undefined) {
-    snapshot.workflow = await workflowSection(client, orgId, workflowId, activeStageId);
-  }
-
   const soldOptionId = paymentOptionId(record.payment_option_sold);
-  if (soldOptionId !== null) {
-    snapshot.payment_option = await paymentSection(client, orgId, soldOptionId);
+  const embeddedFiles = record.private_files_data;
+  const [workflow, paymentOption, files] = await Promise.all([
+    workflowId === undefined
+      ? undefined
+      : workflowSection(client, orgId, workflowId, activeStageId),
+    soldOptionId === null ? undefined : paymentSection(client, orgId, soldOptionId),
+    Array.isArray(embeddedFiles)
+      ? filesFromEmbedded(embeddedFiles)
+      : filesFromList(client, orgId, projectId),
+  ]);
+  if (workflow !== undefined) {
+    snapshot.workflow = workflow;
   }
-
-  if (Array.isArray(record.private_files_data)) {
-    snapshot.files = filesFromEmbedded(record.private_files_data);
-  } else {
-    snapshot.files = await filesFromList(client, orgId, projectId);
+  if (paymentOption !== undefined) {
+    snapshot.payment_option = paymentOption;
   }
+  snapshot.files = files;
 
   return snapshot;
 }
@@ -218,11 +227,18 @@ async function filesFromList(
   if (!('ok' in read)) {
     return read;
   }
-  const embedded = filesFromEmbedded(read.ok);
-  if ('gap' in embedded) {
-    return embedded;
+  const parsed = PrivateFileListSchema.safeParse(read.ok);
+  if (!parsed.success) {
+    return { gap: 'Private files payload did not match the documented shape' };
   }
-  return { ...embedded, list_complete: embedded.count < FILE_SAMPLE };
+  const sample = fileSample(parsed.data);
+  const pageEnded = parsed.data.length < FILE_SAMPLE;
+  return {
+    returned_count: sample.length,
+    total_count: pageEnded ? parsed.data.length : null,
+    list_complete: pageEnded,
+    files: sample,
+  };
 }
 
 function filesFromEmbedded(value: unknown): ProjectSnapshot['files'] {
@@ -230,14 +246,23 @@ function filesFromEmbedded(value: unknown): ProjectSnapshot['files'] {
   if (!parsed.success) {
     return { gap: 'Private files payload did not match the documented shape' };
   }
+  const sample = fileSample(parsed.data);
   return {
-    count: parsed.data.length,
-    files: parsed.data.slice(0, FILE_SAMPLE).map((file) => {
-      const row = curatePrivateFile(file);
-      return { title: row.title, file_tags: row.file_tags };
-    }),
+    returned_count: sample.length,
+    total_count: parsed.data.length,
     list_complete: true,
+    files: sample,
   };
+}
+
+function fileSample(files: readonly PrivateFile[]): Array<{
+  title: string | null | undefined;
+  file_tags: string[];
+}> {
+  return files.slice(0, FILE_SAMPLE).map((file) => {
+    const row = curatePrivateFile(file);
+    return { title: row.title, file_tags: row.file_tags };
+  });
 }
 
 function recentEvents(events: readonly Event[]): NonNullable<ProjectSnapshot['events']> {
@@ -259,27 +284,98 @@ function recentEvents(events: readonly Event[]): NonNullable<ProjectSnapshot['ev
   });
 }
 
-function usageSummary(value: unknown): { usage_data_source: string; summary: string } | null {
+type UsagePeriod =
+  | 'annual'
+  | 'monthly'
+  | 'bimonthly'
+  | 'quarterly'
+  | 'daily_per_month'
+  | 'estimate';
+
+type UsageSummary = {
+  usage_data_source: string;
+  period?: UsagePeriod;
+  unit?: 'kwh' | 'bill';
+  period_count?: number;
+  values?: number[];
+  annual_total?: number;
+  estimate?: string;
+};
+
+const usagePeriods: Record<
+  string,
+  {
+    period: Exclude<UsagePeriod, 'estimate'>;
+    unit: 'kwh' | 'bill';
+    count: number;
+    sumsToAnnual: boolean;
+  }
+> = {
+  kwh_annual: { period: 'annual', unit: 'kwh', count: 1, sumsToAnnual: true },
+  bill_annual: { period: 'annual', unit: 'bill', count: 1, sumsToAnnual: true },
+  kwh_monthly: { period: 'monthly', unit: 'kwh', count: 12, sumsToAnnual: true },
+  bill_monthly: { period: 'monthly', unit: 'bill', count: 12, sumsToAnnual: true },
+  kwh_every_second_month: { period: 'bimonthly', unit: 'kwh', count: 6, sumsToAnnual: true },
+  bill_every_second_month: { period: 'bimonthly', unit: 'bill', count: 6, sumsToAnnual: true },
+  kwh_quarterly: { period: 'quarterly', unit: 'kwh', count: 4, sumsToAnnual: true },
+  bill_quarterly: { period: 'quarterly', unit: 'bill', count: 4, sumsToAnnual: true },
+  kwh_daily_per_month: { period: 'daily_per_month', unit: 'kwh', count: 12, sumsToAnnual: false },
+};
+
+function usageSummary(value: unknown): UsageSummary | null {
   const record = objectRecord(value);
   if (record === null || typeof record.usage_data_source !== 'string') {
     return null;
   }
   const source = record.usage_data_source;
-  const values = record.values;
-  if (typeof values === 'number') {
-    return { usage_data_source: source, summary: `${values} per year` };
+  if (source === 'estimate') {
+    const summary: UsageSummary = { usage_data_source: source, period: 'estimate' };
+    if (typeof record.values === 'string') {
+      summary.estimate = record.values;
+    }
+    return summary;
   }
-  if (typeof values === 'string') {
-    return { usage_data_source: source, summary: values };
+
+  const known = usagePeriods[source];
+  if (known === undefined) {
+    const numbers = numberList(record.values);
+    if (numbers !== null) {
+      return { usage_data_source: source, values: numbers };
+    }
+    return { usage_data_source: source };
   }
-  if (Array.isArray(values) && values.every((item) => typeof item === 'number')) {
-    const total = values.reduce((sum, item) => sum + item, 0);
-    return {
-      usage_data_source: source,
-      summary: `${values.length} periods, total ${total}`,
-    };
+
+  const base: UsageSummary = {
+    usage_data_source: source,
+    period: known.period,
+    unit: known.unit,
+  };
+  if (known.count === 1) {
+    if (typeof record.values !== 'number' || !Number.isFinite(record.values)) {
+      return base;
+    }
+    return { ...base, period_count: 1, annual_total: record.values };
   }
-  return { usage_data_source: source, summary: 'values omitted' };
+
+  const numbers = numberList(record.values);
+  if (numbers === null || numbers.length !== known.count) {
+    return base;
+  }
+  const summary: UsageSummary = { ...base, period_count: known.count, values: numbers };
+  if (known.sumsToAnnual) {
+    summary.annual_total = numbers.reduce((sum, item) => sum + item, 0);
+  }
+  return summary;
+}
+
+function numberList(value: unknown): number[] | null {
+  if (
+    !Array.isArray(value) ||
+    !value.every((item) => typeof item === 'number' && Number.isFinite(item))
+  ) {
+    return null;
+  }
+  return value;
 }
 
 function shareRows(value: unknown): Array<{ org_id?: number; is_shared?: boolean }> | null {

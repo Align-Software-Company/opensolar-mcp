@@ -22,6 +22,7 @@ const SnapshotProjectSchema = z
 const SnapshotContactSchema = z
   .object({
     id: z.number(),
+    display: z.string().nullish(),
     email: z.string().nullish(),
     phone: z.string().nullish(),
     is_synthetic_email: z.boolean(),
@@ -47,7 +48,14 @@ const SnapshotRoleSchema = z
 const SnapshotUsageSchema = z
   .object({
     usage_data_source: z.string(),
-    summary: z.string(),
+    period: z
+      .enum(['annual', 'monthly', 'bimonthly', 'quarterly', 'daily_per_month', 'estimate'])
+      .optional(),
+    unit: z.enum(['kwh', 'bill']).optional(),
+    period_count: z.number().int().positive().optional(),
+    values: z.array(z.number()).optional(),
+    annual_total: z.number().optional(),
+    estimate: z.string().optional(),
   })
   .strict();
 
@@ -88,9 +96,10 @@ const SnapshotFileSchema = z
 
 const SnapshotFilesSchema = z
   .object({
-    count: z.number().int().nonnegative(),
-    files: z.array(SnapshotFileSchema),
+    returned_count: z.number().int().nonnegative(),
+    total_count: z.number().int().nonnegative().nullable(),
     list_complete: z.boolean(),
+    files: z.array(SnapshotFileSchema),
   })
   .strict();
 

@@ -538,7 +538,9 @@ export function registerProjectsToolset(
         description:
           'Reads one project plus its workflow, systems, and file metadata. A section that fails is a gap, not an empty list. ' +
           'Design, file URLs, and configuration JSON are omitted. payment_option is included only when the project payload points at payment_option_sold. ' +
-          'Systems are one page from the systems list. File titles come from private_files_data when the project includes it, otherwise one private-files page.',
+          'Usage keeps the source period. Daily-per-month values are not summed into an annual total. ' +
+          'Systems are one page from the systems list. File titles come from private_files_data when the project includes it, otherwise one private-files page. ' +
+          'returned_count is the titles in this response. total_count is null when that page is full.',
         inputSchema: z
           .object({
             project_id: z
