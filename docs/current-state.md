@@ -4,7 +4,7 @@ Snapshot of what this package actually ships today, as distinct from
 contributor plans in `dev-docs/`. Use this file when comparing later
 architecture work against the walking skeleton.
 
-Last reviewed: 2026-09-22
+Last reviewed: 2026-09-23
 
 ---
 
@@ -12,7 +12,7 @@ Last reviewed: 2026-09-22
 
 | Item | Value |
 |------|-------|
-| Package | `@alignco/opensolar-mcp` `0.0.1` |
+| Package | `@alignco/opensolar-mcp` `0.1.0-rc.1` |
 | Branch | `main` |
 | Node | `>=24` (`.nvmrc` is `24`) |
 | Module | ESM (`"type": "module"`) |
@@ -97,7 +97,7 @@ Env vars: `OPENSOLAR_API_TOKEN`, `OPENSOLAR_ORG_ID`, `OPENSOLAR_BASE_URL`,
 | `--http` / bind / path | Implemented | `src/lib/config.ts` + `src/transports/http.ts` |
 | Dockerfile | Implemented | Node 24 image, `CMD --http`, healthcheck on `/health`. Default bind stays loopback. |
 
-MCP server identity: `{ name: '@alignco/opensolar-mcp', version: '0.0.1' }`.
+MCP server identity: name `@alignco/opensolar-mcp`, version read from `package.json` (`0.1.0-rc.1`).
 The server advertises tools only (no empty resources/prompts handlers).
 
 Server instructions are five lines in `src/lib/server-instructions.ts`:

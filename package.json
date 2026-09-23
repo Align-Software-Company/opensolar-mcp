@@ -1,8 +1,27 @@
 {
   "name": "@alignco/opensolar-mcp",
-  "version": "0.0.1",
+  "version": "0.1.0-rc.1",
   "description": "Unofficial Model Context Protocol server for the OpenSolar API",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Align-Software-Company/opensolar-mcp.git"
+  },
+  "homepage": "https://github.com/Align-Software-Company/opensolar-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/Align-Software-Company/opensolar-mcp/issues"
+  },
+  "keywords": [
+    "opensolar",
+    "mcp",
+    "mcp-server",
+    "model-context-protocol",
+    "solar",
+    "solar-api"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
   "engines": {
     "node": ">=24"
@@ -17,6 +36,7 @@
   "scripts": {
     "dev": "tsx src/index.ts",
     "dev:http": "tsx src/index.ts --http",
+    "prepack": "pnpm check:all && pnpm build",
     "build": "tsup",
     "typecheck": "tsc --noEmit",
     "lint": "biome check .",

@@ -35,6 +35,21 @@ node dist/index.js --check --no-probe
 
 Copy `.env.example` if you want a local env file. Integration tests load gitignored `.env.local`.
 
+## Package install
+
+These commands apply after the package is published to the npm registry. It is not published yet. Until then, build from this checkout.
+
+```bash
+npx -y @alignco/opensolar-mcp
+```
+
+```bash
+npm install -g @alignco/opensolar-mcp
+opensolar-mcp --list-tools
+```
+
+This server is unofficial. You supply your own OpenSolar credentials and run it in your own environment. Mutations change the live OpenSolar organisation those credentials belong to. An agent can choose the wrong tool, so review consequential writes before you rely on them.
+
 ## Tools
 
 The registered full surface is 75 tools. The default `OPENSOLAR_PROFILE=agent` exposes a smaller operational subset. `OPENSOLAR_PROFILE=full` exposes every registered tool, still subject to `OPENSOLAR_READ_ONLY` and `OPENSOLAR_PLAN`. An explicit `OPENSOLAR_TOOLSETS` list overrides profile membership and can include a toolset the agent profile leaves out.

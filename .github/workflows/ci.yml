@@ -21,3 +21,7 @@ jobs:
       - run: pnpm check:all
       - run: pnpm build
       - run: node dist/index.js --list-tools
+      - run: npm pack
+      - run: node scripts/release-smoke.mjs
+      - if: always()
+        run: rm -f ./*.tgz
