@@ -1,13 +1,15 @@
 # OpenSolar MCP
 
 [![CI](https://github.com/Align-Software-Company/opensolar-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/Align-Software-Company/opensolar-mcp/actions/workflows/ci.yml)
+[![Node.js 24+](https://img.shields.io/badge/Node.js-24%2B-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
+[![Model Context Protocol](https://img.shields.io/badge/MCP-server-5A67D8)](https://modelcontextprotocol.io/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 An unofficial, self-hosted [Model Context Protocol](https://modelcontextprotocol.io/) server for the documented [OpenSolar API](https://developers.opensolar.com/api/).
 
 It gives MCP-capable agents a smaller operational tool surface by default, while retaining a full API-oriented surface for advanced use. OpenSolar credentials stay with the process or MCP client you control; this project does not operate a shared OpenSolar service.
 
-> **Release status:** `0.1.0-rc.1` is a release candidate. The package is not yet published to npm.
+> **Release status:** `0.1.0-rc.1` is a release candidate. The package is not yet published to npm or the MCP Registry.
 
 This project is not affiliated with, endorsed by, or maintained by OpenSolar Pty Ltd.
 
@@ -102,6 +104,8 @@ Copy [`.env.example`](.env.example) for a reference configuration. The runtime d
 
 ## Tool profiles
 
+**Profiles are curated operating surfaces; toolsets are functional categories.** The default profile selects individual tools across multiple categories for normal agent use, while `OPENSOLAR_TOOLSETS` is an advanced override that exposes complete functional areas.
+
 | Surface | Count | Purpose |
 | --- | ---: | --- |
 | `agent` | 32 | Default operational surface for agents |
@@ -118,6 +122,8 @@ OPENSOLAR_TOOLSETS=webhooks node dist/index.js --list-tools
 ```
 
 The default profile includes common project, contact, system, commercial configuration, file, Teams, and Raw Data workflows. Administrative catalog, workflow, webhook, delete, and other specialized primitives remain available through `full` or explicit toolsets.
+
+**Profiles are curated operating surfaces. Toolsets are functional categories.** Profiles answer “what should this kind of agent normally see?”; toolsets answer “which OpenSolar areas did the operator explicitly request?”
 
 <details>
 <summary>Full toolsets</summary>
@@ -302,6 +308,14 @@ OPENSOLAR_INTEGRATION_WRITES=1 pnpm test:integration
 Some mutation/preflight cases also require dedicated fixture IDs; see [`.env.example`](.env.example).
 
 Packaging runs the offline checks and build through `prepack`. CI also packs the npm artifact, installs/smoke-tests that tarball without contacting OpenSolar, and builds/smoke-tests the Docker image.
+
+## Project guides
+
+- [Contributing](CONTRIBUTING.md)
+- [Security policy](SECURITY.md)
+- [Changelog](CHANGELOG.md)
+- [Coding-agent instructions](AGENTS.md)
+- [MCP Registry metadata](server.json)
 
 ## Documentation
 

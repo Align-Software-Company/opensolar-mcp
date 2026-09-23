@@ -9,7 +9,7 @@ This project is an unofficial, self-hosted Model Context Protocol server for the
 Requirements:
 
 - Node.js 24 or newer
-- pnpm 10 via Corepack
+- pnpm 10.34.5 via Corepack
 
 ```bash
 corepack enable
@@ -126,7 +126,7 @@ This project is unofficial and is not affiliated with or endorsed by OpenSolar P
 
 ## Reporting security issues
 
-Until a dedicated security policy is added, avoid posting credentials, tokens, customer data, or a working exploit in a public issue. A formal `SECURITY.md` is planned for the public release polish pass.
+Follow [SECURITY.md](SECURITY.md). Do not post credentials, customer data, or a working exploit in a public issue.
 
 ## License
 
