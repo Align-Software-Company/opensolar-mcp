@@ -30,6 +30,7 @@ Environment:
   MCP_HTTP_PORT          HTTP bind port
   MCP_HTTP_PATH          MCP HTTP path
   MCP_HTTP_ALLOWED_HOSTS Comma-separated Host values when binding 0.0.0.0 or ::
+  MCP_HTTP_ALLOWED_ORIGINS Optional browser Origin hostnames; defaults to allowed hosts
 
 Remote HTTP auth:
   Loopback HTTP may use OPENSOLAR_API_TOKEN as a fallback. Non-loopback HTTP
