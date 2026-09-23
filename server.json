@@ -2,8 +2,9 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.align-software-company/opensolar-mcp",
   "title": "OpenSolar MCP",
-  "description": "Self-hosted MCP server for the documented OpenSolar API.",
+  "description": "Unofficial, self-hosted MCP server for the documented OpenSolar API.",
   "version": "0.1.0-rc.1",
+  "websiteUrl": "https://github.com/Align-Software-Company/opensolar-mcp",
   "repository": {
     "url": "https://github.com/Align-Software-Company/opensolar-mcp",
     "source": "github"
@@ -27,9 +28,10 @@
         {
           "name": "OPENSOLAR_ORG_ID",
           "description": "OpenSolar organisation ID",
-          "format": "string",
+          "format": "number",
           "isRequired": true,
-          "isSecret": false
+          "isSecret": false,
+          "placeholder": "12345"
         }
       ]
     }
