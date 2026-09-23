@@ -127,7 +127,7 @@ reads: `search_projects`, `search_contacts`, `compare_project_systems`,
 `get_project_design`, and `preflight_project_share`. `composite` joins
 several reads: `get_project_snapshot`. `static_reference` is a copied
 docs table with no HTTP call. `unsupported` means the request contract
-is not established well enough to register. On 2026-09-22, org 48389
+is not established well enough to register. On 2026-09-22, a live verification org
 live-checked `search_contacts`, `search_projects`, `get_project_snapshot`,
 `compare_project_systems`, and the mapped `get_project_design` sections.
 `preflight_project_share` was skipped because
