@@ -3,7 +3,11 @@ import { z } from 'zod';
 import { openSolarSuccess, runOpenSolarTool } from '../client/errors.js';
 import type { OpenSolarClient } from '../client/index.js';
 import type { ToolName } from '../lib/tier-policy.js';
-import { ProjectDesignOutputSchema, summarizeDesign } from '../schemas/design.js';
+import {
+  DesignSectionSchema,
+  ProjectDesignOutputSchema,
+  projectDesign,
+} from '../schemas/design.js';
 import {
   curateProposalSystems,
   ProposalDataOutputSchema,
@@ -78,6 +82,12 @@ function registerGetProposalData(server: McpServer, ctx: RawDataContext): void {
 const designInput = z
   .object({
     project_id: z.number().int().positive().describe('Project id from list_projects.'),
+    section: DesignSectionSchema.default('summary').describe(
+      'summary returns system count and system_price_including_tax. ' +
+        'components and energy are unmapped because those keys are not named. ' +
+        'geometry reports whether autoFacetsGeoJson is present and does not return coordinates. ' +
+        'financials returns numeric pricing keys found on each system.',
+    ),
   })
   .strict();
 
@@ -92,31 +102,52 @@ function registerGetProjectDesign(server: McpServer, ctx: RawDataContext): void 
     {
       title: 'Get project design',
       description:
-        'Reads the compressed design on one project and returns the system count and system_price_including_tax. ' +
-        'Requires Raw Data API Access. A missing or null design returns design_available false. ' +
+        'Reads the compressed design on one project. section defaults to summary: system count and system_price_including_tax. ' +
+        'components and energy return unmapped true because the decompress section does not name those keys. ' +
+        'geometry reports whether autoFacetsGeoJson is present and does not return coordinates. ' +
+        'financials returns numeric pricing keys on each system and does not return pricing objects. ' +
+        'Requires Raw Data API Access. A missing or null design returns design_available false. A 402 means Raw Data is missing. ' +
         'The compressed string is not returned. get_project verbose still replaces design with [REDACTED].',
       inputSchema: designInput,
       outputSchema: ProjectDesignOutputSchema,
       annotations: readAnnotations,
     },
-    async ({ project_id }) =>
+    async ({ project_id, section }) =>
       runOpenSolarTool(async () => {
         const raw = await ctx.client.get(`orgs/${ctx.orgId}/projects/${project_id}/`);
         const project = asProject(raw);
         if (project === null) {
           return undecodableDesign;
         }
-        const summarized = summarizeDesign(project.design);
-        if (!summarized.ok) {
+        const projected = projectDesign(project.design, section);
+        if (!projected.ok) {
           return undecodableDesign;
         }
-        const payload = ProjectDesignOutputSchema.parse(summarized.summary);
-        const summary = payload.design_available
-          ? `Design for project ${project_id}: ${payload.system_count} systems.`
-          : `Design for project ${project_id} is not available.`;
-        return openSolarSuccess(payload, summary);
+        const payload = ProjectDesignOutputSchema.parse(projected.design);
+        return openSolarSuccess(payload, designSummary(project_id, payload));
       }),
   );
+}
+
+function designSummary(
+  projectId: number,
+  payload: {
+    design_available: boolean;
+    section?: string;
+    unmapped?: boolean;
+    system_count?: number;
+  },
+): string {
+  if (!payload.design_available) {
+    return `Design for project ${projectId} is not available.`;
+  }
+  if (payload.unmapped === true) {
+    return `Design section ${payload.section} for project ${projectId} is unmapped.`;
+  }
+  if (payload.section === 'summary') {
+    return `Design for project ${projectId}: ${payload.system_count} systems.`;
+  }
+  return `Design section ${payload.section} for project ${projectId}.`;
 }
 
 function asProject(value: unknown): Record<string, unknown> | null {

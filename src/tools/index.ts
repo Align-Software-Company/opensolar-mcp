@@ -58,7 +58,13 @@ export const TOOLSET_TOOLS: Record<ToolsetName, readonly ToolName[]> = {
     'delete_contact',
   ],
   events: ['get_event', 'list_event_types'],
-  systems: ['list_project_systems', 'get_system', 'get_system_details', 'get_system_image'],
+  systems: [
+    'list_project_systems',
+    'compare_project_systems',
+    'get_system',
+    'get_system_details',
+    'get_system_image',
+  ],
   components: [
     'list_modules',
     'get_module',
@@ -184,6 +190,7 @@ export function registerAllToolsets(
   }
   if (
     enabled.has('list_project_systems') ||
+    enabled.has('compare_project_systems') ||
     enabled.has('get_system') ||
     enabled.has('get_system_details') ||
     enabled.has('get_system_image')

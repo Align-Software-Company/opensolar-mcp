@@ -6,6 +6,7 @@ import {
   OpenSolarApiError,
   type OpenSolarClient,
 } from '../client/index.js';
+import { loadSystemComparison } from '../lib/compare-project-systems.js';
 import { fileModelBlocks, isTextMedia, mediaType } from '../lib/file-contents.js';
 import type { ToolName } from '../lib/tier-policy.js';
 import {
@@ -20,6 +21,7 @@ import {
   SystemListSchema,
   SystemSchema,
 } from '../schemas/system.js';
+import { CompareProjectSystemsSchema } from '../schemas/system-comparison.js';
 
 export interface SystemsContext {
   client: OpenSolarClient;
@@ -174,6 +176,40 @@ export function registerSystemsToolset(
           return openSolarSuccess(
             payload,
             `${payload.systems.length} systems on page ${payload.page} (limit ${payload.limit}).`,
+          );
+        }),
+    );
+  }
+
+  if (enabled.has('compare_project_systems')) {
+    server.registerTool(
+      'compare_project_systems',
+      {
+        title: 'Compare project systems',
+        description:
+          'Compares the systems on one project. Columns are included only when that system payload has them: kW, module count, annual kWh, kWh per kW, price, price per watt, battery kWh, and hardware names. ' +
+          'No system is ranked. Hardware names come from the systems list when it already includes them. Otherwise one system-details call supplies modules, inverters, and batteries. ' +
+          'A failed details call leaves hardware_gap and still returns the list columns.',
+        inputSchema: z
+          .object({
+            project_id: z
+              .number()
+              .int()
+              .positive()
+              .describe('Project id from list_projects or search_projects.'),
+          })
+          .strict(),
+        outputSchema: CompareProjectSystemsSchema,
+        annotations: readAnnotations,
+      },
+      async ({ project_id }) =>
+        runOpenSolarTool(async () => {
+          const payload = CompareProjectSystemsSchema.parse(
+            await loadSystemComparison(ctx.client, ctx.orgId, project_id),
+          );
+          return openSolarSuccess(
+            payload,
+            `${payload.systems.length} systems on project ${project_id}.`,
           );
         }),
     );

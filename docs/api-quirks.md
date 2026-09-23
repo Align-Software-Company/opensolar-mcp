@@ -234,7 +234,7 @@ the raw blob through LLM context.
 
 Populated only on Raw Data. API Access: omitted or null.
 
-v1: wholesale-redact in verbose mode. `get_project` verbose still replaces `design` with `[REDACTED]`. `get_project_design` gunzips the string and returns the system count plus `system_price_including_tax`. The decompress section does not name keys for module quantity, component codes, or annual production.
+v1: wholesale-redact in verbose mode. `get_project` verbose still replaces `design` with `[REDACTED]`. `get_project_design` gunzips the string. `summary` returns the system count and `system_price_including_tax`. `components` and `energy` stay unmapped: the decompress section still does not name keys for module quantity, component codes, or annual production. `geometry` reports whether `autoFacetsGeoJson` is present and does not return coordinates. `financials` copies finite numbers for pricing keys found on each system object.
 
 Proposal `systems[].data.output` uses the same base64(gzip(JSON)) encoding when it is a string. `get_proposal_data` decodes that string to read annual and monthly kWh and does not return the string. The tool does not send `compress_data`.
 

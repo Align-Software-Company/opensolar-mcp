@@ -30,6 +30,7 @@ const expectedOrder = [
   'get_event',
   'list_event_types',
   'list_project_systems',
+  'compare_project_systems',
   'get_system',
   'get_system_details',
   'get_system_image',

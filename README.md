@@ -45,7 +45,7 @@ Tools registered today, in `--list-tools` order:
 | org | `get_org`, `list_roles`, `get_role` |
 | contacts | `list_contacts`, `search_contacts`, `get_contact`, `create_contact`, `update_contact`, `delete_contact` |
 | events | `get_event`, `list_event_types` |
-| systems | `list_project_systems`, `get_system`, `get_system_details`, `get_system_image` |
+| systems | `list_project_systems`, `compare_project_systems`, `get_system`, `get_system_details`, `get_system_image` |
 | components | `list_modules`, `get_module`, `delete_module_activation`, `list_inverters`, `get_inverter`, `delete_inverter_activation`, `list_batteries`, `get_battery`, `delete_battery_activation`, `list_other_components`, `get_other_component`, `delete_other_component_activation` |
 | workflow | `list_workflows`, `get_workflow`, `create_workflow`, `delete_workflow` |
 | payment | `list_payment_options`, `get_payment_option`, `delete_payment_option` |
@@ -62,6 +62,8 @@ Tools registered today, in `--list-tools` order:
 `search_projects` and `search_contacts` page those documented lists and match locally. They do not send an OpenSolar `search` query. OpenSolar does not document those two MCP tools. `documented` in the contract matrix names the list GET each one pages.
 
 `get_project_snapshot` reads one project together with its workflow, systems, and file metadata. A section that fails comes back as a gap. `update_project_stage` accepts a stage id or a stage title. A title that matches two stages is not patched.
+
+`compare_project_systems` returns the columns each system payload actually has and does not pick a winner. `get_project_design` takes an optional section. `components` and `energy` stay unmapped until the decompress section names those keys. `OPENSOLAR_PLAN=api_access` still omits `get_project_design`.
 
 Catalog activation creates, `create_pricing_scheme`, `create_payment_option`, `create_costing`, `update_workflow`, and `update_org` are not registered. A write stays unsupported when its request contract has not been established with sufficient confidence. The contract may be established through sufficient official OpenSolar documentation or deliberate live verification recorded in the API contract and quirk docs. Absence of an example request alone does not make an operation unsupported. The public release checklist is not done.
 

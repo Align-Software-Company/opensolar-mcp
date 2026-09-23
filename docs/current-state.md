@@ -18,7 +18,7 @@ Last reviewed: 2026-09-22
 | Module | ESM (`"type": "module"`) |
 | Package manager | pnpm |
 | License | MIT (`LICENSE`; copyright Align Software Company 2026) |
-| README | Install instructions and the 73 registered tools. Public release checklist is not done. |
+| README | Install instructions and the 74 registered tools. Public release checklist is not done. |
 
 The annotated tag `pre-rebase-baseline` still points at the earlier
 walking-skeleton snapshot. This file describes the tree through phase 8
@@ -141,6 +141,7 @@ Errors return `isError: true` with no `structuredContent`.
 | `get_event` | `src/tools/events.ts` | `api_access`, read | `GET orgs/:org_id/events/:event_id/` | Implemented |
 | `list_event_types` | `src/tools/events.ts` | `api_access`, read | none (copied docs table) | Implemented |
 | `list_project_systems` | `src/tools/systems.ts` | `api_access`, read | `GET orgs/:org_id/systems/?fieldset=list&project=&page=&limit=` | Implemented |
+| `compare_project_systems` | `src/tools/systems.ts` | `api_access`, read | systems list, then system details only when hardware names are missing | Implemented |
 | `get_system` | `src/tools/systems.ts` | `api_access`, read | `GET orgs/:org_id/systems/:id/?fieldset=list` | Implemented |
 | `get_system_details` | `src/tools/systems.ts` | `api_access`, read, `degradesWith: ['custom_data']` | `GET orgs/:org_id/projects/:project_id/systems/details/` | Implemented |
 | `get_system_image` | `src/tools/systems.ts` | `api_access`, mutation | `GET orgs/:org_id/projects/:project_id/systems/:uuid/image/?width=&height=` | Implemented |
@@ -194,7 +195,7 @@ Errors return `isError: true` with no `structuredContent`.
 | `get_proposal_data` | `src/tools/raw-data.ts` | `raw_data`, read | `GET user_logins/?project_ids=` | Implemented |
 | `get_project_design` | `src/tools/raw-data.ts` | `raw_data`, read | `GET orgs/:org_id/projects/:id/` | Implemented |
 
-73 tools are registered. `get_project_snapshot` joins one project with its workflow, systems, and file metadata. A failed section is a gap. `search_projects` and `search_contacts` page the documented lists and match locally. They do not send a `search` query. OpenSolar does not document those MCP tools. Nine writes from the documented inventory are
+74 tools are registered. `compare_project_systems` returns only the columns each system payload has and does not rank a winner. `get_project_snapshot` joins one project with its workflow, systems, and file metadata. A failed section is a gap. `search_projects` and `search_contacts` page the documented lists and match locally. They do not send a `search` query. OpenSolar does not document those MCP tools. Nine writes from the documented inventory are
 not registered, because their request contracts are not established with sufficient confidence:
 `create_module_activation`, `create_inverter_activation`,
 `create_battery_activation`, `create_other_component_activation`,
@@ -295,12 +296,22 @@ means Raw Data API Access is missing.
 
 `get_project_design` reads `design` from `GET orgs/:org_id/projects/:id/`.
 A missing or null design returns `{ design_available: false }`. A present
-design is gunzipped. The summary is `system_count` and, on each system,
-`system_price_including_tax` when that value is a number. The decompress
-section names those keys. It describes module quantities, component
-details, and annual production without naming keys, so those are not
-returned. The compressed string is not returned. `get_project` verbose
-still replaces `design` with `[REDACTED]`.
+design is gunzipped. `section` defaults to `summary`: `system_count` and
+`system_price_including_tax`. `components` and `energy` return
+`unmapped: true` because the decompress section still does not name those
+keys. `geometry` reports whether `autoFacetsGeoJson` is present and does
+not return coordinates. `financials` returns numeric pricing keys found on
+each system object and does not return pricing objects. The compressed
+string is not returned. HTTP 402 still means Raw Data API Access is
+missing. `get_project` verbose still replaces `design` with `[REDACTED]`.
+
+`compare_project_systems` takes one `project_id`. It reads one systems
+list page. kWh per kW and price per watt are calculated only when both
+inputs are present and kW is greater than zero. A column that is absent
+on that system is omitted. Hardware names come from the list when it
+already includes them. Otherwise one system-details call requests
+modules, inverters, and batteries. A failed details call sets
+`hardware_gap` and still returns the list columns. No system is ranked.
 
 See [api-contract-matrix.md](./api-contract-matrix.md).
 
@@ -396,7 +407,7 @@ is historical (it still describes a 19-tool v1). Phase 2 reads, phase 3 writes, 
 | HTTP transport | Stateless Streamable HTTP via `createMcpHandler` |
 | `--check` / `--list-tools` | Implemented |
 | Tool titles, `outputSchema`, `structuredContent` | Implemented for the registered reads and writes |
-| Documented inventory | 73 tools registered, including derived `search_projects` and `search_contacts` and composite `get_project_snapshot`. Nine writes stay unsupported until their request contracts are established with sufficient confidence. Absence of an example request alone does not decide that. The public release checklist is not done. |
+| Documented inventory | 74 tools registered, including derived `search_projects`, `search_contacts`, and `compare_project_systems`, and composite `get_project_snapshot`. Nine writes stay unsupported until their request contracts are established with sufficient confidence. Absence of an example request alone does not decide that. The public release checklist is not done. |
 | `OPENSOLAR_TOOLSETS` / `OPENSOLAR_READ_ONLY` | Read at registration |
 | Client GET timeout | Implemented (30s default; per-call override) |
 | Client auth / errors | Present |

@@ -28,6 +28,7 @@ export const TIER_POLICY = {
   list_roles: { requires: 'api_access', mutation: false },
   get_role: { requires: 'api_access', mutation: false },
   list_project_systems: { requires: 'api_access', mutation: false },
+  compare_project_systems: { requires: 'api_access', mutation: false },
   get_system: { requires: 'api_access', mutation: false },
   get_system_details: { requires: 'api_access', mutation: false, degradesWith: ['custom_data'] },
   get_system_image: { requires: 'api_access', mutation: true },

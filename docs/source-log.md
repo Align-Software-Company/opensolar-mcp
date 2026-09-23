@@ -86,6 +86,10 @@ Teams pages were read on 2026-09-22 for P7-01. Create sends `org_name`, and opti
 
 Projects were re-read on 2026-09-22 for P8-02, decompress section. The code sample reads `design.systems`. The "What's Inside" list names `system_price_including_tax` on per-system pricing. It describes module quantities, component details, and annual production without naming keys. `get_project_design` returns the system count and that price key. It does not invent the unnamed keys. The call was not made on a live org. No design body was stored.
 
+The same decompress section was re-read later the same day for design sections. It names `autoFacetsGeoJson` and several pricing numbers. It still does not name module-quantity, component-code, or annual-production keys. `components` and `energy` stay unmapped. No design body was stored.
+
+Private files were re-read the same day for list filters. The query table lists `project`, `user_id`, `file_tags`, `file_tags_exclude`, `search`, and `ordering`. `list_private_files` already sends those. `find_project_file` was not added.
+
 ---
 
 ## OpenSolar User Terms
@@ -152,7 +156,9 @@ ordering were re-checked on 2026-09-22 via `pnpm test:integration`
 | Webhook `headers` | The create curl sends `headers` as a stringified JSON object. The parameters table does not list it. The tool does not send or return it. |
 | Webhook queue `page` and `limit` | The queue page (retrieved 2026-09-22) does not list `page` or `limit`. `list_webhook_queue` sends both because P6-01 says the queue is paginated. |
 | Proposal pricing object keys | The proposal page (retrieved 2026-09-22) shows `data.pricing`, `line_items`, and `payment_options` without listing their keys. `get_proposal_data` does not return those objects. |
-| Design module, code, and annual keys | The projects decompress section (retrieved 2026-09-22) names `systems` and `system_price_including_tax`. It does not name keys for module quantity, inverter or battery codes, or annual production. `get_project_design` does not invent them. |
+| Design module, code, and annual keys | The projects decompress section (re-read 2026-09-22) names `systems`, `system_price_including_tax`, and `autoFacetsGeoJson`. It also names pricing numbers such as `margin`, `discount`, `dealer_fee`, `tax`, `payback_year`, `net_present_value`, and `internal_rate_of_return`. It still does not name keys for module quantity, component codes, or annual production. `get_project_design` returns `unmapped: true` for `components` and `energy`. Geometry reports presence only. Financials copies those numeric keys when they sit on the system object. Coordinates and pricing objects are not returned. No design body was stored. |
+| Private file filters | The private files query table (re-read 2026-09-22) lists `project`, `user_id`, `file_tags`, `file_tags_exclude`, `search`, and `ordering`. `list_private_files` already sends those, plus `page` and `limit`. `find_project_file` was not added. |
+| System comparison | `compare_project_systems` uses the documented systems list and, only when a listed system has no hardware arrays, system details with `include_parts=modules,inverters,batteries`. It was not called on a live org. No response body was stored. |
 | Connected org list `ordering` and `range` | The listing sample (retrieved 2026-09-22) also sends `ordering=-id` and `range`. `list_connected_orgs` sends `fieldset=list`, `page`, and `limit`. |
 | Team writes | The team pages show request curls (retrieved 2026-09-22). Those calls were not made against a live org. Accept, share, and permission-role responses are not shown, so those tools return the request confirmation rather than the upstream body. |
 | `GET /contacts/?search=` | Absent from official Contacts query table; no live check in this log. `search_contacts` does not send it. |
