@@ -1,6 +1,5 @@
 # OpenSolar MCP
 
-[![CI](https://github.com/Align-Software-Company/opensolar-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/Align-Software-Company/opensolar-mcp/actions/workflows/ci.yml)
 [![Node.js 24+](https://img.shields.io/badge/Node.js-24%2B-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 [![Model Context Protocol](https://img.shields.io/badge/MCP-server-5A67D8)](https://modelcontextprotocol.io/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -146,7 +145,6 @@ The default profile includes common project, contact, system, commercial configu
 
 </details>
 
-Several documented OpenSolar write operations remain intentionally unregistered because their request contracts have not been established with sufficient confidence. The server does not guess write bodies.
 
 ## Connect over stdio
 
