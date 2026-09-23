@@ -48,7 +48,7 @@ describe('get_system_image', () => {
       },
     ]);
     expect(payload).toEqual({ id: 9, content_type: 'image/png' });
-    expect(payload.contents).toBeUndefined();
+    expect(payload).not.toHaveProperty('contents');
     expect(JSON.stringify(result)).not.toContain('Signature');
     expect(JSON.stringify(result)).not.toContain(signedHeader);
   });
