@@ -2,20 +2,18 @@ import { describe, expect, it } from 'vitest';
 import { messageForOpenSolarError } from '../../src/client/errors.js';
 import { OpenSolarApiError } from '../../src/client/index.js';
 import { buildServer } from '../../src/server.js';
-import { ALL_TOOL_FILTERS, withMcpClient } from '../helpers/mcp.js';
+import { ALL_TOOL_FILTERS, testClient, withMcpClient } from '../helpers/mcp.js';
 
 const deniedBody = 'denied-secret';
 
 function errorClient(status: number) {
-  return {
-    get: async (): Promise<unknown> => {
-      throw new OpenSolarApiError(
-        `OpenSolar API ${status} on GET orgs/1/projects/`,
-        status,
-        deniedBody,
-      );
-    },
-  };
+  return testClient(async () => {
+    throw new OpenSolarApiError(
+      `OpenSolar API ${status} on GET orgs/1/projects/`,
+      status,
+      deniedBody,
+    );
+  });
 }
 
 function toolText(result: {
@@ -48,6 +46,7 @@ describe('sanitized tool errors', () => {
     const text = toolText(result);
 
     expect(result.isError).toBe(true);
+    expect(result.structuredContent).toBeUndefined();
     expect(text).toBe(expected);
     expect(text).not.toContain(deniedBody);
     expect(messageForOpenSolarError(new OpenSolarApiError('x', status, deniedBody))).not.toContain(

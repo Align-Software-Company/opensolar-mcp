@@ -1,0 +1,24 @@
+[
+  {
+    "id": 3,
+    "title": "Example Workflow",
+    "description": "Dropped from the curated row",
+    "is_default": true,
+    "is_archived": false,
+    "workflow_stages": [
+      {
+        "id": 17,
+        "title": "New",
+        "milestone": 0,
+        "order": 0,
+        "is_archived": false,
+        "actions": [
+          {
+            "id": 7659,
+            "title": "Design Systems"
+          }
+        ]
+      }
+    ]
+  }
+]

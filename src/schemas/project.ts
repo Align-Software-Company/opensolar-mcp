@@ -1,5 +1,10 @@
 import { z } from 'zod';
-import { type CuratedProjectEvent, curateProjectEvent, EventSchema } from './event.js';
+import {
+  type CuratedProjectEvent,
+  CuratedProjectEventSchema,
+  curateProjectEvent,
+  EventSchema,
+} from './event.js';
 
 const STAGE_MILESTONE_LABELS: Record<number, string> = {
   0: 'Presale',
@@ -220,3 +225,85 @@ export function curateProject(p: ProjectFull): ProjectCurated {
   }
   return curated;
 }
+
+export const CuratedWorkflowOutputSchema = z.object({
+  workflow_id: z.number().optional(),
+  active_stage_id: z.number().optional(),
+});
+
+export const ProjectListRowOutputSchema = z
+  .object({
+    id: z.number(),
+    title: z.string().nullish(),
+    address: z.string().nullish(),
+    created_date: z.string().nullish(),
+    modified_date: z.string().nullish(),
+    stage: z.number().nullish(),
+    stage_milestone: z.string().optional(),
+    workflow: CuratedWorkflowOutputSchema.optional(),
+  })
+  .passthrough();
+
+export const ListProjectsOutputSchema = z.object({
+  projects: z.array(ProjectListRowOutputSchema),
+  page: z.number().int(),
+  limit: z.number().int(),
+});
+
+const CuratedContactOutputSchema = z.object({
+  id: z.number(),
+  display: z.string().nullish(),
+  email: z.string().nullish(),
+  phone: z.string().nullish(),
+});
+
+const CuratedAssignedRoleOutputSchema = z.object({
+  id: z.number(),
+  display: z.string().nullish(),
+  email: z.string().nullish(),
+});
+
+export const GetProjectCuratedSchema = z.object({
+  id: z.number(),
+  title: z.string().nullish(),
+  address: z.string().nullish(),
+  locality: z.string().nullish(),
+  state: z.string().nullish(),
+  zip: z.string().nullish(),
+  country_iso2: z.string().nullish(),
+  lat: z.number().nullish(),
+  lon: z.number().nullish(),
+  stage: z.number().nullish(),
+  created_date: z.string().nullish(),
+  modified_date: z.string().nullish(),
+  contacts: z.array(CuratedContactOutputSchema),
+  system_count: z.number().int(),
+  assigned_role_data: CuratedAssignedRoleOutputSchema.nullable(),
+  design_available: z.boolean(),
+  events: z.array(CuratedProjectEventSchema),
+  stage_milestone: z.string().optional(),
+  workflow: CuratedWorkflowOutputSchema.optional(),
+});
+
+export const GetProjectOutputSchema = z.object({ id: z.number() }).passthrough();
+
+export const ProjectWriteResultSchema = z.object({
+  id: z.number(),
+  address: z.string().nullish(),
+});
+
+export const ProjectStageResultSchema = z.object({
+  project_id: z.number(),
+  workflow_id: z.number(),
+  active_stage_id: z.number(),
+});
+
+export const ProjectUsageResultSchema = z.object({
+  project_id: z.number(),
+  usage_data_source: z.string(),
+});
+
+export const DeletedRecordSchema = z.object({
+  id: z.number(),
+  deleted: z.literal(true),
+});

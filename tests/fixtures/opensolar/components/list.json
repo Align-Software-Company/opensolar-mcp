@@ -1,0 +1,11 @@
+[
+  {
+    "id": 1,
+    "code": "LG330N1C-A5",
+    "manufacturer_name": "Example Modules",
+    "is_default": false,
+    "is_archived": false,
+    "data": "{\"code\":\"SPEC-BLOB\",\"kw_stc\":0.33}",
+    "cost": 0
+  }
+]

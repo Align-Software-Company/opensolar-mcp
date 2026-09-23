@@ -1,12 +1,12 @@
 import type { McpServer } from '@modelcontextprotocol/server';
 import { z } from 'zod';
-import { runOpenSolarTool } from '../client/errors.js';
+import { openSolarSuccess, runOpenSolarTool } from '../client/errors.js';
 import type { OpenSolarClient } from '../client/index.js';
 import { enrichContact } from '../lib/contact-enrich.js';
-import { getEventTypeName } from '../lib/enums/event-types.js';
+import { EVENT_TYPES, getEventTypeName } from '../lib/enums/event-types.js';
 import type { ToolName } from '../lib/tier-policy.js';
 import { type Contact, ContactSchema } from '../schemas/contact.js';
-import { EventSchema } from '../schemas/event.js';
+import { EventSchema, GetEventOutputSchema } from '../schemas/event.js';
 
 export interface EventsContext {
   client: OpenSolarClient;
@@ -19,28 +19,10 @@ const getEventInputSchema = z.object({
     .int()
     .positive()
     .describe(
-      "OpenSolar event ID. Get this from get_project's events_data, or from another tool that " +
+      "OpenSolar event ID. Get this from get_project's events, or from another tool that " +
         'surfaces event IDs.',
     ),
 });
-
-const getEventDescription =
-  'Fetch a single event by ID from the authenticated org. Returns the full event object ' +
-  'including event_type_name (derived from event_type_id), title, notes, timestamps, who ' +
-  'triggered the event, linked project, and linked contact (if applicable). Use this when you ' +
-  "have an event ID from get_project's events_data and want richer details (for example " +
-  'team_members, action linkage, is_all_day flag), or when investigating a specific event in ' +
-  'detail. Events are categorized by event_type_id, which maps to a human-readable name via ' +
-  'event_type_name. Common types: 56 (Project Stage Changed), 2 (Customer Viewed Online ' +
-  'Proposal), 44 (System Changed), 103/104 (Project Marked Sold/Installed). Finance and ' +
-  'Docusign event types (49-75) cover the financing workflow; payment event types (109-123) ' +
-  'cover invoicing and payments. For external integrations (Sungage, DocuSign), the `who` ' +
-  'field may show "Unknown User"/"Unknown Email" since the event was fired by an external ' +
-  'system, not by an OpenSolar user. If event_type_id maps to an unknown type (OpenSolar adds ' +
-  'new types over time), event_type_name returns "Unknown event type" rather than failing. If ' +
-  'contact_data is present on the event, sensitive PII fields (passport_number, ' +
-  'licence_number, date_of_birth) are redacted before reaching the LLM. Note: events have no ' +
-  '`created_by` field; the `user` URL on the event points at the user who created it.';
 
 function enrichEventContactData(value: unknown): unknown {
   if (value === null || value === undefined) {
@@ -53,19 +35,39 @@ function enrichEventContactData(value: unknown): unknown {
   return enrichContact(parsed.data as Contact);
 }
 
+const ListEventTypesOutputSchema = z.object({
+  event_types: z.array(
+    z.object({
+      id: z.number().int(),
+      title: z.string(),
+    }),
+  ),
+});
+
 export function registerEventsToolset(
   server: McpServer,
   ctx: EventsContext,
   enabled: ReadonlySet<ToolName>,
 ): void {
-  if (!enabled.has('get_event')) {
-    return;
+  if (enabled.has('get_event')) {
+    registerGetEvent(server, ctx);
   }
+  if (enabled.has('list_event_types')) {
+    registerListEventTypes(server);
+  }
+}
+
+function registerGetEvent(server: McpServer, ctx: EventsContext): void {
   server.registerTool(
     'get_event',
     {
-      description: getEventDescription,
+      title: 'Get event',
+      description:
+        'Returns one event by id. Adds `event_type_name` and omits `url` and `org`. ' +
+        'Use an id from get_project events. Unknown types become `Unknown event type`.',
       inputSchema: getEventInputSchema,
+      outputSchema: GetEventOutputSchema,
+      annotations: { readOnlyHint: true, openWorldHint: true },
     },
     async ({ event_id }) =>
       runOpenSolarTool(async () => {
@@ -97,9 +99,32 @@ export function registerEventsToolset(
           payload.contact_data = enrichedContact;
         }
 
-        return {
-          content: [{ type: 'text', text: JSON.stringify(payload, null, 2) }],
-        };
+        const parsed = GetEventOutputSchema.parse(payload);
+        const typeName = parsed.event_type_name;
+        return openSolarSuccess(parsed, `Event ${parsed.id}: ${typeName}.`);
+      }),
+  );
+}
+
+function registerListEventTypes(server: McpServer): void {
+  server.registerTool(
+    'list_event_types',
+    {
+      title: 'List event types',
+      description:
+        'Returns the OpenSolar event type ids and titles, including gaps. This is a copied docs table, not an API call.',
+      inputSchema: z.object({}),
+      outputSchema: ListEventTypesOutputSchema,
+      annotations: { readOnlyHint: true, openWorldHint: true },
+    },
+    async () =>
+      runOpenSolarTool(async () => {
+        const eventTypes = Object.entries(EVENT_TYPES).map(([id, title]) => ({
+          id: Number(id),
+          title,
+        }));
+        const payload = ListEventTypesOutputSchema.parse({ event_types: eventTypes });
+        return openSolarSuccess(payload, `${payload.event_types.length} event types.`);
       }),
   );
 }

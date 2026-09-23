@@ -1,0 +1,26 @@
+{
+  "id": 1253,
+  "name": "Example array",
+  "uuid": "E583FD88-EB6C-4311-91A9-AC719041EAA8",
+  "kw_stc": 2.76,
+  "battery_total_kwh": 0,
+  "price_including_tax": 5520,
+  "module_quantity": 8,
+  "output_annual_kwh": 5497,
+  "modules": [
+    {
+      "code": "JKM285M-60",
+      "manufacturer_name": "Example Modules",
+      "quantity": 8,
+      "module_activation_id": 613
+    }
+  ],
+  "inverters": [
+    {
+      "code": "INV-1",
+      "manufacturer_name": "Example Inverters",
+      "quantity": 1
+    }
+  ],
+  "batteries": []
+}

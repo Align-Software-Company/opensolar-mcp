@@ -1,0 +1,12 @@
+[
+  {
+    "id": 99,
+    "display": "Pat Example",
+    "email": "pat@example.test",
+    "phone": "2025550100",
+    "job_title": "Sales",
+    "is_admin": true,
+    "api_key_chat": "chat-key-example",
+    "user_email": "pat@example.test"
+  }
+]

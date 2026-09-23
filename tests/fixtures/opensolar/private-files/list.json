@@ -1,0 +1,13 @@
+[
+  {
+    "id": 501,
+    "title": "site-model.geojson",
+    "project": "https://api.opensolar.com/api/orgs/1/projects/9001/",
+    "file_tags": ["https://api.opensolar.com/api/file_tags/47/"],
+    "file_tags_data": [{ "title": "Site Model", "id": 47 }],
+    "filesize": 32,
+    "file_contents": "https://files.example.test/private/site-model.geojson?Expires=1&Signature=fixture",
+    "file_hash": "HASH-SHOULD-NOT-LEAK",
+    "status": "created"
+  }
+]

@@ -32,7 +32,7 @@ export const DEFAULT_REDACTION: RedactionOptions = {
     { match: /^integration_secret_/i, mode: 'surgical' },
     // Wholesale-redact bulk-data fields that are not useful to LLMs in raw form.
     // The design field is gzip+base64-encoded (~167KB); the LLM cannot decode it.
-    // Use a dedicated v2 tool (get_system_summary, etc.) for structured design data.
+    // Use get_project_design for a decoded summary. Do not return the compressed string.
     { match: 'design', mode: 'wholesale' },
     { match: 'integration_json', mode: 'wholesale' },
     { match: 'api_key_chat', mode: 'wholesale' },

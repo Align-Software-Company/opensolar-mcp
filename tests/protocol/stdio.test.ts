@@ -67,13 +67,14 @@ describe('stdio protocol', () => {
       expect(listed.tools.map((tool) => tool.name)).toContain('get_org');
 
       const result = await client.callTool({ name: 'get_org', arguments: {} });
+      expect(result.structuredContent).toEqual(
+        expect.objectContaining({ id: 1, name: 'Example Solar Co' }),
+      );
       const text = result.content[0];
       if (text?.type !== 'text') {
         throw new Error('expected text content');
       }
-      expect(JSON.parse(text.text)).toEqual(
-        expect.objectContaining({ id: 1, name: 'Example Solar Co' }),
-      );
+      expect(text.text).toBe('Org 1: Example Solar Co.');
     } finally {
       await client.close();
       await mock.close();

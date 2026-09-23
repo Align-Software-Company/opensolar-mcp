@@ -98,11 +98,10 @@ describe('stateless HTTP transport', () => {
       await client.connect(transport);
       try {
         const result = await client.callTool({ name: 'get_org', arguments: {} });
-        const text = result.content[0];
-        if (text?.type !== 'text') {
-          throw new Error('expected text content');
+        if (result.structuredContent === undefined) {
+          throw new Error('expected structuredContent');
         }
-        return text.text;
+        return JSON.stringify(result.structuredContent);
       } finally {
         await client.close();
       }

@@ -9,12 +9,30 @@ export const ALL_TOOL_FILTERS: ToolFilters = {
   plan: undefined,
 };
 
-export function unexpectedCallClient(): OpenSolarClient {
+function unexpectedWrite(): Promise<never> {
+  return Promise.reject(new Error('unexpected OpenSolar write'));
+}
+
+export function testClient(get: OpenSolarClient['get']): OpenSolarClient {
   return {
-    get: async (): Promise<unknown> => {
-      throw new Error('unexpected OpenSolar call');
+    get,
+    post: async () => unexpectedWrite(),
+    postForm: async () => unexpectedWrite(),
+    put: async () => unexpectedWrite(),
+    patch: async () => unexpectedWrite(),
+    delete: async () => unexpectedWrite(),
+    download: async () => unexpectedWrite(),
+    getFile: async () => unexpectedWrite(),
+    resourceUrl(path: string) {
+      return new URL(path.replace(/^\//, ''), 'https://api.opensolar.com/api/').toString();
     },
   };
+}
+
+export function unexpectedCallClient(): OpenSolarClient {
+  return testClient(async () => {
+    throw new Error('unexpected OpenSolar call');
+  });
 }
 
 export async function withMcpClient<T>(
@@ -30,4 +48,17 @@ export async function withMcpClient<T>(
     await client.close();
     await server.close();
   }
+}
+
+export function requireStructuredContent(result: {
+  structuredContent?: unknown;
+  isError?: boolean;
+}): unknown {
+  if (result.isError) {
+    throw new Error('expected a successful tool result');
+  }
+  if (result.structuredContent === undefined) {
+    throw new Error('expected structuredContent');
+  }
+  return result.structuredContent;
 }

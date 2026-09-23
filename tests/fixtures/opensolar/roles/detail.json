@@ -1,0 +1,11 @@
+{
+  "id": 9,
+  "display": "Alex Example",
+  "email": "alex@example.com",
+  "phone": "+1-555-0100",
+  "first_name": "Alex",
+  "family_name": "Example",
+  "job_title": "Designer",
+  "is_admin": false,
+  "api_key_chat": "chat-secret-not-for-output"
+}

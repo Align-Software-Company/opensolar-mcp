@@ -1,14 +1,76 @@
 import type { McpServer } from '@modelcontextprotocol/server';
 import { z } from 'zod';
-import { runOpenSolarTool } from '../client/errors.js';
+import { openSolarSuccess, runOpenSolarTool } from '../client/errors.js';
 import type { OpenSolarClient } from '../client/index.js';
 import { enrichContact } from '../lib/contact-enrich.js';
 import type { ToolName } from '../lib/tier-policy.js';
-import { ContactListSchema, ContactSchema } from '../schemas/contact.js';
+import {
+  ContactListSchema,
+  ContactSchema,
+  ContactWriteSchema,
+  EnrichedContactSchema,
+  ListContactsOutputSchema,
+} from '../schemas/contact.js';
+import { DeletedRecordSchema } from '../schemas/project.js';
 
 export interface CrmContext {
   client: OpenSolarClient;
   orgId: number;
+}
+
+const readAnnotations = { readOnlyHint: true, openWorldHint: true } as const;
+const createAnnotations = {
+  readOnlyHint: false,
+  destructiveHint: false,
+  idempotentHint: false,
+  openWorldHint: true,
+} as const;
+const updateAnnotations = {
+  readOnlyHint: false,
+  destructiveHint: false,
+  idempotentHint: true,
+  openWorldHint: true,
+} as const;
+const deleteAnnotations = {
+  readOnlyHint: false,
+  destructiveHint: true,
+  idempotentHint: true,
+  openWorldHint: true,
+} as const;
+
+const updateContactInputSchema = ContactWriteSchema.extend({
+  contact_id: z.number().int().positive().describe('Contact id from list_contacts or get_contact.'),
+})
+  .strict()
+  .refine(
+    (value) =>
+      value.first_name !== undefined ||
+      value.family_name !== undefined ||
+      value.email !== undefined ||
+      value.phone !== undefined,
+    { message: 'At least one of first_name, family_name, email, or phone is required' },
+  );
+
+function contactWriteBody(input: {
+  first_name?: string;
+  family_name?: string;
+  email?: string;
+  phone?: string;
+}): Record<string, string> {
+  const body: Record<string, string> = {};
+  if (input.first_name !== undefined) {
+    body.first_name = input.first_name;
+  }
+  if (input.family_name !== undefined) {
+    body.family_name = input.family_name;
+  }
+  if (input.email !== undefined) {
+    body.email = input.email;
+  }
+  if (input.phone !== undefined) {
+    body.phone = input.phone;
+  }
+  return body;
 }
 
 const listContactsInputSchema = z.object({
@@ -30,23 +92,6 @@ const listContactsInputSchema = z.object({
     ),
 });
 
-const listContactsDescription =
-  'List contacts from OpenSolar for the authenticated org. Returns a JSON array of contacts at ' +
-  'the requested page and limit. Default ordering is API-native (typically latest first). ' +
-  'Pagination: pass `page` (1-indexed) and `limit` (max 100, default 20). Heuristic for "more ' +
-  'contacts available": if the returned array length equals `limit`, more pages likely exist — ' +
-  'request `page + 1`. If array length is less than `limit`, this is the last page. OpenSolar ' +
-  'does not return pagination metadata, so exact-multiple totals remain an edge case. Ordering: ' +
-  'pass `ordering` to sort by `first_name`, `family_name`, or `email`; prefix with `-` for ' +
-  'descending (for example `-first_name` for Z→A). This descending convention is empirically ' +
-  "confirmed but contradicts OpenSolar's own docs. Contact types: `type: 0` (`type_name: " +
-  '"normal"`) are regular records; `type: 1` (`type_name: "proposal-share"`) are auto-generated ' +
-  'when proposal-share links are opened without a MyEnergy account and may include synthetic ' +
-  'emails (`<digits>@os.code`). The tool adds `is_synthetic_email` to each contact so those ' +
-  'emails are not treated as deliverable. Contacts may also originate from projects shared by ' +
-  'another org; `org_id` identifies record ownership. Sensitive PII (`passport_number`, ' +
-  '`licence_number`, `date_of_birth`) is redacted before reaching the LLM.';
-
 const getContactInputSchema = z.object({
   contact_id: z
     .number()
@@ -58,19 +103,6 @@ const getContactInputSchema = z.object({
     ),
 });
 
-const getContactDescription =
-  'Fetch a single contact by ID from the authenticated org. Returns the full contact object: ' +
-  'id, email, phone, first/middle/family names, display, type (0=normal, 1=proposal-share), ' +
-  'type_name, projects linkage, org context, custom_data, etc. Use this when you have a ' +
-  'specific contact ID and need full details, or when `list_contacts` returned a result and the ' +
-  'LLM wants to inspect one contact more closely. If the contact has no real email (for example, ' +
-  'a proposal-share auto-generated account), `is_synthetic_email: true` is set on the response. ' +
-  'Sensitive PII fields (`passport_number`, `licence_number`, `date_of_birth`) are redacted ' +
-  "before reaching the LLM. OpenSolar's contact model has no `created_date` or `modified_date`, " +
-  'so creation or modification time cannot be inferred from this endpoint. Returns a single ' +
-  'contact object, not an array. If the contact does not exist, an API error is raised; callers ' +
-  'can use `list_contacts` to verify the ID first if needed.';
-
 export function registerCrmToolset(
   server: McpServer,
   ctx: CrmContext,
@@ -80,8 +112,13 @@ export function registerCrmToolset(
     server.registerTool(
       'list_contacts',
       {
-        description: listContactsDescription,
+        title: 'List contacts',
+        description:
+          'Lists one page of contacts as `{ contacts }`. Each contact includes `is_synthetic_email` for `@os.code` addresses. ' +
+          'Passport, licence, and date of birth are redacted. Contacts have no created_date or modified_date.',
         inputSchema: listContactsInputSchema,
+        outputSchema: ListContactsOutputSchema,
+        annotations: readAnnotations,
       },
       async ({ page, limit, ordering }) =>
         runOpenSolarTool(async () => {
@@ -96,11 +133,10 @@ export function registerCrmToolset(
           const path = `orgs/${ctx.orgId}/contacts/?${params.toString()}`;
           const raw = await ctx.client.get(path);
           const contacts = ContactListSchema.parse(raw);
-          const payload = contacts.map(enrichContact);
-
-          return {
-            content: [{ type: 'text', text: JSON.stringify(payload, null, 2) }],
-          };
+          const payload = ListContactsOutputSchema.parse({
+            contacts: contacts.map(enrichContact),
+          });
+          return openSolarSuccess(payload, `${payload.contacts.length} contacts.`);
         }),
     );
   }
@@ -109,19 +145,95 @@ export function registerCrmToolset(
     server.registerTool(
       'get_contact',
       {
-        description: getContactDescription,
+        title: 'Get contact',
+        description:
+          'Returns one contact by id, including `is_synthetic_email`. Passport, licence, and date of birth ' +
+          'are redacted. Contacts have no created_date or modified_date.',
         inputSchema: getContactInputSchema,
+        outputSchema: EnrichedContactSchema,
+        annotations: readAnnotations,
       },
       async ({ contact_id }) =>
         runOpenSolarTool(async () => {
           const path = `orgs/${ctx.orgId}/contacts/${contact_id}/`;
           const raw = await ctx.client.get(path);
           const contact = ContactSchema.parse(raw);
-          const payload = enrichContact(contact);
+          const payload = EnrichedContactSchema.parse(enrichContact(contact));
+          return openSolarSuccess(payload, `Contact ${payload.id}.`);
+        }),
+    );
+  }
 
-          return {
-            content: [{ type: 'text', text: JSON.stringify(payload, null, 2) }],
-          };
+  if (enabled.has('create_contact')) {
+    server.registerTool(
+      'create_contact',
+      {
+        title: 'Create contact',
+        description:
+          'Adds a person to the live org. Send only first_name, family_name, email, and phone. ' +
+          'This call is not retried.',
+        inputSchema: ContactWriteSchema,
+        outputSchema: EnrichedContactSchema,
+        annotations: createAnnotations,
+      },
+      async (input) =>
+        runOpenSolarTool(async () => {
+          const raw = await ctx.client.post(`orgs/${ctx.orgId}/contacts/`, contactWriteBody(input));
+          const contact = ContactSchema.parse(raw);
+          const payload = EnrichedContactSchema.parse(enrichContact(contact));
+          return openSolarSuccess(payload, `Contact ${payload.id}.`);
+        }),
+    );
+  }
+
+  if (enabled.has('update_contact')) {
+    server.registerTool(
+      'update_contact',
+      {
+        title: 'Update contact',
+        description:
+          'Updates a person in the live org. Send at least one of first_name, family_name, email, and phone. ' +
+          'This call is not retried.',
+        inputSchema: updateContactInputSchema,
+        outputSchema: EnrichedContactSchema,
+        annotations: updateAnnotations,
+      },
+      async ({ contact_id, ...fields }) =>
+        runOpenSolarTool(async () => {
+          const raw = await ctx.client.put(
+            `orgs/${ctx.orgId}/contacts/${contact_id}/`,
+            contactWriteBody(fields),
+          );
+          const contact = ContactSchema.parse(raw);
+          const payload = EnrichedContactSchema.parse(enrichContact(contact));
+          return openSolarSuccess(payload, `Contact ${payload.id}.`);
+        }),
+    );
+  }
+
+  if (enabled.has('delete_contact')) {
+    server.registerTool(
+      'delete_contact',
+      {
+        title: 'Delete contact',
+        description: 'Removes the person from the live org. This call is not retried.',
+        inputSchema: z
+          .object({
+            contact_id: z
+              .number()
+              .int()
+              .positive()
+              .describe('Contact id from list_contacts or get_contact.'),
+          })
+          .strict(),
+        outputSchema: DeletedRecordSchema,
+        annotations: deleteAnnotations,
+      },
+      async ({ contact_id }) =>
+        runOpenSolarTool(async () => {
+          await ctx.client.delete(`orgs/${ctx.orgId}/contacts/${contact_id}/`);
+          const payload = DeletedRecordSchema.parse({ id: contact_id, deleted: true });
+          return openSolarSuccess(payload, `Contact ${contact_id} deleted.`);
         }),
     );
   }

@@ -7,7 +7,7 @@ one. Do not paper over it in tool code without recording it here.
 Format: what it is, where it is documented (if anywhere), what this
 codebase should do.
 
-Last reviewed: 2026-08-22
+Last reviewed: 2026-09-22
 Canonical path: `docs/api-quirks.md` (this file).
 
 ---
@@ -234,11 +234,13 @@ the raw blob through LLM context.
 
 Populated only on Raw Data. API Access: omitted or null.
 
-v1: wholesale-redact in verbose mode. Structured parse tools are later
-work.
+v1: wholesale-redact in verbose mode. `get_project` verbose still replaces `design` with `[REDACTED]`. `get_project_design` gunzips the string and returns the system count plus `system_price_including_tax`. The decompress section does not name keys for module quantity, component codes, or annual production.
+
+Proposal `systems[].data.output` uses the same base64(gzip(JSON)) encoding when it is a string. `get_proposal_data` decodes that string to read annual and monthly kWh and does not return the string. The tool does not send `compress_data`.
 
 **Source:** Observed in org 48389 verbose project response; official
 decompress steps on [Projects](https://developers.opensolar.com/api/projects/).
+Proposal output: [Proposal Data](https://developers.opensolar.com/api/proposal-data/), retrieved 2026-09-22.
 
 ### Contacts list is a bare array
 
@@ -340,6 +342,22 @@ that exists. 404 is for genuinely missing resources.
 - Distinct messages for 403 vs 404.
 - Proposal data: if *any* `project_ids` entry is inaccessible, the whole
   request fails 403.
+
+### System image creates a file without exposing its id
+
+On org 48389, project 10616552, `GET .../systems/20d0ad9c-7d92-4078-b8a3-6051f4a08439/image/?width=500&height=500` on 2026-09-22 returned `image/jpeg`. The final URL and response headers did not contain `/private_files/{id}`. A following private-files list for that project included a new file tagged System Image.
+
+**Source:** live call 2026-09-22. [System Image](https://developers.opensolar.com/api/system-image/) says the first call can create a private file and to follow redirects. The page shows no response body.
+
+**What to do:** `get_system_image` returns `id: null` when no private file id is exposed. Find that file with `list_private_files`. Do not guess the id from the newest file inside the image tool.
+
+### Webhook logs return HTTP 500 for an empty page
+
+`GET /orgs/:org_id/webhook_process_logs/` documents that an empty `page` returns HTTP 500.
+
+**Source:** [Webhooks Logs](https://developers.opensolar.com/api/webhooks-logs/), retrieved 2026-09-22.
+
+**What to do:** `list_webhook_logs` still sends `page` and `limit`. The description tells the caller that an empty page can return HTTP 500. Do not retry that 500 as if the page exists.
 
 ### No batch endpoints
 

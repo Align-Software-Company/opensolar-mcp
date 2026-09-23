@@ -1,0 +1,9 @@
+{
+  "id": 7,
+  "title": "Cash",
+  "payment_type": "cash",
+  "priority": 1,
+  "auto_apply_enabled": true,
+  "is_archived": false,
+  "configuration_json": { "collect_signature": true }
+}

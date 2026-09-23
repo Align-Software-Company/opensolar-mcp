@@ -1,0 +1,15 @@
+{
+  "id": 68,
+  "url": "https://api.opensolar.com/api/orgs/1/pricing_schemes/68/",
+  "org": "https://api.opensolar.com/api/orgs/1/",
+  "title": "per equipment",
+  "pricing_formula": "Price Per Module/Inverter/Battery",
+  "priority": 1,
+  "auto_apply_enabled": true,
+  "is_archived": false,
+  "configuration_json": "FORMULA-BLOB",
+  "auto_apply_only_specified_states": "STATE-BLOB",
+  "auto_apply_only_specified_zips": "ZIP-BLOB",
+  "created_date": "2019-02-12T01:43:54.320315Z",
+  "modified_date": "2019-02-12T01:43:54.320357Z"
+}

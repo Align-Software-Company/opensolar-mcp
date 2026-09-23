@@ -64,3 +64,24 @@ export function curateOrg(org: Org): OrgCurated {
     modified_date: org.modified_date,
   };
 }
+
+export const OrgCuratedSchema = z.object({
+  id: z.number(),
+  name: z.string().nullish(),
+  address: z.string().nullish(),
+  locality: z.string().nullish(),
+  state: z.string().nullish(),
+  zip: z.string().nullish(),
+  country: z.string().nullish(),
+  country_iso2: z.string().nullish(),
+  company_email: z.string().nullish(),
+  company_website: z.string().nullish(),
+  sales_phone_number: z.string().nullish(),
+  service_offering: z.string().nullish(),
+  measurement_units: z.string().nullish(),
+  is_active: z.boolean().nullish(),
+  created_date: z.string().nullish(),
+  modified_date: z.string().nullish(),
+});
+
+export const GetOrgOutputSchema = OrgCuratedSchema.passthrough();

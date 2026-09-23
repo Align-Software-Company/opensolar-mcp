@@ -1,0 +1,56 @@
+{
+  "systems": [
+    {
+      "id": 8280,
+      "uuid": "E583FD88-EB6C-4311-91A9-AC719041EAA8",
+      "name": "System 1",
+      "kw_stc": 6.21,
+      "total_module_quantity": 18,
+      "modules": [
+        {
+          "code": "LG345N1C-V5",
+          "manufacturer_name": "Example Modules",
+          "quantity": 18
+        }
+      ],
+      "inverters": [],
+      "batteries": [],
+      "other_components": [
+        {
+          "code": "dc_isolator_xyz",
+          "manufacturer_name": "Example Hardware",
+          "quantity": 1
+        }
+      ],
+      "adders": [
+        {
+          "label": "Adder",
+          "total_value": 20
+        }
+      ],
+      "module_groups": [
+        {
+          "module_quantity": 18,
+          "azimuth": 7,
+          "slope": 20,
+          "layout": "portrait"
+        }
+      ],
+      "incentives": [
+        {
+          "paid_to_customer": true,
+          "value": 884,
+          "title": "Example incentive"
+        }
+      ],
+      "data": {
+        "mcs": {
+          "shadingFactor": "1"
+        }
+      },
+      "custom_data": {
+        "secret_note": "omit-me"
+      }
+    }
+  ]
+}

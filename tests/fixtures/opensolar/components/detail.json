@@ -1,0 +1,8 @@
+{
+  "id": 42,
+  "code": "MOD-100",
+  "manufacturer_name": "Example Solar",
+  "is_default": true,
+  "is_archived": false,
+  "data": "SPEC-BLOB"
+}

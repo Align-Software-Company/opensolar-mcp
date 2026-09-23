@@ -1,0 +1,14 @@
+[
+  {
+    "id": 1,
+    "url": "https://api.opensolar.com/api/orgs/1/costings/1/",
+    "org": "https://api.opensolar.com/api/orgs/1/",
+    "title": "Default Project Configuration",
+    "description": "Default settings ready for customization.",
+    "priority": true,
+    "labor_per_watt": 98765.43,
+    "racking_per_panel": 4.5,
+    "steep_pitch_1_slope": 25,
+    "roof_type_adder_1_cost_per_system": 10
+  }
+]

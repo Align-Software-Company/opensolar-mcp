@@ -29,6 +29,19 @@ export function openSolarToolResult(error: OpenSolarApiError): {
   };
 }
 
+export function openSolarSuccess<T>(
+  structuredContent: T,
+  text: string,
+): {
+  content: [{ type: 'text'; text: string }];
+  structuredContent: T;
+} {
+  return {
+    content: [{ type: 'text', text }],
+    structuredContent,
+  };
+}
+
 export async function runOpenSolarTool<T>(
   run: () => Promise<T>,
 ): Promise<T | ReturnType<typeof openSolarToolResult>> {

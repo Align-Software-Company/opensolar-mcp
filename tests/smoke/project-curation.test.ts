@@ -2,20 +2,20 @@ import { describe, expect, it } from 'vitest';
 import {
   curateProject,
   curateProjectListRow,
+  GetProjectCuratedSchema,
+  GetProjectOutputSchema,
+  ListProjectsOutputSchema,
   ProjectFullSchema,
   ProjectListSchema,
 } from '../../src/schemas/project.js';
 import { buildServer } from '../../src/server.js';
 import { loadOpenSolarFixture } from '../fixtures/load-fixture.js';
-import { ALL_TOOL_FILTERS, withMcpClient } from '../helpers/mcp.js';
-
-function parseToolJson(result: { content: Array<{ type: string; text?: string }> }): unknown {
-  const block = result.content[0];
-  if (block?.type !== 'text' || typeof block.text !== 'string') {
-    throw new Error('expected text content');
-  }
-  return JSON.parse(block.text);
-}
+import {
+  ALL_TOOL_FILTERS,
+  requireStructuredContent,
+  testClient,
+  withMcpClient,
+} from '../helpers/mcp.js';
 
 describe('project curation', () => {
   it('drops passport and licence fields from the default list_projects page', async () => {
@@ -33,9 +33,7 @@ describe('project curation', () => {
     expect(row).not.toHaveProperty('contacts_data');
 
     const mcp = buildServer({
-      client: {
-        get: async () => loadOpenSolarFixture('projects', 'list'),
-      },
+      client: testClient(async () => loadOpenSolarFixture('projects', 'list')),
       orgId: 1,
       filters: ALL_TOOL_FILTERS,
     });
@@ -43,10 +41,11 @@ describe('project curation', () => {
     const result = await withMcpClient(mcp, (client) =>
       client.callTool({ name: 'list_projects', arguments: {} }),
     );
-    const payload = parseToolJson(result);
+    const payload = requireStructuredContent(result);
     const serialized = JSON.stringify(payload);
 
     expect(result.isError).toBeFalsy();
+    expect(ListProjectsOutputSchema.parse(payload)).toEqual(payload);
     expect(payload).toEqual(
       expect.objectContaining({
         page: 1,
@@ -83,9 +82,7 @@ describe('project curation', () => {
     expect(curated.events).toEqual([]);
 
     const mcp = buildServer({
-      client: {
-        get: async () => loadOpenSolarFixture('projects', 'detail'),
-      },
+      client: testClient(async () => loadOpenSolarFixture('projects', 'detail')),
       orgId: 1,
       filters: ALL_TOOL_FILTERS,
     });
@@ -93,8 +90,10 @@ describe('project curation', () => {
     const result = await withMcpClient(mcp, (client) =>
       client.callTool({ name: 'get_project', arguments: { id: 1001 } }),
     );
-    const payload = parseToolJson(result);
+    const payload = requireStructuredContent(result);
 
+    expect(GetProjectCuratedSchema.parse(payload)).toEqual(payload);
+    expect(GetProjectOutputSchema.parse(payload)).toEqual(payload);
     expect(payload).toEqual(
       expect.objectContaining({
         workflow: { workflow_id: 200, active_stage_id: 501 },
@@ -105,5 +104,35 @@ describe('project curation', () => {
         events: [],
       }),
     );
+  });
+
+  it('replaces verbose project design with [REDACTED]', async () => {
+    const detail = loadOpenSolarFixture('projects', 'detail');
+    if (detail === null || typeof detail !== 'object' || Array.isArray(detail)) {
+      throw new Error('detail fixture must be an object');
+    }
+    const withDesign = { ...detail, design: 'H4sIfake-compressed-design' };
+    const mcp = buildServer({
+      client: testClient(async () => withDesign),
+      orgId: 1,
+      filters: ALL_TOOL_FILTERS,
+    });
+
+    const result = await withMcpClient(mcp, (client) =>
+      client.callTool({ name: 'get_project', arguments: { id: 1001, verbose: true } }),
+    );
+    const payload = requireStructuredContent(result);
+    if (payload === null || typeof payload !== 'object' || Array.isArray(payload)) {
+      throw new Error('expected a redacted project object');
+    }
+
+    expect(GetProjectOutputSchema.parse(payload)).toEqual(payload);
+    expect(payload).toEqual(expect.objectContaining({ id: 1001, design: '[REDACTED]' }));
+    expect(JSON.stringify(payload)).not.toContain('H4sIfake-compressed-design');
+    const text = result.content[0];
+    if (text?.type !== 'text') {
+      throw new Error('expected text content');
+    }
+    expect(text.text).toContain('Full redacted');
   });
 });

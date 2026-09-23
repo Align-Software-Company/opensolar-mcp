@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { enrichContact } from '../lib/contact-enrich.js';
 import { getEventTypeName } from '../lib/enums/event-types.js';
-import { type Contact, ContactSchema } from './contact.js';
+import { type Contact, ContactSchema, EnrichedContactSchema } from './contact.js';
 
 export const WhoSchema = z
   .object({
@@ -114,3 +114,29 @@ export function curateProjectEvent(event: Event): CuratedProjectEvent {
 
   return curated;
 }
+
+export const CuratedWhoSchema = z.object({
+  display: z.string().nullish(),
+  email: z.string().nullish(),
+});
+
+export const CuratedProjectEventSchema = z.object({
+  id: z.number(),
+  event_type_id: z.number(),
+  event_type_name: z.string(),
+  title: z.string().nullish(),
+  notes: z.string().nullish(),
+  start: z.string().nullish(),
+  end: z.string().optional(),
+  created_date: z.string().nullish(),
+  who: CuratedWhoSchema.nullable(),
+  contact_data: EnrichedContactSchema.nullable(),
+  is_archived: z.boolean().optional(),
+  is_complete: z.boolean().optional(),
+  project_id: z.number().optional(),
+  duration: z.number().optional(),
+});
+
+export const GetEventOutputSchema = EventSchema.extend({
+  event_type_name: z.string(),
+});

@@ -4,7 +4,7 @@ Contractual and operational gates for publishing or hosting this MCP.
 Architecture detail: `dev-docs/decisions/004-byo-token.md` (local).
 Sources and dates: [source-log.md](./source-log.md).
 
-Last reviewed: 2026-08-22
+Last reviewed: 2026-09-22
 
 ---
 
@@ -23,8 +23,7 @@ Binding rules:
 - Do not hide bulk work inside a tool (N sequential POSTs presented as
   one call). OpenSolar has no batch project API; looping belongs with
   the caller so per-item failures stay visible.
-- `/api/user_logins/` (proposal data) stays out of v1. It requires Raw
-  Data API Access and returns HTTP 402 otherwise.
+- `get_proposal_data` calls `GET /api/user_logins/` with one project id. It requires Raw Data API Access and returns HTTP 402 otherwise.
 
 User Terms clause 17 also forbids robots/scrapers without written
 permission and forbids bypassing access controls.
@@ -66,9 +65,9 @@ MCP policy (even before `src/client/rate-limit.ts` exists):
   call.
 - Do not ship Google Solar API tools in v1. The 200/day cap is too tight
   for typical agent traffic.
-- API Access is charged per project created. Empty wallet blocks **new**
-  creates; other calls continue. Do not retry `create_project` in a tight
-  loop when the wallet is empty.
+- API Access uses project-level paid entitlement while enabled. A new
+  project can be blocked when the wallet is empty. Other calls continue.
+  Do not retry `create_project` in a tight loop when the wallet is empty.
 
 ---
 
@@ -78,9 +77,9 @@ This package is a self-hosted template. It is not a multi-tenant proxy.
 
 | Gate | Requirement |
 |------|-------------|
-| Auth | Bring-your-own token. Env `OPENSOLAR_API_TOKEN`, later per-request `Authorization` on HTTP. No OAuth, no disk persistence, no token logs. |
+| Auth | Bring-your-own token. Env `OPENSOLAR_API_TOKEN`, or HTTP `Authorization: Bearer` on that request. No OAuth, no disk persistence, no token logs. |
 | Hosting | Users run their own process (stdio, Docker, or their HTTP deploy). A hosted service that brokers many customers' OpenSolar accounts needs OpenSolar's prior written consent (User Terms 17.7). |
-| npm / GHCR publish | Redaction rules covered in ADR 005; no secrets in git; 401 vs 402 vs 403 remain distinct once error mapping lands; README states unofficial status. |
+| npm / GHCR publish | Redaction rules covered in ADR 005; no secrets in git; 401, 402, and 403 stay distinct; README states unofficial status. Not published. |
 | Machine user | Document that default tokens expire in 7 days; recommend a dedicated machine user. Do not PATCH `is_machine_user` for the operator. |
 
 Public activation means: the operator of **their** OpenSolar org enables
