@@ -9,11 +9,7 @@ import {
   contactMatchStrength,
   rankContact,
 } from '../lib/entity-match.js';
-import {
-  BareListPageError,
-  scanPaginatedCollection,
-  searchResolution,
-} from '../lib/scan-pages.js';
+import { BareListPageError, scanPaginatedCollection, searchResolution } from '../lib/scan-pages.js';
 import type { ToolName } from '../lib/tier-policy.js';
 import {
   ContactListSchema,
