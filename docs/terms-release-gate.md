@@ -81,9 +81,9 @@ This repository distributes a self-hosted client. It does not operate a multi-te
 |------|-------------|
 | Stdio auth | The local process receives `OPENSOLAR_API_TOKEN`. No OAuth, disk persistence, or token logs. |
 | Loopback HTTP auth | A request `Authorization: Bearer` token takes precedence; the local env token may be used as fallback. |
-| Non-loopback HTTP auth | Every MCP request must supply `Authorization: Bearer <OpenSolar token>`. The server deliberately ignores `OPENSOLAR_API_TOKEN` as a request fallback. `MCP_HTTP_ALLOWED_HOSTS` is Host/DNS-rebinding protection, not authentication. Public traffic must be protected by TLS termination. |
+| Non-loopback HTTP auth | Every MCP request must supply `Authorization: Bearer <OpenSolar token>`. The server deliberately ignores `OPENSOLAR_API_TOKEN` as a request fallback. `MCP_HTTP_ALLOWED_HOSTS` protects Host/DNS-rebinding handling; `MCP_HTTP_ALLOWED_ORIGINS` limits browser Origin hostnames and defaults to the Host allowlist. Neither is authentication. Public traffic must be protected by TLS termination. |
 | Local uploads | `create_private_file` is disabled unless `OPENSOLAR_UPLOAD_ROOT` is set, and resolved paths must remain inside that root. |
-| Package distribution | README identifies the project as unofficial and self-hosted. Secret scans and artifact smoke tests run before release. |
+| Package distribution | README identifies the project as unofficial and self-hosted. Secret/artifact checks, public-doc identifier hygiene, and Docker smoke tests run before release. |
 | Machine user | Document that default tokens expire in 7 days; recommend a dedicated machine user. Do not PATCH `is_machine_user` for the operator. |
 | Future managed hosting | Any Align-operated shared/multi-customer service is a separate operating model and must be reviewed separately before it goes live. |
 
