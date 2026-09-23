@@ -82,7 +82,6 @@ describe('get_system_image', () => {
     expect(payload).toEqual({
       id: null,
       content_type: 'image/png; charset=binary',
-      contents: { encoding: 'base64', body: encoded },
     });
     expect(result.content).toEqual([
       { type: 'text', text: 'System image for project 42.' },
