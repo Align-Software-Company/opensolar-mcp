@@ -8,7 +8,9 @@ import {
   projectMatchStrength,
   rankProject,
 } from '../lib/entity-match.js';
+import { loadProjectSnapshot } from '../lib/project-snapshot.js';
 import { DEFAULT_REDACTION, redactSensitive } from '../lib/redaction.js';
+import { resolveWorkflowStage } from '../lib/resolve-workflow-stage.js';
 import { BareListPageError, scanPaginatedCollection } from '../lib/scan-pages.js';
 import type { ToolName } from '../lib/tier-policy.js';
 import { ContactWriteSchema } from '../schemas/contact.js';
@@ -26,11 +28,13 @@ import {
   ProjectUsageResultSchema,
   ProjectWriteResultSchema,
 } from '../schemas/project.js';
+import { ProjectSnapshotSchema } from '../schemas/project-snapshot.js';
 import {
   SEARCH_PAGE_SIZE,
   SearchInputSchema,
   SearchProjectsOutputSchema,
 } from '../schemas/search.js';
+import { WorkflowSchema } from '../schemas/workflow.js';
 
 export interface ProjectsContext {
   client: OpenSolarClient;
@@ -175,16 +179,36 @@ const updateProjectInputSchema = z
 const updateProjectStageInputSchema = z
   .object({
     project_id: z.number().int().positive().describe('Project id from list_projects.'),
-    workflow_id: z.number().int().positive().describe('Workflow id from list_workflows.'),
     active_stage_id: z
       .number()
       .int()
       .positive()
+      .optional()
+      .describe('Stage id from the workflow. Do not send this together with stage_name.'),
+    stage_name: z
+      .string()
+      .trim()
+      .min(1)
+      .optional()
       .describe(
-        'Stage id from that workflow. Call list_workflows first. Do not send a stage name.',
+        'Stage title on the workflow. Resolved locally. Do not send this together with active_stage_id.',
+      ),
+    workflow_id: z
+      .number()
+      .int()
+      .positive()
+      .optional()
+      .describe(
+        'Workflow id. Required with active_stage_id. With stage_name, the project workflow is used when this is omitted.',
       ),
   })
-  .strict();
+  .strict()
+  .refine((value) => (value.active_stage_id !== undefined) !== (value.stage_name !== undefined), {
+    message: 'Send exactly one of active_stage_id or stage_name',
+  })
+  .refine((value) => value.active_stage_id === undefined || value.workflow_id !== undefined, {
+    message: 'workflow_id is required with active_stage_id',
+  });
 
 const projectScalarKeys = [
   'address',
@@ -506,6 +530,40 @@ export function registerProjectsToolset(
     );
   }
 
+  if (enabled.has('get_project_snapshot')) {
+    server.registerTool(
+      'get_project_snapshot',
+      {
+        title: 'Get project snapshot',
+        description:
+          'Reads one project plus its workflow, systems, and file metadata. A section that fails is a gap, not an empty list. ' +
+          'Design, file URLs, and configuration JSON are omitted. payment_option is included only when the project payload points at payment_option_sold. ' +
+          'Systems are one page from the systems list. File titles come from private_files_data when the project includes it, otherwise one private-files page.',
+        inputSchema: z
+          .object({
+            project_id: z
+              .number()
+              .int()
+              .positive()
+              .describe('Project id from list_projects or search_projects.'),
+          })
+          .strict(),
+        outputSchema: ProjectSnapshotSchema,
+        annotations: readAnnotations,
+      },
+      async ({ project_id }) =>
+        runOpenSolarTool(async () => {
+          const snapshot = ProjectSnapshotSchema.parse(
+            await loadProjectSnapshot(ctx.client, ctx.orgId, project_id),
+          );
+          const title = 'gap' in snapshot.project ? '' : (snapshot.project.title ?? '');
+          const summary =
+            title === '' ? `Project ${project_id}.` : `Project ${project_id}: ${title}.`;
+          return openSolarSuccess(snapshot, summary);
+        }),
+    );
+  }
+
   if (enabled.has('create_project')) {
     server.registerTool(
       'create_project',
@@ -559,19 +617,52 @@ export function registerProjectsToolset(
       {
         title: 'Update project stage',
         description:
-          'Sets the workflow stage on a project in the live org. Call list_workflows first and use a stage id from that list. ' +
-          'Do not send a stage name or the deprecated stage field. This call is not retried.',
+          'Sets the workflow stage on a project in the live org. Send active_stage_id with workflow_id, or stage_name. ' +
+          'A stage title is resolved on that workflow. No match or two matches with the same title do not PATCH. ' +
+          'The deprecated stage field is not accepted. This call is not retried.',
         inputSchema: updateProjectStageInputSchema,
         outputSchema: ProjectStageResultSchema,
         annotations: updateAnnotations,
       },
-      async ({ project_id, workflow_id, active_stage_id }) =>
+      async ({ project_id, workflow_id, active_stage_id, stage_name }) =>
         runOpenSolarTool(async () => {
+          if (active_stage_id !== undefined) {
+            if (workflow_id === undefined) {
+              return stageToolError('workflow_id is required with active_stage_id.');
+            }
+            const raw = await ctx.client.patch(
+              `orgs/${ctx.orgId}/projects/${project_id}/`,
+              projectStageBody(workflow_id, active_stage_id),
+            );
+            return projectStageResult(raw, workflow_id, active_stage_id);
+          }
+          if (stage_name === undefined) {
+            return stageToolError('Send exactly one of active_stage_id or stage_name.');
+          }
+          const workflowId = workflow_id ?? (await projectWorkflowId(ctx, project_id));
+          if (typeof workflowId !== 'number') {
+            return workflowId;
+          }
+          const workflow = WorkflowSchema.parse(
+            await ctx.client.get(`orgs/${ctx.orgId}/workflows/${workflowId}/`),
+          );
+          const resolved = resolveWorkflowStage(workflow.workflow_stages ?? [], stage_name);
+          if (resolved.status === 'none') {
+            const titles = resolved.titles.length > 0 ? resolved.titles.join(', ') : 'none';
+            return stageToolError(
+              `No stage titled "${stage_name}". Stages on this workflow: ${titles}.`,
+            );
+          }
+          if (resolved.status === 'ambiguous') {
+            return stageToolError(
+              `More than one stage is titled "${stage_name}". Send active_stage_id.`,
+            );
+          }
           const raw = await ctx.client.patch(
             `orgs/${ctx.orgId}/projects/${project_id}/`,
-            projectStageBody(workflow_id, active_stage_id),
+            projectStageBody(workflowId, resolved.stageId),
           );
-          return projectStageResult(raw, workflow_id, active_stage_id);
+          return projectStageResult(raw, workflowId, resolved.stageId);
         }),
     );
   }
@@ -683,4 +774,24 @@ function asRecord(value: unknown): Record<string, unknown> | null {
 
 function stringField(value: unknown): string | null {
   return typeof value === 'string' ? value : null;
+}
+
+function stageToolError(text: string): {
+  isError: true;
+  content: [{ type: 'text'; text: string }];
+} {
+  return { isError: true, content: [{ type: 'text', text }] };
+}
+
+async function projectWorkflowId(
+  ctx: ProjectsContext,
+  projectId: number,
+): Promise<number | ReturnType<typeof stageToolError>> {
+  const raw = await ctx.client.get(`orgs/${ctx.orgId}/projects/${projectId}/`);
+  const project = ProjectFullSchema.parse(raw);
+  const workflowId = project.workflow?.workflow_id;
+  if (workflowId === undefined) {
+    return stageToolError('This project has no workflow id. Send workflow_id.');
+  }
+  return workflowId;
 }

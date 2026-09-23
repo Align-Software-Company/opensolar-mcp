@@ -41,6 +41,7 @@ export const TOOLSET_TOOLS: Record<ToolsetName, readonly ToolName[]> = {
     'list_projects',
     'search_projects',
     'get_project',
+    'get_project_snapshot',
     'create_project',
     'update_project',
     'update_project_stage',
@@ -156,6 +157,7 @@ export function registerAllToolsets(
     enabled.has('list_projects') ||
     enabled.has('search_projects') ||
     enabled.has('get_project') ||
+    enabled.has('get_project_snapshot') ||
     enabled.has('create_project') ||
     enabled.has('update_project') ||
     enabled.has('update_project_stage') ||

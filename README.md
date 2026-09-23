@@ -41,7 +41,7 @@ Tools registered today, in `--list-tools` order:
 
 | Toolset | Tools |
 | --- | --- |
-| projects | `list_projects`, `search_projects`, `get_project`, `create_project`, `update_project`, `update_project_stage`, `update_project_usage`, `delete_project` |
+| projects | `list_projects`, `search_projects`, `get_project`, `get_project_snapshot`, `create_project`, `update_project`, `update_project_stage`, `update_project_usage`, `delete_project` |
 | org | `get_org`, `list_roles`, `get_role` |
 | contacts | `list_contacts`, `search_contacts`, `get_contact`, `create_contact`, `update_contact`, `delete_contact` |
 | events | `get_event`, `list_event_types` |
@@ -60,6 +60,8 @@ Tools registered today, in `--list-tools` order:
 `OPENSOLAR_READ_ONLY=1` omits every registered create, update, and delete. The reads stay. Phase 4 writes on that list are `delete_module_activation`, `delete_inverter_activation`, `delete_battery_activation`, `delete_other_component_activation`, `create_workflow`, `delete_workflow`, `delete_payment_option`, `delete_pricing_scheme`, and `delete_costing`. Phase 5 writes are `create_private_file`, `update_private_file`, `delete_private_file`, `generate_project_document`, and `get_system_image`. `get_system_image` is omitted because the first call can create a private file. Phase 6 writes are `create_webhook` and `update_webhook`. There is no webhook delete. Phase 7 writes are `create_connection_request`, `accept_connection_request`, `update_connection`, `delete_connection`, `share_project`, `share_entities`, and `create_permission_role`.
 
 `search_projects` and `search_contacts` page those documented lists and match locally. They do not send an OpenSolar `search` query. OpenSolar does not document those two MCP tools. `documented` in the contract matrix names the list GET each one pages.
+
+`get_project_snapshot` reads one project together with its workflow, systems, and file metadata. A section that fails comes back as a gap. `update_project_stage` accepts a stage id or a stage title. A title that matches two stages is not patched.
 
 Catalog activation creates, `create_pricing_scheme`, `create_payment_option`, `create_costing`, `update_workflow`, and `update_org` are not registered. A write stays unsupported when its request contract has not been established with sufficient confidence. The contract may be established through sufficient official OpenSolar documentation or deliberate live verification recorded in the API contract and quirk docs. Absence of an example request alone does not make an operation unsupported. The public release checklist is not done.
 

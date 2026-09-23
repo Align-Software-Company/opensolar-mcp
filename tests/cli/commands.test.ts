@@ -58,6 +58,7 @@ describe('CLI commands', () => {
       'list_projects',
       'search_projects',
       'get_project',
+      'get_project_snapshot',
       'create_project',
       'update_project',
       'update_project_stage',

@@ -18,7 +18,7 @@ Last reviewed: 2026-09-22
 | Module | ESM (`"type": "module"`) |
 | Package manager | pnpm |
 | License | MIT (`LICENSE`; copyright Align Software Company 2026) |
-| README | Install instructions and the 72 registered tools. Public release checklist is not done. |
+| README | Install instructions and the 73 registered tools. Public release checklist is not done. |
 
 The annotated tag `pre-rebase-baseline` still points at the earlier
 walking-skeleton snapshot. This file describes the tree through phase 8
@@ -123,6 +123,7 @@ Errors return `isError: true` with no `structuredContent`.
 | `list_projects` | `src/tools/projects.ts` | `api_access`, read | `GET orgs/:org_id/projects/?limit=&page=` | Implemented |
 | `search_projects` | `src/tools/projects.ts` | `api_access`, read | `GET orgs/:org_id/projects/?page=&limit=100` | Implemented |
 | `get_project` | `src/tools/projects.ts` | `api_access`, read, `degradesWith: ['design']` | `GET orgs/:org_id/projects/:id/` | Implemented |
+| `get_project_snapshot` | `src/tools/projects.ts` | `api_access`, read | project, workflow, systems list, and file metadata | Implemented |
 | `create_project` | `src/tools/projects.ts` | `api_access`, mutation | `POST orgs/:org_id/projects/` | Implemented |
 | `update_project` | `src/tools/projects.ts` | `api_access`, mutation | `PATCH orgs/:org_id/projects/:id/` | Implemented |
 | `update_project_stage` | `src/tools/projects.ts` | `api_access`, mutation | `PATCH orgs/:org_id/projects/:id/` | Implemented |
@@ -193,7 +194,7 @@ Errors return `isError: true` with no `structuredContent`.
 | `get_proposal_data` | `src/tools/raw-data.ts` | `raw_data`, read | `GET user_logins/?project_ids=` | Implemented |
 | `get_project_design` | `src/tools/raw-data.ts` | `raw_data`, read | `GET orgs/:org_id/projects/:id/` | Implemented |
 
-72 tools are registered. `search_projects` and `search_contacts` page the documented lists and match locally. They do not send a `search` query. OpenSolar does not document those MCP tools. Nine writes from the documented inventory are
+73 tools are registered. `get_project_snapshot` joins one project with its workflow, systems, and file metadata. A failed section is a gap. `search_projects` and `search_contacts` page the documented lists and match locally. They do not send a `search` query. OpenSolar does not document those MCP tools. Nine writes from the documented inventory are
 not registered, because their request contracts are not established with sufficient confidence:
 `create_module_activation`, `create_inverter_activation`,
 `create_battery_activation`, `create_other_component_activation`,
@@ -395,7 +396,7 @@ is historical (it still describes a 19-tool v1). Phase 2 reads, phase 3 writes, 
 | HTTP transport | Stateless Streamable HTTP via `createMcpHandler` |
 | `--check` / `--list-tools` | Implemented |
 | Tool titles, `outputSchema`, `structuredContent` | Implemented for the registered reads and writes |
-| Documented inventory | 72 tools registered, including derived `search_projects` and `search_contacts`. Nine writes stay unsupported until their request contracts are established with sufficient confidence. Absence of an example request alone does not decide that. The public release checklist is not done. |
+| Documented inventory | 73 tools registered, including derived `search_projects` and `search_contacts` and composite `get_project_snapshot`. Nine writes stay unsupported until their request contracts are established with sufficient confidence. Absence of an example request alone does not decide that. The public release checklist is not done. |
 | `OPENSOLAR_TOOLSETS` / `OPENSOLAR_READ_ONLY` | Read at registration |
 | Client GET timeout | Implemented (30s default; per-call override) |
 | Client auth / errors | Present |

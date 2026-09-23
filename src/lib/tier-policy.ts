@@ -19,6 +19,7 @@ export const TIER_POLICY = {
   list_event_types: { requires: 'api_access', mutation: false },
   get_org: { requires: 'api_access', mutation: false },
   get_project: { requires: 'api_access', mutation: false, degradesWith: ['design'] },
+  get_project_snapshot: { requires: 'api_access', mutation: false },
   create_project: { requires: 'api_access', mutation: true },
   update_project: { requires: 'api_access', mutation: true },
   update_project_stage: { requires: 'api_access', mutation: true },

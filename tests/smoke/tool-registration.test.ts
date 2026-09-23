@@ -12,6 +12,7 @@ const expectedOrder = [
   'list_projects',
   'search_projects',
   'get_project',
+  'get_project_snapshot',
   'create_project',
   'update_project',
   'update_project_stage',
@@ -463,6 +464,7 @@ describe('selectTools', () => {
     ]);
     expect(reads).toContain('list_projects');
     expect(reads).toContain('search_projects');
+    expect(reads).toContain('get_project_snapshot');
     expect(reads).toContain('search_contacts');
     expect(reads).not.toContain('create_contact');
     expect(reads).not.toContain('create_project');

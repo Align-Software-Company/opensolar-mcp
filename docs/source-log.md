@@ -157,6 +157,7 @@ ordering were re-checked on 2026-09-22 via `pnpm test:integration`
 | Team writes | The team pages show request curls (retrieved 2026-09-22). Those calls were not made against a live org. Accept, share, and permission-role responses are not shown, so those tools return the request confirmation rather than the upstream body. |
 | `GET /contacts/?search=` | Absent from official Contacts query table; no live check in this log. `search_contacts` does not send it. |
 | Project list fields used by `search_projects` | Projects page retrieved 2026-09-22. The list example includes `title`, `address`, `business_name`, and `contacts_data` with `email`, `phone`, `first_name`, `family_name`, and `display`. Project `identifier`, `locality`, `state`, and `zip` are on the detail example, not the list example. No search call was made. No response body was stored. |
+| Project snapshot fields | The same projects page shows detail fields `payment_option_sold`, `private_files_data`, `shared_with`, `usage`, `events_data`, and `assigned_role_data`. `get_project_snapshot` uses those. It was not called on a live org. No response body was stored. |
 | Nested `GET /projects/:project_id/systems/` | Systems docs specify `GET /systems/?fieldset=list&project=` |
 | Conventions doc claim that `-` means ascending | Contradicted by Private Files docs and org-48389 contacts |
 
