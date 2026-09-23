@@ -37,11 +37,24 @@ if (!npmPackage) {
   const token = env.get('OPENSOLAR_API_TOKEN');
   const orgId = env.get('OPENSOLAR_ORG_ID');
 
-  if (!token || token.isRequired !== true || token.isSecret !== true) {
-    failures.push('OPENSOLAR_API_TOKEN must be required and secret in server.json');
+  if (
+    !token ||
+    token.isRequired !== true ||
+    token.isSecret !== true ||
+    token.format !== 'string'
+  ) {
+    failures.push('OPENSOLAR_API_TOKEN must be required, secret, and string-formatted in server.json');
   }
-  if (!orgId || orgId.isRequired !== true || orgId.isSecret !== false) {
-    failures.push('OPENSOLAR_ORG_ID must be required and non-secret in server.json');
+  if (
+    !orgId ||
+    orgId.isRequired !== true ||
+    orgId.isSecret !== false ||
+    orgId.format !== 'number' ||
+    orgId.placeholder !== '12345'
+  ) {
+    failures.push(
+      'OPENSOLAR_ORG_ID must be required, non-secret, number-formatted, and use placeholder 12345 in server.json',
+    );
   }
 }
 
