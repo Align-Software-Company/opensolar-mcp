@@ -117,6 +117,7 @@ export const TOOLSET_TOOLS: Record<ToolsetName, readonly ToolName[]> = {
 export interface ToolContext {
   client: OpenSolarClient;
   orgId: number;
+  uploadRoot?: string;
 }
 
 export type ToolProfile = 'agent' | 'full';
