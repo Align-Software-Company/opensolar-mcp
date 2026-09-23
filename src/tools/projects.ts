@@ -11,7 +11,11 @@ import {
 import { loadProjectSnapshot } from '../lib/project-snapshot.js';
 import { DEFAULT_REDACTION, redactSensitive } from '../lib/redaction.js';
 import { resolveWorkflowStage } from '../lib/resolve-workflow-stage.js';
-import { BareListPageError, scanPaginatedCollection } from '../lib/scan-pages.js';
+import {
+  BareListPageError,
+  scanPaginatedCollection,
+  searchResolution,
+} from '../lib/scan-pages.js';
 import type { ToolName } from '../lib/tier-policy.js';
 import { ContactWriteSchema } from '../schemas/contact.js';
 import {
@@ -440,7 +444,7 @@ export function registerProjectsToolset(
           'The documented list includes title, address, business_name, and embedded contact name, email, and phone. ' +
           'identifier, locality, state, and zip match only when that list row carries them. ' +
           'The scan reads until the list ends or max_pages is reached. Returned rows are the strongest matches. Equal strength keeps list order. ' +
-          '`complete` is false when further pages were not read. `results_truncated` is true when some matches on the scanned pages were not returned. `stopped_by` is `end` or `max_pages`. ' +
+          '`resolution` is none, unique, ambiguous, or incomplete and never treats one truncated/unfinished row as unique. `complete` is false when further pages were not read. `results_truncated` is true when some matches on the scanned pages were not returned. `stopped_by` is `end` or `max_pages`. ' +
           'The 20-page cap is an MCP work bound, not an OpenSolar quota. This server does not count that quota.',
         inputSchema: SearchInputSchema,
         outputSchema: SearchProjectsOutputSchema,
@@ -477,6 +481,11 @@ export function registerProjectsToolset(
                 pages_scanned: scan.pages_scanned,
                 complete: scan.complete,
                 results_truncated: scan.results_truncated,
+                resolution: searchResolution({
+                  matchCount: scan.matches.length,
+                  complete: scan.complete,
+                  resultsTruncated: scan.results_truncated,
+                }),
                 stopped_by: scan.stopped_by,
               },
             });
