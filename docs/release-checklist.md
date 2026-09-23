@@ -4,11 +4,11 @@ Technical readiness, package publication, and any future managed hosting are sep
 
 Last reviewed: 2026-09-23
 
-The package version under review is `0.1.0-rc.1`. This checklist does not publish it.
+The package version under review is `0.1.0`. This checklist does not publish it.
 
 ## Technical artifact
 
-The original RC artifact was verified at `6e1bd14`. The current release-candidate tree has since received pre-release hardening for HTTP authentication and Origin checks, local-upload confinement, binary result shaping, Docker/runtime safety, public-repo hygiene, and conservative bounded-search resolution. The exact current artifact must pass these checks before a final release.
+The original RC artifact was verified at `6e1bd14`. The final `0.1.0` release branch incorporates the subsequent HTTP/authentication, Origin, upload-confinement, binary-output, Docker/runtime, public-repo, search-resolution, Registry-metadata, and documentation hardening. The exact `0.1.0` artifact must pass the full release gate before publication.
 
 - [x] `pnpm check:all` is green. The ordinary suite does not call OpenSolar. The current search-safety tree passed 39 files / 262 tests.
 - [x] `pnpm build` is green. Post-audit CI built the release bundle successfully.
@@ -42,7 +42,7 @@ The original RC artifact was verified at `6e1bd14`. The current release-candidat
 
 Publishing this self-hosted source/package is a maintainer release decision. This checklist does not make a legal conclusion that OpenSolar consent is or is not required for software distribution.
 
-- [ ] Maintainer approves the public GitHub/npm release of the self-hosted package.
+- [ ] Maintainer approves publishing the exact tested `0.1.0` commit and npm artifact.
 - [ ] Publish the final npm artifact before publishing the matching `server.json` to the MCP Registry.
 - [ ] Publish the matching MCP Registry metadata only after the npm package ownership check can succeed.
 - [x] The `0.1.0` release does not include an Align-operated shared or multi-customer OpenSolar service.

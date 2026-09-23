@@ -8,8 +8,6 @@ An unofficial, self-hosted [Model Context Protocol](https://modelcontextprotocol
 
 It gives MCP-capable agents a smaller operational tool surface by default, while retaining a full API-oriented surface for advanced use. OpenSolar credentials stay with the process or MCP client you control; this project does not operate a shared OpenSolar service.
 
-> **Release status:** `0.1.0-rc.1` is a release candidate. The package is not yet published to npm or the MCP Registry.
-
 This project is not affiliated with, endorsed by, or maintained by OpenSolar Pty Ltd.
 
 ## Features
@@ -33,45 +31,31 @@ This project is not affiliated with, endorsed by, or maintained by OpenSolar Pty
 
 OpenSolar says normal user tokens expire after seven days; a dedicated machine user does not expire. This server does not change `is_machine_user` for you. Follow OpenSolar's published [throttle limits](https://developers.opensolar.com/api/throttle/).
 
-## Quick start from source
+## Quick start
 
-The release candidate is not on npm yet, so build the current checkout:
-
-```bash
-git clone https://github.com/Align-Software-Company/opensolar-mcp.git
-cd opensolar-mcp
-corepack enable
-pnpm install --frozen-lockfile
-pnpm build
-```
-
-List the default agent tools without credentials:
-
-```bash
-node dist/index.js --list-tools
-```
-
-Check local configuration without contacting OpenSolar:
-
-```bash
-export OPENSOLAR_API_TOKEN=your_token
-export OPENSOLAR_ORG_ID=12345
-node dist/index.js --check --no-probe
-```
-
-Run over stdio:
-
-```bash
-node dist/index.js
-```
-
-After npm publication, the intended package entry point will also be:
+List the default agent tools:
 
 ```bash
 npx -y @alignco/opensolar-mcp --list-tools
 ```
 
-or:
+Run over stdio:
+
+```bash
+OPENSOLAR_API_TOKEN=your_token \
+OPENSOLAR_ORG_ID=12345 \
+npx -y @alignco/opensolar-mcp
+```
+
+Check configuration without contacting OpenSolar:
+
+```bash
+OPENSOLAR_API_TOKEN=your_token \
+OPENSOLAR_ORG_ID=12345 \
+npx -y @alignco/opensolar-mcp --check --no-probe
+```
+
+For a persistent installation:
 
 ```bash
 npm install -g @alignco/opensolar-mcp
@@ -112,12 +96,12 @@ Copy [`.env.example`](.env.example) for a reference configuration. The runtime d
 | `agent` + `OPENSOLAR_PLAN=api_access` | 30 | Agent surface without Raw Data-only tools |
 | `full` | 75 | Every registered tool before read-only/plan filtering |
 
-Use the binary as the source of truth:
+Use the CLI as the source of truth:
 
 ```bash
-node dist/index.js --list-tools
-OPENSOLAR_PROFILE=full node dist/index.js --list-tools
-OPENSOLAR_TOOLSETS=webhooks node dist/index.js --list-tools
+npx -y @alignco/opensolar-mcp --list-tools
+OPENSOLAR_PROFILE=full npx -y @alignco/opensolar-mcp --list-tools
+OPENSOLAR_TOOLSETS=webhooks npx -y @alignco/opensolar-mcp --list-tools
 ```
 
 The default profile includes common project, contact, system, commercial configuration, file, Teams, and Raw Data workflows. Administrative catalog, workflow, webhook, delete, and other specialized primitives remain available through `full` or explicit toolsets.
@@ -156,8 +140,8 @@ For local MCP clients, set the token and org ID in the server environment.
 {
   "mcpServers": {
     "opensolar": {
-      "command": "node",
-      "args": ["/absolute/path/to/opensolar-mcp/dist/index.js"],
+      "command": "npx",
+      "args": ["-y", "@alignco/opensolar-mcp"],
       "env": {
         "OPENSOLAR_API_TOKEN": "your_token",
         "OPENSOLAR_ORG_ID": "12345"
@@ -173,8 +157,8 @@ For local MCP clients, set the token and org ID in the server environment.
 {
   "mcpServers": {
     "opensolar": {
-      "command": "node",
-      "args": ["/absolute/path/to/opensolar-mcp/dist/index.js"],
+      "command": "npx",
+      "args": ["-y", "@alignco/opensolar-mcp"],
       "env": {
         "OPENSOLAR_API_TOKEN": "your_token",
         "OPENSOLAR_ORG_ID": "12345"
@@ -191,7 +175,7 @@ Start a loopback server:
 ```bash
 export OPENSOLAR_API_TOKEN=your_token
 export OPENSOLAR_ORG_ID=12345
-node dist/index.js --http
+npx -y @alignco/opensolar-mcp --http
 ```
 
 It serves:
@@ -210,7 +194,7 @@ A non-loopback HTTP server **requires the OpenSolar bearer token on each MCP req
 export OPENSOLAR_ORG_ID=12345
 export MCP_HTTP_HOST=0.0.0.0
 export MCP_HTTP_ALLOWED_HOSTS=mcp.example.com
-node dist/index.js --http
+npx -y @alignco/opensolar-mcp --http
 ```
 
 Your MCP client then sends:
@@ -279,7 +263,12 @@ Private-file downloads and system images are capped at 10 MB. Text content may a
 
 ## Development
 
+Clone the repository for development:
+
 ```bash
+git clone https://github.com/Align-Software-Company/opensolar-mcp.git
+cd opensolar-mcp
+corepack enable
 pnpm install --frozen-lockfile
 pnpm check:all
 pnpm build
