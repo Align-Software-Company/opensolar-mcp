@@ -101,11 +101,20 @@ export function loadBaseUrl(env: NodeJS.ProcessEnv = process.env): string {
   return parsed.data;
 }
 
-function parseTruthy(value: string | undefined): boolean {
-  if (value === undefined) {
+function parseBooleanSetting(name: string, value: string | undefined): boolean {
+  if (value === undefined || value.trim() === '') {
     return false;
   }
-  return ['1', 'true', 'yes', 'on'].includes(value.trim().toLowerCase());
+  const normalized = value.trim().toLowerCase();
+  if (['1', 'true', 'yes', 'on'].includes(normalized)) {
+    return true;
+  }
+  if (['0', 'false', 'no', 'off'].includes(normalized)) {
+    return false;
+  }
+  throw new ConfigError(
+    `Invalid ${name}: ${value}. Valid values: 1, true, yes, on, 0, false, no, off.`,
+  );
 }
 
 export function loadToolFilters(env: NodeJS.ProcessEnv = process.env): ToolFilters {
@@ -114,7 +123,7 @@ export function loadToolFilters(env: NodeJS.ProcessEnv = process.env): ToolFilte
     profile: parseProfile(env.OPENSOLAR_PROFILE),
     toolsets: toolsets.names,
     toolsetsExplicit: toolsets.explicit,
-    readOnly: parseTruthy(env.OPENSOLAR_READ_ONLY),
+    readOnly: parseBooleanSetting('OPENSOLAR_READ_ONLY', env.OPENSOLAR_READ_ONLY),
     plan: parsePlan(env.OPENSOLAR_PLAN),
   };
 }
@@ -280,11 +289,31 @@ function normalizeHttpPath(path: string): string {
   return withSlash.endsWith('/') ? withSlash.slice(0, -1) : withSlash;
 }
 
+export function useHttpTransport(
+  flags: ParsedFlags,
+  env: NodeJS.ProcessEnv = process.env,
+): boolean {
+  if (flags.http) {
+    return true;
+  }
+  const configured = env.MCP_TRANSPORT?.trim().toLowerCase();
+  if (configured === undefined || configured === '' || configured === 'stdio') {
+    return false;
+  }
+  if (configured === 'http') {
+    return true;
+  }
+  throw new ConfigError(`Unknown MCP_TRANSPORT: ${env.MCP_TRANSPORT}. Valid values: stdio, http.`);
+}
+
 export function resolveHttpBind(
   flags: ParsedFlags,
   env: NodeJS.ProcessEnv = process.env,
 ): HttpBind {
   const host = (flags.host ?? env.MCP_HTTP_HOST ?? DEFAULT_HTTP_HOST).trim();
+  if (host === '') {
+    throw new ConfigError('MCP_HTTP_HOST must not be empty.');
+  }
   const portRaw =
     flags.port ?? (env.MCP_HTTP_PORT !== undefined ? Number(env.MCP_HTTP_PORT) : DEFAULT_HTTP_PORT);
   if (!Number.isInteger(portRaw) || portRaw < 1 || portRaw > 65535) {
