@@ -104,6 +104,8 @@ Copy [`.env.example`](.env.example) for a reference configuration. The runtime d
 
 ## Tool profiles
 
+**Profiles are curated operating surfaces; toolsets are functional categories.** The default profile selects individual tools across multiple categories for normal agent use, while `OPENSOLAR_TOOLSETS` is an advanced override that exposes complete functional areas.
+
 | Surface | Count | Purpose |
 | --- | ---: | --- |
 | `agent` | 32 | Default operational surface for agents |
