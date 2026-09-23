@@ -1,4 +1,4 @@
-import { parseFlags, resolveHttpBind } from '../lib/config.js';
+import { parseFlags, resolveHttpBind, useHttpTransport } from '../lib/config.js';
 import { serveHttp } from '../transports/http.js';
 import { serveStdioTransport } from '../transports/stdio.js';
 import { runCheck } from './check.js';
@@ -23,7 +23,7 @@ export async function runCli(argv: string[]): Promise<void> {
     return;
   }
 
-  if (flags.http || process.env.MCP_TRANSPORT === 'http') {
+  if (useHttpTransport(flags)) {
     serveHttp(resolveHttpBind(flags));
     return;
   }
