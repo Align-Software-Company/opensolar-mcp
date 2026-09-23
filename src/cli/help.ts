@@ -20,6 +20,7 @@ Environment:
   OPENSOLAR_API_TOKEN    Bearer token (required for stdio and --check)
   OPENSOLAR_ORG_ID       Org id (required for stdio, HTTP, and --check)
   OPENSOLAR_BASE_URL     API base URL (default: https://api.opensolar.com/api/)
+  OPENSOLAR_UPLOAD_ROOT  Enables create_private_file inside this directory only
   OPENSOLAR_PROFILE      agent (default operational surface) or full (all 75 tools)
   OPENSOLAR_TOOLSETS     Overrides profile membership: projects, org, contacts, events, systems, components, workflow, payment, pricing, costing, reference, files, webhooks, teams, raw_data
   OPENSOLAR_READ_ONLY    1/true/yes to hide mutation tools
@@ -29,4 +30,9 @@ Environment:
   MCP_HTTP_PORT          HTTP bind port
   MCP_HTTP_PATH          MCP HTTP path
   MCP_HTTP_ALLOWED_HOSTS Comma-separated Host values when binding 0.0.0.0 or ::
+
+Remote HTTP auth:
+  Loopback HTTP may use OPENSOLAR_API_TOKEN as a fallback. Non-loopback HTTP
+  ignores that fallback and requires Authorization: Bearer <OpenSolar token>
+  on each MCP request. Terminate TLS before exposing HTTP to the internet.
 `;
