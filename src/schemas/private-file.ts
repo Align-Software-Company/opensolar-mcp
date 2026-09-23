@@ -30,7 +30,7 @@ export const PrivateFileRowSchema = z.object({
 });
 
 export const PrivateFileContentsSchema = z.object({
-  encoding: z.enum(['text', 'base64']),
+  encoding: z.literal('text'),
   body: z.string(),
   truncated: z.boolean().optional(),
 });
