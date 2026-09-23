@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { PrivateFileContentsSchema } from './private-file.js';
 
 const HardwareSchema = z
   .object({
@@ -224,5 +223,4 @@ export function curateSystemDetails(response: SystemDetailsResponse): {
 export const SystemImageOutputSchema = z.object({
   id: z.number().int().positive().nullable(),
   content_type: z.string().nullable(),
-  contents: PrivateFileContentsSchema.optional(),
 });
