@@ -543,6 +543,12 @@ async function main() {
     }
     report('help=ok');
 
+    const version = runBin(bin, ['--version'], {});
+    if (version.status !== 0 || version.stdout.trim() !== installed.version) {
+      fail(`installed --version printed ${JSON.stringify(version.stdout.trim())}`);
+    }
+    report('version=ok');
+
     const agent = runBin(bin, ['--list-tools'], {});
     if (agent.status !== 0) {
       fail(`agent --list-tools failed: ${agent.stderr}`);
@@ -572,6 +578,12 @@ async function main() {
       fail('invalid profile did not fail clearly');
     }
     report('invalid_profile=fail_closed');
+
+    const readOnlyTypo = runBin(bin, ['--list-tools'], { OPENSOLAR_READ_ONLY: 'ture' });
+    if (readOnlyTypo.status === 0 || !readOnlyTypo.stderr.includes('Unknown OPENSOLAR_READ_ONLY')) {
+      fail('invalid OPENSOLAR_READ_ONLY did not fail clearly');
+    }
+    report('invalid_read_only=fail_closed');
 
     await smokeStdio(distIndex, installed.version);
     await smokeHttp(distIndex);

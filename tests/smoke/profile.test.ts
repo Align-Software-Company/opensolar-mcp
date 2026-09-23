@@ -97,6 +97,19 @@ describe('OPENSOLAR_PROFILE', () => {
     expect(selected).not.toContain('delete_module_activation');
   });
 
+  it('accepts explicit read-only values and rejects unrecognized ones', () => {
+    for (const value of ['1', 'true', 'YES', ' on ']) {
+      expect(loadToolFilters({ OPENSOLAR_READ_ONLY: value }).readOnly).toBe(true);
+    }
+    for (const value of ['', '0', 'false', 'No', 'off']) {
+      expect(loadToolFilters({ OPENSOLAR_READ_ONLY: value }).readOnly).toBe(false);
+    }
+    expect(() => loadToolFilters({ OPENSOLAR_READ_ONLY: 'ture' })).toThrow(ConfigError);
+    expect(() => loadToolFilters({ OPENSOLAR_READ_ONLY: 'enabled' })).toThrow(
+      /OPENSOLAR_READ_ONLY/,
+    );
+  });
+
   it('rejects an unknown profile', () => {
     expect(() => loadToolFilters({ OPENSOLAR_PROFILE: 'banana' })).toThrow(ConfigError);
     expect(() => loadToolFilters({ OPENSOLAR_PROFILE: 'banana' })).toThrow(/OPENSOLAR_PROFILE/);

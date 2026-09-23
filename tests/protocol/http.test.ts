@@ -2,6 +2,7 @@ import type { ServerType } from '@hono/node-server';
 import { serve } from '@hono/node-server';
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { LIST_CACHE_TTL_MS, SERVER_TITLE } from '../../src/server.js';
 import { createHttpApp } from '../../src/transports/http.js';
 import { loadOpenSolarFixture } from '../fixtures/load-fixture.js';
 
@@ -117,6 +118,37 @@ describe('stateless HTTP transport', () => {
       expect(JSON.parse(second)).toEqual(expect.objectContaining({ id: 1 }));
       expect(seenTokens).toEqual(['Bearer token-a', 'Bearer token-b']);
     } finally {
+      await listening.close();
+    }
+  });
+
+  it('serves 2026-07-28 clients with server identity and tools/list cache hints', async () => {
+    vi.stubEnv('OPENSOLAR_ORG_ID', '1');
+    vi.stubEnv('OPENSOLAR_API_TOKEN', 'loopback-token');
+    const app = createHttpApp({
+      host: '127.0.0.1',
+      port: 3000,
+      path: '/mcp',
+      allowedHosts: undefined,
+    });
+    const listening = await listenApp(app);
+    const client = new Client(
+      { name: 'http-modern-test', version: '0.0.0' },
+      { versionNegotiation: { mode: { pin: '2026-07-28' } } },
+    );
+    try {
+      await client.connect(new StreamableHTTPClientTransport(new URL(`${listening.origin}/mcp`)));
+      expect(client.getProtocolEra()).toBe('modern');
+      expect(client.getServerVersion()).toEqual(
+        expect.objectContaining({ name: '@alignco/opensolar-mcp', title: SERVER_TITLE }),
+      );
+      const listed = await client.listTools();
+      expect(listed).toEqual(
+        expect.objectContaining({ ttlMs: LIST_CACHE_TTL_MS, cacheScope: 'private' }),
+      );
+      expect(listed.tools.length).toBeGreaterThan(0);
+    } finally {
+      await client.close();
       await listening.close();
     }
   });

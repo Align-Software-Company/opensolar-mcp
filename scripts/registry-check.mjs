@@ -53,6 +53,28 @@ if (!npmPackage) {
       'OPENSOLAR_ORG_ID must be required, non-secret, number-formatted, and use placeholder 12345 in server.json',
     );
   }
+
+  const optionalChoices = {
+    OPENSOLAR_PROFILE: ['agent', 'full'],
+    OPENSOLAR_READ_ONLY: undefined,
+    OPENSOLAR_PLAN: ['api_access', 'raw_data'],
+    OPENSOLAR_TOOLSETS: undefined,
+    OPENSOLAR_UPLOAD_ROOT: undefined,
+  };
+  for (const [name, choices] of Object.entries(optionalChoices)) {
+    const entry = env.get(name);
+    if (!entry || entry.isRequired !== false || entry.isSecret !== false) {
+      failures.push(`${name} must be declared as optional and non-secret in server.json`);
+      continue;
+    }
+    if (JSON.stringify(entry.choices) !== JSON.stringify(choices)) {
+      failures.push(`${name} choices must be ${JSON.stringify(choices)} in server.json`);
+    }
+  }
+  const readOnly = env.get('OPENSOLAR_READ_ONLY');
+  if (readOnly && (readOnly.format !== 'boolean' || readOnly.default !== 'false')) {
+    failures.push('OPENSOLAR_READ_ONLY must be boolean-formatted with default "false"');
+  }
 }
 
 if (failures.length > 0) {

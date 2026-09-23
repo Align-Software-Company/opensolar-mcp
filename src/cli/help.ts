@@ -14,6 +14,7 @@ Commands:
   --probe                With --check, GET /orgs/:id/ (default)
   --no-probe             With --check, skip the live org probe
   --list-tools           Print the effective tool surface
+  --version, -v          Print the package version
   --help, -h             Show this help
 
 Environment:
@@ -23,7 +24,7 @@ Environment:
   OPENSOLAR_UPLOAD_ROOT  Enables create_private_file inside this directory only
   OPENSOLAR_PROFILE      agent (default operational surface) or full (all 75 tools)
   OPENSOLAR_TOOLSETS     Overrides profile membership: projects, org, contacts, events, systems, components, workflow, payment, pricing, costing, reference, files, webhooks, teams, raw_data
-  OPENSOLAR_READ_ONLY    1/true/yes to hide mutation tools
+  OPENSOLAR_READ_ONLY    1/true/yes/on hides mutation tools; 0/false/no/off keeps them
   OPENSOLAR_PLAN         api_access or raw_data
   MCP_TRANSPORT          Set to http to serve HTTP
   MCP_HTTP_HOST          HTTP bind host
