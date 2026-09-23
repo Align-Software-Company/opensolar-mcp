@@ -9,7 +9,7 @@ This project is an unofficial, self-hosted Model Context Protocol server for the
 Requirements:
 
 - Node.js 24 or newer
-- pnpm 10 via Corepack
+- pnpm 10.34.5 via Corepack
 
 ```bash
 corepack enable
