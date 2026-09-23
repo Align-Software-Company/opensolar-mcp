@@ -31,6 +31,7 @@ const SHARED_LISTS = {
 type Reference = {
   referenced: 'yes' | 'no' | 'unknown';
   ids: number[];
+  complete: boolean;
   gap?: string;
 };
 
@@ -245,7 +246,7 @@ async function resourceRow(
     row.gap = reference.gap;
   }
   const segment = sharedListSegment(resource);
-  if (segment === undefined || reference.ids.length === 0) {
+  if (segment === undefined || reference.ids.length === 0 || !reference.complete) {
     return row;
   }
   const membership = await sharedMembership(client, orgId, targetOrgId, segment, reference.ids);
@@ -380,7 +381,7 @@ function referenceFor(
   if (resource === 'component_module_activation') {
     return systemsReference(systems, systemsGap, systemsComplete, moduleActivationId);
   }
-  return { referenced: 'unknown', ids: [] };
+  return { referenced: 'unknown', ids: [], complete: false };
 }
 
 function fieldReference(
@@ -390,10 +391,15 @@ function fieldReference(
   pattern: RegExp,
 ): Reference {
   if (gap !== undefined || project === null) {
-    return { referenced: 'unknown', ids: [], ...(gap === undefined ? {} : { gap }) };
+    return {
+      referenced: 'unknown',
+      ids: [],
+      complete: false,
+      ...(gap === undefined ? {} : { gap }),
+    };
   }
   if (!Object.hasOwn(project, key)) {
-    return { referenced: 'unknown', ids: [] };
+    return { referenced: 'unknown', ids: [], complete: false };
   }
   return valueReference(project[key], pattern);
 }
@@ -403,21 +409,34 @@ function costingReference(
   gap: string | undefined,
 ): Reference {
   if (gap !== undefined || project === null) {
-    return { referenced: 'unknown', ids: [], ...(gap === undefined ? {} : { gap }) };
+    return {
+      referenced: 'unknown',
+      ids: [],
+      complete: false,
+      ...(gap === undefined ? {} : { gap }),
+    };
   }
-  const hasCosting = Object.hasOwn(project, 'costing');
-  const hasOverride = Object.hasOwn(project, 'costing_override');
-  if (!hasCosting && !hasOverride) {
-    return { referenced: 'unknown', ids: [] };
-  }
-  const costing = hasCosting ? valueReference(project.costing, COSTING_ID) : emptyReference();
-  const override = hasOverride
+  const costing = Object.hasOwn(project, 'costing')
+    ? valueReference(project.costing, COSTING_ID)
+    : unknownReference();
+  const override = Object.hasOwn(project, 'costing_override')
     ? valueReference(project.costing_override, COSTING_ID)
-    : emptyReference();
+    : unknownReference();
   if (costing.referenced === 'no' && override.referenced === 'no') {
-    return { referenced: 'no', ids: [] };
+    return { referenced: 'no', ids: [], complete: true };
   }
-  return { referenced: 'yes', ids: uniqueIds([...costing.ids, ...override.ids]) };
+  const ids = uniqueIds([...costing.ids, ...override.ids]);
+  if (costing.referenced === 'yes' || override.referenced === 'yes') {
+    return {
+      referenced: 'yes',
+      ids,
+      complete: costing.complete && override.complete,
+      ...(!costing.complete || !override.complete
+        ? { gap: 'Costing references are incomplete; sharing cannot be confirmed.' }
+        : {}),
+    };
+  }
+  return { referenced: 'unknown', ids, complete: false };
 }
 
 function systemsReference(
@@ -427,7 +446,12 @@ function systemsReference(
   readId: (system: Record<string, unknown>) => number[],
 ): Reference {
   if (gap !== undefined || systems === null) {
-    return { referenced: 'unknown', ids: [], ...(gap === undefined ? {} : { gap }) };
+    return {
+      referenced: 'unknown',
+      ids: [],
+      complete: false,
+      ...(gap === undefined ? {} : { gap }),
+    };
   }
   const ids: number[] = [];
   for (const system of systems) {
@@ -438,12 +462,19 @@ function systemsReference(
   }
   const unique = uniqueIds(ids);
   if (unique.length > 0) {
-    return { referenced: 'yes', ids: unique };
+    return {
+      referenced: 'yes',
+      ids: unique,
+      complete,
+      ...(!complete
+        ? { gap: 'Systems list is incomplete; additional referenced resources may exist.' }
+        : {}),
+    };
   }
   if (!complete) {
-    return { referenced: 'unknown', ids: [] };
+    return { referenced: 'unknown', ids: [], complete: false };
   }
-  return { referenced: 'no', ids: [] };
+  return { referenced: 'no', ids: [], complete: true };
 }
 
 function valueReference(value: unknown, pattern: RegExp): Reference {
@@ -452,13 +483,22 @@ function valueReference(value: unknown, pattern: RegExp): Reference {
   }
   const id = entityId(value, pattern);
   if (id !== null) {
-    return { referenced: 'yes', ids: [id] };
+    return { referenced: 'yes', ids: [id], complete: true };
   }
-  return { referenced: 'yes', ids: [] };
+  return {
+    referenced: 'yes',
+    ids: [],
+    complete: false,
+    gap: 'Referenced resource id could not be resolved.',
+  };
 }
 
 function emptyReference(): Reference {
-  return { referenced: 'no', ids: [] };
+  return { referenced: 'no', ids: [], complete: true };
+}
+
+function unknownReference(): Reference {
+  return { referenced: 'unknown', ids: [], complete: false };
 }
 
 function pricingSchemeId(system: Record<string, unknown>): number[] {
