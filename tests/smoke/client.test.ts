@@ -280,6 +280,69 @@ describe('OpenSolar client', () => {
     expect(JSON.stringify(init.headers ?? {})).not.toContain('test-token');
   });
 
+  it('stops reading an oversized private file even without Content-Length', async () => {
+    const url = 'https://files.example.test/private/site.bin?Expires=1&Signature=fixture';
+    const oversized = new Uint8Array(MAX_PRIVATE_FILE_BYTES + 1);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(oversized, {
+          status: 200,
+          headers: { 'Content-Type': 'application/octet-stream' },
+        }),
+      ),
+    );
+    const client = createClient(testAuth);
+
+    const error = await client.download(url).catch((thrown: unknown) => thrown);
+
+    expect(error).toBeInstanceOf(OpenSolarApiError);
+    expect(error).toMatchObject({ status: 413, body: '' });
+  });
+
+  it('stops reading an oversized system image even without Content-Length', async () => {
+    const oversized = new Uint8Array(MAX_PRIVATE_FILE_BYTES + 1);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(oversized, {
+          status: 200,
+          headers: { 'Content-Type': 'image/png' },
+        }),
+      ),
+    );
+    const client = createClient(testAuth);
+
+    const error = await client
+      .getFile('orgs/1/projects/42/systems/system-uuid/image/?width=500&height=500', {
+        readBody: true,
+      })
+      .catch((thrown: unknown) => thrown);
+
+    expect(error).toBeInstanceOf(OpenSolarApiError);
+    expect(error).toMatchObject({ status: 413, body: '' });
+  });
+
+  it('rejects a private-file redirect that ends on non-HTTPS', async () => {
+    const response = new Response('safe-sized-body', {
+      status: 200,
+      headers: { 'Content-Type': 'text/plain' },
+    });
+    Object.defineProperty(response, 'url', {
+      configurable: true,
+      value: 'http://files.example.test/private/site.txt',
+    });
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response));
+    const client = createClient(testAuth);
+
+    const error = await client
+      .download('https://files.example.test/private/site.txt')
+      .catch((thrown: unknown) => thrown);
+
+    expect(error).toBeInstanceOf(OpenSolarApiError);
+    expect(error).toMatchObject({ status: 400, body: '' });
+  });
+
   it('refuses a private file download over 10 MB without echoing the URL', async () => {
     const url = 'https://files.example.test/private/site.json?Expires=1&Signature=fixture';
     vi.stubGlobal(
