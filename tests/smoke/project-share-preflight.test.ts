@@ -336,6 +336,49 @@ describe('preflight_project_share', () => {
     });
   });
 
+  it('does not call page-one resources fully shared when the systems reference set is incomplete', async () => {
+    const calls: string[] = [];
+    const systems = Array.from({ length: 100 }, (_, index) => ({
+      id: 1000 + index,
+      pricing_scheme: 'https://api.opensolar.com/api/orgs/1/pricing_schemes/1408/',
+      modules: [{ module_activation_id: 613 }],
+    }));
+    const payload = await sharePreflight(async (path) => {
+      calls.push(path);
+      if (path.startsWith('orgs/1/connected_orgs/')) {
+        return [connection(11, 894)];
+      }
+      if (path === 'orgs/1/projects/1001/') {
+        return {
+          id: 1001,
+          shared_with: [],
+          payment_option_sold: null,
+          costing: null,
+          costing_override: null,
+        };
+      }
+      if (path.startsWith('orgs/1/systems/')) {
+        return systems;
+      }
+      throw new Error(`unexpected read ${path}`);
+    });
+
+    expect(resource(payload, 'pricing_scheme')).toMatchObject({
+      referenced: 'yes',
+      ids: [1408],
+      share: 'unknown',
+      gap: 'Systems list is incomplete; additional referenced resources may exist.',
+    });
+    expect(resource(payload, 'component_module_activation')).toMatchObject({
+      referenced: 'yes',
+      ids: [613],
+      share: 'unknown',
+      gap: 'Systems list is incomplete; additional referenced resources may exist.',
+    });
+    expect(calls.some((path) => path.startsWith('orgs/1/pricing_schemes/'))).toBe(false);
+    expect(calls.some((path) => path.startsWith('orgs/1/component_module_activations/'))).toBe(false);
+  });
+
   it('does not treat a missing id on an unfinished filtered scan as not shared', async () => {
     const calls: string[] = [];
     const page = Array.from({ length: 100 }, (_, index) => ({ id: 2000 + index }));
