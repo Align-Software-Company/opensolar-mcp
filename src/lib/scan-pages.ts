@@ -1,6 +1,7 @@
 export class BareListPageError extends Error {}
 
 export type ScanStoppedBy = 'end' | 'max_pages';
+export type SearchResolution = 'none' | 'unique' | 'ambiguous' | 'incomplete';
 
 export type PageScan<Match> = {
   matches: Match[];
@@ -10,6 +11,20 @@ export type PageScan<Match> = {
   results_truncated: boolean;
   stopped_by: ScanStoppedBy;
 };
+
+export function searchResolution(input: {
+  matchCount: number;
+  complete: boolean;
+  resultsTruncated: boolean;
+}): SearchResolution {
+  if (input.resultsTruncated || input.matchCount > 1) {
+    return 'ambiguous';
+  }
+  if (!input.complete) {
+    return 'incomplete';
+  }
+  return input.matchCount === 0 ? 'none' : 'unique';
+}
 
 export async function scanPaginatedCollection<Record, Match>(input: {
   fetchPage: (page: number) => Promise<readonly Record[]>;
