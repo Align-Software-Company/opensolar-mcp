@@ -14,6 +14,8 @@ Last reviewed: 2026-09-23
 | Module format | ESM |
 | Package manager | pnpm |
 | License | MIT |
+| MCP protocol | 2026-07-28, with fallback for 2025-era clients |
+| MCP SDK | `@modelcontextprotocol/server` 2.x |
 | Default transport | stdio |
 | Optional transport | Streamable HTTP |
 | Default profile | `agent` |
@@ -21,6 +23,19 @@ Last reviewed: 2026-09-23
 | Default tools | 32 |
 
 The server version is read from `package.json` at runtime so package metadata and the MCP server identity stay aligned.
+
+## MCP protocol surface
+
+[`src/server.ts`](../src/server.ts) builds one `McpServer` per stdio connection or HTTP request.
+
+- `serverInfo` reports `name`, `title`, `description`, `version`, and `websiteUrl`. Title, description, and website match `server.json`, and a test keeps them in sync.
+- Server instructions ([`src/lib/server-instructions.ts`](../src/lib/server-instructions.ts)) tell clients to read before mutating, to act only on `resolution: unique`, and not to loop mutations.
+- For 2026-07-28 requests, `tools/list` and `server/discover` carry `ttlMs: 300000` and `cacheScope: "private"`. The tool list is fixed for the life of the process, and it is private because it depends on the operator's filters.
+- `tools/list` order is deterministic: toolsets in `TOOLSET_NAMES` order, tools in registration order.
+- Every tool declares a `title`, an `outputSchema`, and `readOnlyHint`, `destructiveHint`, `idempotentHint`, and `openWorldHint` annotations.
+- Successful results put the data in `structuredContent` and add a one-line text summary. Private-file text and binary content are returned as additional content blocks.
+- OpenSolar API failures are returned as tool results with `isError: true` and a short, actionable message. Input that fails schema validation is rejected before any OpenSolar call.
+- The server does not use the Roots, Sampling, or Logging features, which the 2026-07-28 specification deprecates. Logs go to stderr.
 
 ## Tool exposure
 
@@ -31,7 +46,7 @@ Tool exposure is controlled by [`src/lib/tier-policy.ts`](../src/lib/tier-policy
 | `OPENSOLAR_PROFILE=agent` | Curated 32-tool default surface |
 | `OPENSOLAR_PROFILE=full` | All 75 registered tools |
 | `OPENSOLAR_TOOLSETS=...` | Exposes complete selected functional toolsets |
-| `OPENSOLAR_READ_ONLY=1` | Removes registered mutation tools |
+| `OPENSOLAR_READ_ONLY=1` | Removes registered mutation tools. `1`, `true`, `yes`, `on` enable it; `0`, `false`, `no`, `off`, or empty disable it; any other value stops startup |
 | `OPENSOLAR_PLAN=api_access` | Removes Raw Data-only tools |
 
 Toolsets and registered counts:
@@ -55,7 +70,7 @@ Toolsets and registered counts:
 | raw_data | 2 |
 | **Total** | **75** |
 
-The CLI `--list-tools` command reports the effective surface after profile, toolset, read-only, and plan filtering.
+The CLI `--list-tools` command reports the effective surface after profile, toolset, read-only, and plan filtering. `--version` prints the package version, and `--check` validates configuration and, unless `--no-probe` is given, makes one read of the organisation.
 
 ## Transports and authentication
 
@@ -139,6 +154,8 @@ Private-file metadata omits the signed download URL.
 - does not duplicate binary bytes into `structuredContent`.
 
 `create_private_file` is disabled until `OPENSOLAR_UPLOAD_ROOT` is configured. Real paths are resolved before use and must remain inside that root.
+
+`generate_project_document` calls OpenSolar's recommended `generate_document` endpoint with `action=save`. With no `format`, OpenSolar uses the document type's default; `pdf` and `csv` set `file_format`; `docx` calls `generate_document_docx`. The legacy `generate_document_pdf` endpoint is not used. The result is the saved private file's id.
 
 ## Raw Data tools
 

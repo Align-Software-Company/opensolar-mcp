@@ -4,6 +4,14 @@ Thanks for contributing to OpenSolar MCP.
 
 OpenSolar MCP is an unofficial, self-hosted Model Context Protocol server for the documented OpenSolar API. Contributions should keep the public API surface predictable, preserve safety boundaries around writes and credentials, and avoid relying on undocumented OpenSolar behavior.
 
+Everyone taking part is expected to follow the [Code of Conduct](CODE_OF_CONDUCT.md).
+
+## Reporting bugs and requesting features
+
+Use the [issue forms](https://github.com/Align-Software-Company/opensolar-mcp/issues/new/choose). Include the output of `opensolar-mcp --version`, your transport and MCP client, and a reproduction that uses synthetic values. Feature requests for new OpenSolar operations are much easier to act on with a link to the relevant [OpenSolar API documentation](https://developers.opensolar.com/api/).
+
+Report security problems privately as described in [SECURITY.md](SECURITY.md).
+
 ## Development setup
 
 Requirements:
@@ -38,6 +46,8 @@ pnpm build
 Changes that affect packaging, authentication, transports, Docker, or the published artifact should also satisfy the checks in [docs/release-checklist.md](docs/release-checklist.md).
 
 Keep pull requests focused. Separate unrelated feature work, refactors, documentation changes, and API-contract changes when practical.
+
+Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/) (`feat(tools): ...`, `fix(client): ...`, `docs: ...`). Add a `CHANGELOG.md` entry under **Unreleased** for user-facing changes.
 
 ## OpenSolar API contracts
 
