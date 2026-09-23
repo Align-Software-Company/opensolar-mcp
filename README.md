@@ -94,6 +94,7 @@ opensolar-mcp --list-tools
 | `MCP_HTTP_PORT` | HTTP port. | `3000` |
 | `MCP_HTTP_PATH` | Streamable HTTP MCP path. | `/mcp` |
 | `MCP_HTTP_ALLOWED_HOSTS` | Comma-separated Host values for non-loopback/wildcard binds. Required for `0.0.0.0` and `::`. | unset |
+| `MCP_HTTP_ALLOWED_ORIGINS` | Optional browser Origin hostnames for non-loopback HTTP. Defaults to the Host allowlist. Requests without an Origin header still pass. | Host allowlist |
 
 `OPENSOLAR_TOOLSETS`, when present, takes precedence over profile membership. `OPENSOLAR_READ_ONLY` and `OPENSOLAR_PLAN` are applied afterward.
 
@@ -218,7 +219,7 @@ Authorization: Bearer <your OpenSolar token>
 
 Important:
 
-- `MCP_HTTP_ALLOWED_HOSTS` protects Host handling / DNS rebinding. **It is not authentication.**
+- `MCP_HTTP_ALLOWED_HOSTS` protects Host handling / DNS rebinding. `MCP_HTTP_ALLOWED_ORIGINS` controls browser Origin hostnames and defaults to the Host allowlist on non-loopback binds. Neither is authentication.
 - The built-in HTTP server is plain HTTP. Terminate TLS at a trusted reverse proxy or hosting platform before sending an OpenSolar token over the public internet.
 - `/health` and `/ready` do not require the OpenSolar token and return only process status.
 - A malformed `Authorization` header is rejected rather than falling back to an environment token.
