@@ -23,6 +23,9 @@ The original RC artifact was verified at `6e1bd14`. The current release-candidat
 - [x] The release-smoke implementation checks both supported local env files without printing token values. CI had no local tokens to search and its tarball secret scan was clear.
 - [x] Post-audit Docker smoke passed in CI: runtime UID 1000, health/readiness on a non-default container port, 401 without a Bearer token, untrusted browser Origin rejected, and the 32-tool agent profile exposed.
 - [x] GitHub Dependabot reported 0 open alerts on 2026-09-23.
+- [x] Public project guides include `CONTRIBUTING.md`, `SECURITY.md`, `CHANGELOG.md`, `AGENTS.md`, and a thin `CLAUDE.md` entry point.
+- [x] MCP Registry metadata is staged in `server.json`; `package.json#mcpName`, package/version identity, stdio transport, and required environment-variable metadata are checked by `pnpm check:registry`.
+- [x] The Registry metadata uses the official 2025-12-11 schema URI. Registry publication remains deferred until after the npm artifact exists.
 
 `prepack` runs `pnpm check:all && pnpm build`. Packaging must not require OpenSolar credentials or call OpenSolar.
 
@@ -40,6 +43,8 @@ The original RC artifact was verified at `6e1bd14`. The current release-candidat
 Publishing this self-hosted source/package is a maintainer release decision. This checklist does not make a legal conclusion that OpenSolar consent is or is not required for software distribution.
 
 - [ ] Maintainer approves the public GitHub/npm release of the self-hosted package.
+- [ ] Publish the final npm artifact before publishing the matching `server.json` to the MCP Registry.
+- [ ] Publish the matching MCP Registry metadata only after the npm package ownership check can succeed.
 - [x] The `0.1.0` release does not include an Align-operated shared or multi-customer OpenSolar service.
 
 ## Managed hosting — separate future track
