@@ -18,15 +18,14 @@ Last reviewed: 2026-09-23
 | Module | ESM (`"type": "module"`) |
 | Package manager | pnpm |
 | License | MIT (`LICENSE`; copyright Align Software Company 2026) |
-| README | Install instructions, the 75-tool full surface, and the default agent profile. Public release checklist is not done. |
+| README | Release-facing guide with quick start, profiles, transport authentication, Docker, upload confinement, safety notes, and documentation links. |
 
 The annotated tag `pre-rebase-baseline` still points at the earlier
-walking-skeleton snapshot. The documented native inventory in
-`dev-docs/plan/v1-2026-09-22.md` is the foundation. Agent-oriented
-Batches A–D have shipped on top of it: `search_projects`,
-`search_contacts`, `get_project_snapshot`, `update_project_stage`
-stage-name resolution, `compare_project_systems`, `get_project_design`
-projections, and `preflight_project_share`.
+walking-skeleton snapshot. The documented native inventory is now paired
+with agent-oriented search, project snapshots, stage-name resolution,
+system comparison, design projections, share preflight, bounded read
+retries, live-contract checks, agent/full exposure profiles, and release
+artifact smoke tests.
 
 ---
 
@@ -73,12 +72,12 @@ Accepted decisions (local `dev-docs/decisions/`):
 | 001 Dual transport | One binary, stdio default, `--http` / `MCP_TRANSPORT=http` for Streamable HTTP | `buildServer()` feeds `serveStdio` and `createMcpHandler`. HTTP is stateless; `/health` and `/ready` sit outside `/mcp`. |
 | 002 Tier-policy as data | `src/lib/tier-policy.ts` is the only policy table | `selectTools` and `--list-tools` read it. No live plan detection yet. |
 | 003 No frontend | No web UI | Held. |
-| 004 BYO-token | Header → env → fail; no OAuth; no persistence | HTTP reads `Authorization: Bearer` per request, then `OPENSOLAR_API_TOKEN`. Stdio and `--check` require the env token. |
+| 004 BYO-token | Request or local-process credential; no OAuth; no persistence | Stdio and `--check` require `OPENSOLAR_API_TOKEN`. Loopback HTTP accepts a request Bearer token then the env token as fallback. Non-loopback HTTP requires `Authorization: Bearer <token>` on each MCP request and ignores the env fallback. |
 | 005 Redaction scope | Keep surgical + wholesale redaction | `src/lib/redaction.ts` is used by org, project, contact, and role paths. |
 
 Env vars: `OPENSOLAR_API_TOKEN`, `OPENSOLAR_ORG_ID`, `OPENSOLAR_BASE_URL`,
 `OPENSOLAR_PROFILE`, `OPENSOLAR_TOOLSETS`, `OPENSOLAR_READ_ONLY`, `OPENSOLAR_PLAN`,
-`MCP_TRANSPORT`, `MCP_HTTP_HOST`, `MCP_HTTP_PORT`, `MCP_HTTP_PATH`,
+`OPENSOLAR_UPLOAD_ROOT`, `MCP_TRANSPORT`, `MCP_HTTP_HOST`, `MCP_HTTP_PORT`, `MCP_HTTP_PATH`,
 `MCP_HTTP_ALLOWED_HOSTS`. Live tests also read
 `OPENSOLAR_INTEGRATION_WRITES`, `OPENSOLAR_TEST_PROJECT_ID`, and
 `OPENSOLAR_TEST_CONNECTED_ORG_ID`. Those three are not server settings.
@@ -273,18 +272,23 @@ and `list_file_tags` do not call OpenSolar. File tags are titles only.
 `list_private_files` returns `{ private_files, page, limit }`. Each row
 is `id`, `title`, file-tag titles, and `project_id`. `get_private_file`
 adds `size` and `content_type` when present. `include_contents: true`
-downloads the file on the server. Text the model reads is capped at
-100,000 characters. Images are an MCP image block. PDFs include
-extracted text and an embedded `application/pdf` resource at
-`opensolar://private-files/{id}`. A body over 10 MB is `isError`. The
-download URL is never returned. `create_private_file` takes a filesystem
-path and `title` and streams multipart `file_contents`.
+downloads the file on the server. Text copied into structured output is
+capped at 100,000 characters. Images use MCP image blocks; PDFs include
+extracted text plus an embedded `application/pdf` resource; other binary
+files use embedded resources. Binary bytes are not duplicated into
+`structuredContent`. A body over 10 MB is `isError`, and the signed
+download URL is never returned. `create_private_file` is disabled unless
+`OPENSOLAR_UPLOAD_ROOT` is configured; relative and absolute paths are
+accepted only when their resolved real path remains inside that root,
+including through symlinks. It streams multipart `file_contents`.
 `update_private_file` sends `{ title }`. `delete_private_file` and
 `generate_project_document` return `{ id, deleted: true }` and `{ id }`
 respectively. `generate_project_document` does not return bytes.
 `get_system_image` requires `width` and `height`, uses a 120 second
 timeout, and returns `id` only when the response exposes a private file
-id, plus `content_type`. `OPENSOLAR_READ_ONLY=1` omits it.
+id, plus `content_type`. Requested image bytes are returned as MCP image
+content, not duplicated into structured output. `OPENSOLAR_READ_ONLY=1`
+omits it.
 
 `list_webhooks` returns `{ webhooks }` with no page parameters. Each
 webhook is `id`, `endpoint`, `enabled`, `debug`, `trigger_fields`, and
@@ -385,7 +389,7 @@ See [api-contract-matrix.md](./api-contract-matrix.md).
 
 Present:
 
-- `src/client/auth.ts` — per-request `Authorization` header, then env
+- `src/client/auth.ts` — exact Bearer parsing; request header takes precedence, loopback HTTP may fall back to env, non-loopback HTTP may not
 - `src/client/errors.ts` — sanitized 401/402/403/404/429/504 tool messages;
   `openSolarSuccess` / `runOpenSolarTool`
 
@@ -397,7 +401,9 @@ Not present as modules (planned in `dev-docs/directory.md`):
 
 Config: [`src/lib/config.ts`](../src/lib/config.ts). Zod-validated.
 Stdio and `--check` fail if token or org id is missing. HTTP requires
-org id at startup; the token may arrive per request.
+org id at startup. Loopback HTTP may use the env token; non-loopback
+HTTP returns 401 unless each MCP request carries a valid Bearer-shaped
+OpenSolar token. Host allowlisting is separate from authentication.
 
 Logging: [`src/lib/log.ts`](../src/lib/log.ts) writes JSON lines to stderr
 for every level so stdio stdout stays protocol-clean.
@@ -444,10 +450,13 @@ checks: the org, an event from project `events_data`, contact
 and `get_project_design` when Raw Data is present). Writes run only when
 `OPENSOLAR_INTEGRATION_WRITES=1`. A stage change also requires
 `OPENSOLAR_TEST_PROJECT_ID`. Share preflight requires
-`OPENSOLAR_TEST_CONNECTED_ORG_ID`. CI runs `pnpm check:all`, then
-`pnpm build` and `node dist/index.js --list-tools`. CI does not set
-OpenSolar credentials or the write flag. `tests/integration` stays out
-of `check:all`.
+`OPENSOLAR_TEST_CONNECTED_ORG_ID`. CI runs `pnpm check:all`, builds the
+bundle, checks the built CLI, packs the npm artifact, installs it into a
+clean temporary project, and runs stdio/HTTP artifact smoke tests. The
+release smoke also verifies non-loopback HTTP requires a per-request
+Bearer token and scans all supported local env locations for tokens
+without printing them. CI does not set OpenSolar credentials or the
+write flag. `tests/integration` stays out of `check:all`.
 
 ---
 
