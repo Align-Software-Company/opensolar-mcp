@@ -119,8 +119,12 @@ export interface ToolContext {
   orgId: number;
 }
 
+export type ToolProfile = 'agent' | 'full';
+
 export interface ToolFilters {
+  profile: ToolProfile;
   toolsets: readonly ToolsetName[];
+  toolsetsExplicit: boolean;
   readOnly: boolean;
   plan: 'api_access' | 'raw_data' | undefined;
 }
@@ -137,11 +141,18 @@ export function selectTools(filters: ToolFilters): ToolName[] {
   const requested = new Set(filters.toolsets);
   const selected: ToolName[] = [];
   for (const toolset of TOOLSET_NAMES) {
-    if (!requested.has(toolset)) {
+    if (filters.toolsetsExplicit && !requested.has(toolset)) {
       continue;
     }
     for (const name of TOOLSET_TOOLS[toolset]) {
       const policy = TIER_POLICY[name];
+      if (
+        !filters.toolsetsExplicit &&
+        filters.profile === 'agent' &&
+        policy.exposure === 'full_only'
+      ) {
+        continue;
+      }
       if (filters.readOnly && policy.mutation) {
         continue;
       }

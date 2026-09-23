@@ -18,7 +18,7 @@ Last reviewed: 2026-09-22
 | Module | ESM (`"type": "module"`) |
 | Package manager | pnpm |
 | License | MIT (`LICENSE`; copyright Align Software Company 2026) |
-| README | Install instructions and the 75 registered tools. Public release checklist is not done. |
+| README | Install instructions, the 75-tool full surface, and the default agent profile. Public release checklist is not done. |
 
 The annotated tag `pre-rebase-baseline` still points at the earlier
 walking-skeleton snapshot. The documented native inventory in
@@ -77,7 +77,7 @@ Accepted decisions (local `dev-docs/decisions/`):
 | 005 Redaction scope | Keep surgical + wholesale redaction | `src/lib/redaction.ts` is used by org, project, contact, and role paths. |
 
 Env vars: `OPENSOLAR_API_TOKEN`, `OPENSOLAR_ORG_ID`, `OPENSOLAR_BASE_URL`,
-`OPENSOLAR_TOOLSETS`, `OPENSOLAR_READ_ONLY`, `OPENSOLAR_PLAN`,
+`OPENSOLAR_PROFILE`, `OPENSOLAR_TOOLSETS`, `OPENSOLAR_READ_ONLY`, `OPENSOLAR_PLAN`,
 `MCP_TRANSPORT`, `MCP_HTTP_HOST`, `MCP_HTTP_PORT`, `MCP_HTTP_PATH`,
 `MCP_HTTP_ALLOWED_HOSTS`. Live tests also read
 `OPENSOLAR_INTEGRATION_WRITES`, `OPENSOLAR_TEST_PROJECT_ID`, and
@@ -114,8 +114,11 @@ case.
 Registration: `src/tools/index.ts` registers toolsets in this order:
 `projects`, `org`, `contacts`, `events`, `systems`, `components`,
 `workflow`, `payment`, `pricing`, `costing`, `reference`, `files`,
-`webhooks`, `teams`, `raw_data`. Filtered by `OPENSOLAR_TOOLSETS`, `OPENSOLAR_READ_ONLY`, and
-`OPENSOLAR_PLAN`. `OPENSOLAR_PLAN=api_access` omits `get_proposal_data` and `get_project_design`.
+`webhooks`, `teams`, `raw_data`. Exposure is `agent` or `full_only` on
+`TIER_POLICY`. Absent `OPENSOLAR_PROFILE` selects `agent`. `full` keeps
+every registered tool. An explicit `OPENSOLAR_TOOLSETS` list overrides
+profile membership. `OPENSOLAR_READ_ONLY` and `OPENSOLAR_PLAN` still apply.
+`OPENSOLAR_PLAN=api_access` omits `get_proposal_data` and `get_project_design`.
 
 Tool kind is separate from evidence. `native` is one documented OpenSolar
 operation. `safe_wrapper` adds MCP-side checks around one operation;
@@ -390,7 +393,7 @@ Not present as modules (planned in `dev-docs/directory.md`):
 
 - `src/client/tier.ts` — no live plan detection
 - `src/client/pagination.ts` — tools build query strings themselves
-- `src/client/rate-limit.ts` — no 429 backoff
+- `src/client/rate-limit.ts` — not a module. Bounded 429 retry for ordinary JSON GET lives in `src/client/index.ts`.
 
 Config: [`src/lib/config.ts`](../src/lib/config.ts). Zod-validated.
 Stdio and `--check` fail if token or org id is missing. HTTP requires
@@ -462,7 +465,7 @@ and composite tools named above.
 | `--check` / `--list-tools` | Implemented |
 | Tool titles, `outputSchema`, `structuredContent` | Implemented for the registered reads and writes |
 | Documented inventory | 75 tools registered, including derived `search_projects`, `search_contacts`, `compare_project_systems`, and `preflight_project_share`, and composite `get_project_snapshot`. Nine writes stay unsupported until their request contracts are established with sufficient confidence. Absence of an example request alone does not decide that. The public release checklist is not done. |
-| `OPENSOLAR_TOOLSETS` / `OPENSOLAR_READ_ONLY` | Read at registration. `OPENSOLAR_PROFILE` is not implemented. A later plan may add `agent` for the common operational tools plus settled derived tools, and `full` for every tool. An explicit `OPENSOLAR_TOOLSETS` list would still override either profile. |
+| `OPENSOLAR_TOOLSETS` / `OPENSOLAR_READ_ONLY` / `OPENSOLAR_PROFILE` | Read at registration. Default profile is `agent` (32 tools with Raw Data, before read-only and plan filters). `full` is the 75-tool surface. An explicit `OPENSOLAR_TOOLSETS` list overrides profile membership. |
 | Client GET timeout | Implemented (30s default; per-call override) |
 | Client auth / errors | Present |
 | Client GET 429 retry | Ordinary JSON `get()` retries at most three attempts. Wait is `Retry-After` when it is at most 5 seconds, otherwise 200 ms then 400 ms. A longer `Retry-After` is returned as 429 with no sleep. POST, PUT, PATCH, DELETE, `postForm`, `getFile`, and `download` are not retried. There is no quota store. |

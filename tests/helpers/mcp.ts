@@ -4,7 +4,9 @@ import type { OpenSolarClient } from '../../src/client/index.js';
 import { TOOLSET_NAMES, type ToolFilters } from '../../src/tools/index.js';
 
 export const ALL_TOOL_FILTERS: ToolFilters = {
+  profile: 'full',
   toolsets: [...TOOLSET_NAMES],
+  toolsetsExplicit: false,
   readOnly: false,
   plan: undefined,
 };

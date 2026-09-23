@@ -20,7 +20,8 @@ Environment:
   OPENSOLAR_API_TOKEN    Bearer token (required for stdio and --check)
   OPENSOLAR_ORG_ID       Org id (required for stdio, HTTP, and --check)
   OPENSOLAR_BASE_URL     API base URL (default: https://api.opensolar.com/api/)
-  OPENSOLAR_TOOLSETS     projects, org, contacts, events, systems, components, workflow, payment, pricing, costing, reference, files, webhooks, teams, raw_data
+  OPENSOLAR_PROFILE      agent (default operational surface) or full (all 75 tools)
+  OPENSOLAR_TOOLSETS     Overrides profile membership: projects, org, contacts, events, systems, components, workflow, payment, pricing, costing, reference, files, webhooks, teams, raw_data
   OPENSOLAR_READ_ONLY    1/true/yes to hide mutation tools
   OPENSOLAR_PLAN         api_access or raw_data
   MCP_TRANSPORT          Set to http to serve HTTP

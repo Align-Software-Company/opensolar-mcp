@@ -37,7 +37,9 @@ Copy `.env.example` if you want a local env file. Integration tests load gitigno
 
 ## Tools
 
-Tools registered today, in `--list-tools` order:
+The registered full surface is 75 tools. The default `OPENSOLAR_PROFILE=agent` exposes a smaller operational subset. `OPENSOLAR_PROFILE=full` exposes every registered tool, still subject to `OPENSOLAR_READ_ONLY` and `OPENSOLAR_PLAN`. An explicit `OPENSOLAR_TOOLSETS` list overrides profile membership and can include a toolset the agent profile leaves out.
+
+Registered tools, in full-profile `--list-tools` order:
 
 | Toolset | Tools |
 | --- | --- |
@@ -69,7 +71,7 @@ Tools registered today, in `--list-tools` order:
 
 Catalog activation creates, `create_pricing_scheme`, `create_payment_option`, `create_costing`, `update_workflow`, and `update_org` are not registered. A write stays unsupported when its request contract has not been established with sufficient confidence. The contract may be established through sufficient official OpenSolar documentation or deliberate live verification recorded in the API contract and quirk docs. Absence of an example request alone does not make an operation unsupported. The public release checklist is not done.
 
-Filter the surface with `OPENSOLAR_TOOLSETS` (comma-separated names from the table). `OPENSOLAR_PLAN=api_access` omits `get_proposal_data` and `get_project_design`.
+Filter the surface with `OPENSOLAR_PROFILE` or `OPENSOLAR_TOOLSETS`. `OPENSOLAR_PLAN=api_access` omits `get_proposal_data` and `get_project_design` from whichever profile or toolset list is active. Default `--list-tools` prints the agent profile. `OPENSOLAR_PROFILE=full node dist/index.js --list-tools` prints all 75.
 
 ## Cursor (stdio)
 

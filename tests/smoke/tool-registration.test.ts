@@ -378,7 +378,13 @@ describe('tool registration', () => {
     const mcp = buildServer({
       client: unexpectedCallClient(),
       orgId: 1,
-      filters: { toolsets: ['org'], readOnly: false, plan: undefined },
+      filters: {
+        profile: 'full',
+        toolsets: ['org'],
+        toolsetsExplicit: true,
+        readOnly: false,
+        plan: undefined,
+      },
     });
 
     const listed = await withMcpClient(mcp, (client) => client.listTools());
@@ -389,7 +395,13 @@ describe('tool registration', () => {
     const mcp = buildServer({
       client: unexpectedCallClient(),
       orgId: 1,
-      filters: { toolsets: [...TOOLSET_NAMES], readOnly: true, plan: undefined },
+      filters: {
+        profile: 'full',
+        toolsets: [...TOOLSET_NAMES],
+        toolsetsExplicit: false,
+        readOnly: true,
+        plan: undefined,
+      },
     });
 
     const listed = await withMcpClient(mcp, (client) => client.listTools());
@@ -443,7 +455,15 @@ describe('selectTools', () => {
   });
 
   it('returns component lists and detail reads in toolset order', () => {
-    expect(selectTools({ toolsets: ['components'], readOnly: false, plan: undefined })).toEqual([
+    expect(
+      selectTools({
+        profile: 'full',
+        toolsets: ['components'],
+        toolsetsExplicit: true,
+        readOnly: false,
+        plan: undefined,
+      }),
+    ).toEqual([
       'list_modules',
       'get_module',
       'delete_module_activation',
@@ -461,9 +481,15 @@ describe('selectTools', () => {
 
   it('omits create and update tools when read-only is set', () => {
     const reads = expectedOrder.filter((name) => !(name in mutationAnnotations));
-    expect(selectTools({ toolsets: [...TOOLSET_NAMES], readOnly: true, plan: undefined })).toEqual([
-      ...reads,
-    ]);
+    expect(
+      selectTools({
+        profile: 'full',
+        toolsets: [...TOOLSET_NAMES],
+        toolsetsExplicit: false,
+        readOnly: true,
+        plan: undefined,
+      }),
+    ).toEqual([...reads]);
     expect(reads).toContain('list_projects');
     expect(reads).toContain('search_projects');
     expect(reads).toContain('get_project_snapshot');
@@ -508,7 +534,9 @@ describe('selectTools', () => {
 
   it('omits raw data tools when the plan is api_access', () => {
     const selected = selectTools({
+      profile: 'full',
       toolsets: [...TOOLSET_NAMES],
+      toolsetsExplicit: false,
       readOnly: false,
       plan: 'api_access',
     });

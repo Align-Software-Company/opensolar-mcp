@@ -99,16 +99,30 @@ function parseTruthy(value: string | undefined): boolean {
 }
 
 export function loadToolFilters(env: NodeJS.ProcessEnv = process.env): ToolFilters {
+  const toolsets = parseToolsets(env.OPENSOLAR_TOOLSETS);
   return {
-    toolsets: parseToolsets(env.OPENSOLAR_TOOLSETS),
+    profile: parseProfile(env.OPENSOLAR_PROFILE),
+    toolsets: toolsets.names,
+    toolsetsExplicit: toolsets.explicit,
     readOnly: parseTruthy(env.OPENSOLAR_READ_ONLY),
     plan: parsePlan(env.OPENSOLAR_PLAN),
   };
 }
 
-function parseToolsets(raw: string | undefined): ToolsetName[] {
+function parseProfile(raw: string | undefined): ToolFilters['profile'] {
   if (raw === undefined || raw.trim() === '') {
-    return [...TOOLSET_NAMES];
+    return 'agent';
+  }
+  const value = raw.trim().toLowerCase();
+  if (value === 'agent' || value === 'full') {
+    return value;
+  }
+  throw new ConfigError(`Unknown OPENSOLAR_PROFILE: ${raw}. Valid values: agent, full.`);
+}
+
+function parseToolsets(raw: string | undefined): { names: ToolsetName[]; explicit: boolean } {
+  if (raw === undefined || raw.trim() === '') {
+    return { names: [...TOOLSET_NAMES], explicit: false };
   }
   const parts = raw
     .split(',')
@@ -120,7 +134,7 @@ function parseToolsets(raw: string | undefined): ToolsetName[] {
       `Unknown toolset(s): ${unknown.join(', ')}. Valid toolsets: ${TOOLSET_NAMES.join(', ')}.`,
     );
   }
-  return parts.filter(isToolsetName);
+  return { names: parts.filter(isToolsetName), explicit: true };
 }
 
 function parsePlan(raw: string | undefined): AccessPlan | undefined {

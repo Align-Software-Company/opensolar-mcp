@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { runCli } from '../../src/cli/run.js';
 import { ConfigError, parseFlags, resolveHttpBind } from '../../src/lib/config.js';
+import { AGENT_PROFILE_TOOLS } from '../fixtures/agent-profile.js';
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -54,83 +55,7 @@ describe('CLI commands', () => {
 
     await runCli(['--list-tools']);
     write.mockRestore();
-    expect(chunks.join('').trim().split('\n')).toEqual([
-      'list_projects',
-      'search_projects',
-      'get_project',
-      'get_project_snapshot',
-      'create_project',
-      'update_project',
-      'update_project_stage',
-      'update_project_usage',
-      'delete_project',
-      'get_org',
-      'list_roles',
-      'get_role',
-      'list_contacts',
-      'search_contacts',
-      'get_contact',
-      'create_contact',
-      'update_contact',
-      'delete_contact',
-      'get_event',
-      'list_event_types',
-      'list_project_systems',
-      'compare_project_systems',
-      'get_system',
-      'get_system_details',
-      'get_system_image',
-      'list_modules',
-      'get_module',
-      'delete_module_activation',
-      'list_inverters',
-      'get_inverter',
-      'delete_inverter_activation',
-      'list_batteries',
-      'get_battery',
-      'delete_battery_activation',
-      'list_other_components',
-      'get_other_component',
-      'delete_other_component_activation',
-      'list_workflows',
-      'get_workflow',
-      'create_workflow',
-      'delete_workflow',
-      'list_payment_options',
-      'get_payment_option',
-      'delete_payment_option',
-      'list_pricing_schemes',
-      'get_pricing_scheme',
-      'delete_pricing_scheme',
-      'list_costings',
-      'get_costing',
-      'delete_costing',
-      'list_roof_types',
-      'list_file_tags',
-      'list_private_files',
-      'get_private_file',
-      'create_private_file',
-      'update_private_file',
-      'delete_private_file',
-      'generate_project_document',
-      'list_webhooks',
-      'create_webhook',
-      'update_webhook',
-      'list_webhook_logs',
-      'list_webhook_queue',
-      'list_connected_orgs',
-      'preflight_project_share',
-      'list_connection_requests',
-      'create_connection_request',
-      'accept_connection_request',
-      'update_connection',
-      'delete_connection',
-      'share_project',
-      'share_entities',
-      'create_permission_role',
-      'get_proposal_data',
-      'get_project_design',
-    ]);
+    expect(chunks.join('').trim().split('\n')).toEqual([...AGENT_PROFILE_TOOLS]);
   });
 
   it('filters --list-tools by OPENSOLAR_TOOLSETS', async () => {
@@ -147,6 +72,7 @@ describe('CLI commands', () => {
   });
 
   it('omits registered writes when OPENSOLAR_READ_ONLY=1', async () => {
+    vi.stubEnv('OPENSOLAR_PROFILE', 'full');
     vi.stubEnv('OPENSOLAR_READ_ONLY', '1');
     const chunks: string[] = [];
     const write = vi.spyOn(process.stdout, 'write').mockImplementation((chunk) => {
@@ -197,6 +123,7 @@ describe('CLI commands', () => {
   });
 
   it('omits raw data tools when OPENSOLAR_PLAN=api_access', async () => {
+    vi.stubEnv('OPENSOLAR_PROFILE', 'full');
     vi.stubEnv('OPENSOLAR_PLAN', 'api_access');
     const chunks: string[] = [];
     const write = vi.spyOn(process.stdout, 'write').mockImplementation((chunk) => {
