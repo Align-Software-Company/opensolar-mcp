@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 const repoRoot = join(fileURLToPath(new URL('..', import.meta.url)));
 const roots = [join(repoRoot, 'README.md'), join(repoRoot, 'docs')];
+const envExamplePath = join(repoRoot, '.env.example');
 
 const liveIdentifierPatterns = [
   { label: 'literal OpenSolar org id', pattern: /\borg[- ]\d{4,}\b/i },
@@ -48,6 +49,16 @@ for (const path of roots.flatMap(filesUnder)) {
       );
     }
   }
+}
+
+const envExample = readFileSync(envExamplePath, 'utf8');
+const envToken = envExample.match(/^OPENSOLAR_API_TOKEN=(.*)$/m)?.[1]?.trim();
+const envOrgId = envExample.match(/^OPENSOLAR_ORG_ID=(.*)$/m)?.[1]?.trim();
+if (envToken !== 'paste_your_bearer_token_here') {
+  failures.push('.env.example: OPENSOLAR_API_TOKEN must remain the documented placeholder.');
+}
+if (envOrgId !== '12345') {
+  failures.push('.env.example: OPENSOLAR_ORG_ID must remain the documented placeholder 12345.');
 }
 
 if (failures.length > 0) {
