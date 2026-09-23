@@ -271,7 +271,7 @@ Private-file downloads and system images are capped at 10 MB. Text content may a
 - Mutation tools change the live OpenSolar organisation. Review consequential writes.
 - `OPENSOLAR_READ_ONLY=1` removes every registered mutation from the exposed surface.
 - Ordinary JSON GET requests retry HTTP 429 at most three attempts; writes, file GETs, downloads, and uploads are not automatically retried.
-- Search tools use bounded local scans over documented list endpoints. An incomplete scan is not proof that a record does not exist.
+- Search tools use bounded local scans over documented list endpoints. Only `resolution: unique` confirms one target; `resolution: incomplete` means the scan stopped before uniqueness could be proven.
 - `preflight_project_share` is read-only; an `unknown` share/readiness state is not treated as safe.
 - The package uses documented OpenSolar API endpoints and deliberately leaves insufficiently established writes unregistered.
 - This repository distributes self-hosted software. It does not operate a shared or multi-customer OpenSolar service.
