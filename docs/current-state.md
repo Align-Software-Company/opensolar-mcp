@@ -33,7 +33,7 @@ The server version is read from `package.json` at runtime so package metadata an
 - For 2026-07-28 requests, `tools/list` and `server/discover` carry `ttlMs: 300000` and `cacheScope: "private"`. The tool list is fixed for the life of the process, and it is private because it depends on the operator's filters.
 - `tools/list` order is deterministic: toolsets in `TOOLSET_NAMES` order, tools in registration order.
 - Every tool declares a `title`, an `outputSchema`, and `readOnlyHint`, `destructiveHint`, `idempotentHint`, and `openWorldHint` annotations.
-- Successful results put the data in `structuredContent` and add a one-line text summary. Private-file text and binary content are returned as additional content blocks.
+- Successful structured results put the data in `structuredContent` and also return a one-line summary plus the same payload serialized as compact JSON text for client compatibility. Private-file text and binary content are returned as additional content blocks.
 - OpenSolar API failures are returned as tool results with `isError: true` and a short, actionable message. Input that fails schema validation is rejected before any OpenSolar call.
 - The server does not use the Roots, Sampling, or Logging features, which the 2026-07-28 specification deprecates. Logs go to stderr.
 
