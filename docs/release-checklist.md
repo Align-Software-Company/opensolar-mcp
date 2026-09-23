@@ -21,7 +21,7 @@ The original RC artifact was verified at `6e1bd14`. The pre-release audit that f
 - [x] `create_private_file` is disabled without `OPENSOLAR_UPLOAD_ROOT` and cannot escape the configured real path, including through symlinks; the offline test suite covers both cases.
 - [x] Binary private files and system images are not duplicated as base64 in `structuredContent`; the offline test suite covers image, PDF, and generic binary behavior.
 - [x] The release-smoke implementation checks both supported local env files without printing token values. CI had no local tokens to search and its tarball secret scan was clear.
-- [ ] Re-run Docker against the post-audit auth behavior before the final `0.1.0` release. The earlier RC Docker test predates the non-loopback Bearer hardening.
+- [x] Post-audit Docker smoke passed in CI: runtime UID 1000, health/readiness on a non-default container port, 401 without a Bearer token, untrusted browser Origin rejected, and the 32-tool agent profile exposed.
 - [x] GitHub Dependabot reported 0 open alerts on 2026-09-23.
 
 `prepack` runs `pnpm check:all && pnpm build`. Packaging must not require OpenSolar credentials or call OpenSolar.

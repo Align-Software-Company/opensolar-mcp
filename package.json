@@ -40,10 +40,12 @@
     "build": "tsup",
     "typecheck": "tsc --noEmit",
     "lint": "biome check .",
+    "lint:repo": "node scripts/repo-hygiene.mjs",
     "format": "biome format --write .",
     "test": "vitest run",
     "test:integration": "vitest run --config vitest.integration.config.ts",
-    "check:all": "pnpm lint && pnpm typecheck && pnpm test"
+    "test:docker": "node scripts/docker-smoke.mjs",
+    "check:all": "pnpm lint:repo && pnpm lint && pnpm typecheck && pnpm test"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.1",

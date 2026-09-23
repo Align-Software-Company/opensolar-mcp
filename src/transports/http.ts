@@ -36,6 +36,7 @@ export function createHttpApp(bind: HttpBind): ReturnType<typeof createMcpHonoAp
   const app = createMcpHonoApp({
     host: bind.host,
     ...(bind.allowedHosts === undefined ? {} : { allowedHosts: bind.allowedHosts }),
+    ...(bind.allowedOrigins === undefined ? {} : { allowedOrigins: bind.allowedOrigins }),
   });
 
   app.get('/health', (c) => c.json({ status: 'ok' }));

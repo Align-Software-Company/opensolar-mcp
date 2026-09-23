@@ -31,6 +31,32 @@ describe('CLI flags', () => {
       /MCP_HTTP_ALLOWED_HOSTS/,
     );
   });
+
+  it('defaults remote allowed origins to allowed hosts and accepts an override', () => {
+    const flags = parseFlags(['--http', '--host', '0.0.0.0']);
+    expect(
+      resolveHttpBind(flags, {
+        MCP_HTTP_ALLOWED_HOSTS: 'mcp.example.com,127.0.0.1',
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        allowedHosts: ['mcp.example.com', '127.0.0.1'],
+        allowedOrigins: ['mcp.example.com', '127.0.0.1'],
+      }),
+    );
+
+    expect(
+      resolveHttpBind(flags, {
+        MCP_HTTP_ALLOWED_HOSTS: 'mcp.example.com',
+        MCP_HTTP_ALLOWED_ORIGINS: 'app.example.com',
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        allowedHosts: ['mcp.example.com'],
+        allowedOrigins: ['app.example.com'],
+      }),
+    );
+  });
 });
 
 describe('CLI commands', () => {

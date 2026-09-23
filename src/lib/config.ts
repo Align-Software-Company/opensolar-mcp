@@ -41,6 +41,7 @@ export type HttpBind = {
   port: number;
   path: string;
   allowedHosts: string[] | undefined;
+  allowedOrigins?: string[] | undefined;
 };
 
 const DEFAULT_HTTP_HOST = '127.0.0.1';
@@ -157,15 +158,15 @@ function parsePlan(raw: string | undefined): AccessPlan | undefined {
   throw new ConfigError(`Unknown OPENSOLAR_PLAN: ${raw}. Valid values: api_access, raw_data.`);
 }
 
-function parseAllowedHosts(raw: string | undefined): string[] | undefined {
+function parseHostnameList(raw: string | undefined): string[] | undefined {
   if (raw === undefined || raw.trim() === '') {
     return undefined;
   }
-  const hosts = raw
+  const hostnames = raw
     .split(',')
-    .map((host) => host.trim())
-    .filter((host) => host !== '');
-  return hosts.length === 0 ? undefined : hosts;
+    .map((hostname) => hostname.trim())
+    .filter((hostname) => hostname !== '');
+  return hostnames.length === 0 ? undefined : hostnames;
 }
 
 function takeValue(argv: string[], index: number, flag: string): string {
@@ -290,24 +291,30 @@ export function resolveHttpBind(
     throw new ConfigError(`Invalid HTTP port: ${portRaw}. Expected an integer 1–65535.`);
   }
   const path = normalizeHttpPath(flags.path ?? env.MCP_HTTP_PATH ?? DEFAULT_HTTP_PATH);
-  const allowedHosts = parseAllowedHosts(env.MCP_HTTP_ALLOWED_HOSTS);
+  const configuredAllowedHosts = parseHostnameList(env.MCP_HTTP_ALLOWED_HOSTS);
+  const configuredAllowedOrigins = parseHostnameList(env.MCP_HTTP_ALLOWED_ORIGINS);
 
   const normalizedHost = host.toLowerCase();
   if (
     WILDCARD_HOSTS.has(normalizedHost) &&
-    (allowedHosts === undefined || allowedHosts.length === 0)
+    (configuredAllowedHosts === undefined || configuredAllowedHosts.length === 0)
   ) {
     throw new ConfigError(
       `Binding HTTP to ${host} requires MCP_HTTP_ALLOWED_HOSTS so DNS-rebinding protection can allow your public hostname.`,
     );
   }
 
+  const allowedHosts = isLoopbackHttpHost(host)
+    ? undefined
+    : (configuredAllowedHosts ?? (WILDCARD_HOSTS.has(normalizedHost) ? undefined : [host]));
+
   return {
     host,
     port: portRaw,
     path,
-    allowedHosts: isLoopbackHttpHost(host)
+    allowedHosts,
+    allowedOrigins: isLoopbackHttpHost(host)
       ? undefined
-      : (allowedHosts ?? (WILDCARD_HOSTS.has(normalizedHost) ? undefined : [host])),
+      : (configuredAllowedOrigins ?? allowedHosts),
   };
 }

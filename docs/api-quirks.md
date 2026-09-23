@@ -182,7 +182,7 @@ and `ordering=-email` are descending, contrary to the conventions page.
 
 `ordering=-id` is silently ignored (field whitelist), not an error.
 
-**Source:** Observed on org 48389 contacts.
+**Source:** Observed on a live verification org contacts.
 
 **What to do:**
 
@@ -199,7 +199,7 @@ and `ordering=-email` are descending, contrary to the conventions page.
 Despite the name, the string uses Python `repr()` with single quotes:
 
 ```
-{'sungage': {'48389': {'sungage_email': 'user@example.com'}}, 'recheck': {...}}
+{'sungage': {'<org-id>': {'sungage_email': 'user@example.com'}}, 'recheck': {...}}
 ```
 
 `JSON.parse` throws.
@@ -209,7 +209,7 @@ write a careful literal-to-JSON converter; or ignore the field and use
 `org_configs` / feature flags. Prefer the last if integration discovery
 is needed — the field also contains PII.
 
-**Source:** Observed in org 48389 verbose org response. Not in official docs.
+**Source:** Observed in a live verification org verbose org response. Not in official docs.
 
 ### `org_configs.integration_key_<vendor>` is a Fernet bundle
 
@@ -220,7 +220,7 @@ Redaction: surgical on `integration_key_<vendor>` — keep keys, replace
 values. Pattern `^integration_key_/i` in `src/lib/redaction.ts` covers
 new vendors without per-vendor rules.
 
-**Source:** Observed in org 48389 verbose org response.
+**Source:** Observed in a live verification org verbose org response.
 
 ### `design` field is gzip+base64
 
@@ -238,7 +238,7 @@ v1: wholesale-redact in verbose mode. `get_project` verbose still replaces `desi
 
 Proposal `systems[].data.output` uses the same base64(gzip(JSON)) encoding when it is a string. `get_proposal_data` decodes that string to read annual and monthly kWh and does not return the string. The tool does not send `compress_data`.
 
-**Source:** Observed in org 48389 verbose project response; official
+**Source:** Observed in a live verification org verbose project response; official
 decompress steps on [Projects](https://developers.opensolar.com/api/projects/).
 Proposal output: [Proposal Data](https://developers.opensolar.com/api/proposal-data/), retrieved 2026-09-22.
 
@@ -250,14 +250,14 @@ Proposal output: [Proposal Data](https://developers.opensolar.com/api/proposal-d
 Infer "more pages" from `response.length === limit`. Exact multiples of
 `limit` are an edge case.
 
-**Source:** Observed on org 48389.
+**Source:** Observed on a live verification org.
 
 ### Contact entities have no `created_date` or `modified_date`
 
 Missing on both list and detail. Events, projects, and orgs have those
 fields. Closest recency signal is `id` (undocumented assumption).
 
-**Source:** Observed on org 48389.
+**Source:** Observed on a live verification org.
 
 ### `@os.code` emails are synthetic MyEnergy accounts
 
@@ -269,7 +269,7 @@ contacts can share the same `@os.code` address.
 
 `list_contacts` / `get_contact` add `is_synthetic_email: true`.
 
-**Source:** Observed on org 48389.
+**Source:** Observed on a live verification org.
 
 ### Events are org-level, not project sub-resources
 
@@ -279,7 +279,7 @@ refs) and `events_data` (inlined) on project detail.
 
 `/api/orgs/:org_id/projects/:id/events/` returned 404.
 
-**Source:** Observed on org 48389.
+**Source:** Observed on a live verification org.
 
 ### Inlined `events_data` vs detail-endpoint events
 
@@ -296,21 +296,21 @@ MCP: `get_event` returns the detail shape plus `event_type_name`,
 strips `url`/`org`, enriches `contact_data` when present. Curated
 `get_project` includes slim `events`.
 
-**Source:** Observed on org 48389.
+**Source:** Observed on a live verification org.
 
 ### Event `who` can be "Unknown User" / "Unknown Email"
 
 External integrations (Sungage, DocuSign, …) have no OpenSolar user.
 Not a deleted user or auth failure.
 
-**Source:** Observed on events 41537464, 41537465 (project 7773549).
+**Source:** Observed on two live events linked from one fixture project.
 
 ### `event_type_id` is a sparse enum
 
 Ids 0–142 with gaps. Resolved locally in `src/lib/enums/event-types.ts`.
 Unknown ids become `"Unknown event type"` rather than failing.
 
-**Source:** Observed across org 48389 payloads; gaps catalogued in the
+**Source:** Observed across a live verification org payloads; gaps catalogued in the
 enum module. Official names: [Events](https://developers.opensolar.com/api/events/).
 
 ---
@@ -345,7 +345,7 @@ that exists. 404 is for genuinely missing resources.
 
 ### System image creates a file without exposing its id
 
-On org 48389, project 10616552, `GET .../systems/20d0ad9c-7d92-4078-b8a3-6051f4a08439/image/?width=500&height=500` on 2026-09-22 returned `image/jpeg`. The final URL and response headers did not contain `/private_files/{id}`. A following private-files list for that project included a new file tagged System Image.
+On a live verification org, a fixture project, `GET .../systems/<fixture-system-uuid>/image/?width=500&height=500` on 2026-09-22 returned `image/jpeg`. The final URL and response headers did not contain `/private_files/{id}`. A following private-files list for that project included a new file tagged System Image.
 
 **Source:** live call 2026-09-22. [System Image](https://developers.opensolar.com/api/system-image/) says the first call can create a private file and to follow redirects. The page shows no response body.
 
@@ -353,7 +353,7 @@ On org 48389, project 10616552, `GET .../systems/20d0ad9c-7d92-4078-b8a3-6051f4a
 
 ### Contact PUT keeps omitted supported fields
 
-The contacts page documents PUT as the update method and does not say whether omitted fields are cleared. On org 48389, 2026-09-22, a disposable contact was created with `first_name`, `family_name`, `email`, and `phone`. A following PUT sent only a new `phone`. The next GET kept the other three values and showed the new phone. The fixture was deleted.
+The contacts page documents PUT as the update method and does not say whether omitted fields are cleared. On a live verification org, 2026-09-22, a disposable contact was created with `first_name`, `family_name`, `email`, and `phone`. A following PUT sent only a new `phone`. The next GET kept the other three values and showed the new phone. The fixture was deleted.
 
 **Source:** live call 2026-09-22. [Contacts](https://developers.opensolar.com/api/contacts/)
 

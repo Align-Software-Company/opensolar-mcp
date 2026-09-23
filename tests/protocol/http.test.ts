@@ -164,6 +164,31 @@ describe('stateless HTTP transport', () => {
     }
   });
 
+  it('rejects an untrusted browser Origin on non-loopback HTTP', async () => {
+    vi.stubEnv('OPENSOLAR_ORG_ID', '1');
+    const app = createHttpApp({
+      host: '0.0.0.0',
+      port: 3000,
+      path: '/mcp',
+      allowedHosts: ['127.0.0.1'],
+      allowedOrigins: ['trusted.example'],
+    });
+    const listening = await listenApp(app);
+    try {
+      const blocked = await fetch(`${listening.origin}/health`, {
+        headers: { Origin: 'https://evil.example' },
+      });
+      expect(blocked.status).toBe(403);
+
+      const allowed = await fetch(`${listening.origin}/health`, {
+        headers: { Origin: 'https://trusted.example' },
+      });
+      expect(allowed.status).toBe(200);
+    } finally {
+      await listening.close();
+    }
+  });
+
   it('requires a per-request bearer token on non-loopback HTTP and ignores the env token', async () => {
     vi.stubEnv('OPENSOLAR_ORG_ID', '1');
     vi.stubEnv('OPENSOLAR_API_TOKEN', 'server-env-token');
