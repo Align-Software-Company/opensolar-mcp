@@ -54,8 +54,8 @@ Profile membership did not change. The agent surface stays 32 tools. `full` stay
 Descriptions and the server instruction changed because both planners repeated the same extra reads:
 
 - `get_org` said to confirm the org before writes. Both planners called it before mutations. That sentence is gone. A recheck of stage, share, and document generation no longer called `get_org`.
-- The first server instruction required a get or list before every write. It now says a unique search match confirms the target, and more than one match means stop.
-- `get_project` said to use it after `list_projects`. After the instruction change, both planners still called it before `update_project_stage`. The description now says a unique `search_projects` match does not need this call before a write. A recheck of the stage request then planned `search_projects` then `update_project_stage` on both planners, and both still stopped if Smith was ambiguous.
+- The first server instruction required a get or list before every write. It was later tightened again: only a search report with `resolution=unique` confirms the target; `resolution=incomplete` does not prove uniqueness, and `ambiguous` means stop.
+- `get_project` said to use it after `list_projects`. After the instruction change, both planners still called it before `update_project_stage`. The description now says a `search_projects` result with `resolution: unique` does not need this call before a write. A recheck of the stage request then planned `search_projects` then `update_project_stage` on both planners, and both still stopped if Smith was ambiguous.
 
 Those rechecks are later plans, not a replacement for the 28-of-30 rate above.
 

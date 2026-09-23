@@ -36,8 +36,6 @@ export type ProjectMatch = {
   type: MatchType;
 };
 
-export type MatchClass = 'none' | 'unique' | 'ambiguous';
-
 const CONTACT_MATCH_ORDER: readonly ContactMatch[] = [
   { field: 'email', type: 'exact' },
   { field: 'phone', type: 'exact' },
@@ -119,16 +117,6 @@ export function contactMatchStrength(match: ContactMatch): number {
 
 export function projectMatchStrength(match: ProjectMatch): number {
   return matchStrength(PROJECT_MATCH_ORDER, match);
-}
-
-export function classifyMatches(count: number): MatchClass {
-  if (count <= 0) {
-    return 'none';
-  }
-  if (count === 1) {
-    return 'unique';
-  }
-  return 'ambiguous';
 }
 
 export function foldText(value: string): string {
