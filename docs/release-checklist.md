@@ -8,9 +8,9 @@ The package version under review is `0.1.0-rc.1`. This checklist does not publis
 
 ## Technical artifact
 
-The original RC artifact was verified at `6e1bd14`. The pre-release audit that followed changes HTTP authentication, local-upload confinement, and binary result shaping, so the exact post-audit artifact must pass these checks again before a final release.
+The original RC artifact was verified at `6e1bd14`. The current release-candidate tree has since received pre-release hardening for HTTP authentication and Origin checks, local-upload confinement, binary result shaping, Docker/runtime safety, public-repo hygiene, and conservative bounded-search resolution. The exact current artifact must pass these checks before a final release.
 
-- [x] `pnpm check:all` is green. The ordinary suite does not call OpenSolar. Post-audit CI passed 39 files / 258 tests.
+- [x] `pnpm check:all` is green. The ordinary suite does not call OpenSolar. The current search-safety tree passed 39 files / 262 tests.
 - [x] `pnpm build` is green. Post-audit CI built the release bundle successfully.
 - [x] `npm pack` contains only `package.json`, `README.md`, `LICENSE`, and `dist/` (five files total including the source map).
 - [x] A clean `npm install` of the tarball runs `--help`, the 32-tool agent profile, the 75-tool full profile, the five webhook tools, and rejects an unknown profile.
@@ -33,6 +33,7 @@ The original RC artifact was verified at `6e1bd14`. The pre-release audit that f
 - [x] Writes whose request contracts are not established stay unregistered.
 - [x] The package is self-hosted software. The caller supplies their own OpenSolar access; there is no token vault or multi-customer service in this repository.
 - [x] Raw Data entitlement is documented. `OPENSOLAR_PLAN=api_access` omits `get_proposal_data` and `get_project_design`.
+- [x] Bounded contact/project searches expose a conservative `resolution`; only an exhaustive one-match scan reports `unique`.
 
 ## Package publication decision
 
