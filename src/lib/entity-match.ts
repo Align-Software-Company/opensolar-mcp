@@ -38,6 +38,52 @@ export type ProjectMatch = {
 
 export type MatchClass = 'none' | 'unique' | 'ambiguous';
 
+const CONTACT_MATCH_ORDER: readonly ContactMatch[] = [
+  { field: 'email', type: 'exact' },
+  { field: 'phone', type: 'exact' },
+  { field: 'full_name', type: 'exact' },
+  { field: 'display', type: 'exact' },
+  { field: 'first_name', type: 'exact' },
+  { field: 'family_name', type: 'exact' },
+  { field: 'full_name', type: 'prefix' },
+  { field: 'display', type: 'prefix' },
+  { field: 'first_name', type: 'prefix' },
+  { field: 'family_name', type: 'prefix' },
+  { field: 'full_name', type: 'contains' },
+  { field: 'display', type: 'contains' },
+  { field: 'first_name', type: 'contains' },
+  { field: 'family_name', type: 'contains' },
+  { field: 'email', type: 'contains' },
+  { field: 'phone', type: 'contains' },
+];
+
+const PROJECT_MATCH_ORDER: readonly ProjectMatch[] = [
+  { field: 'contact_email', type: 'exact' },
+  { field: 'contact_phone', type: 'exact' },
+  { field: 'identifier', type: 'exact' },
+  { field: 'address', type: 'exact' },
+  { field: 'title', type: 'exact' },
+  { field: 'business_name', type: 'exact' },
+  { field: 'contact_name', type: 'exact' },
+  { field: 'locality', type: 'exact' },
+  { field: 'state', type: 'exact' },
+  { field: 'zip', type: 'exact' },
+  { field: 'title', type: 'prefix' },
+  { field: 'address', type: 'prefix' },
+  { field: 'business_name', type: 'prefix' },
+  { field: 'contact_name', type: 'prefix' },
+  { field: 'locality', type: 'prefix' },
+  { field: 'title', type: 'contains' },
+  { field: 'address', type: 'contains' },
+  { field: 'business_name', type: 'contains' },
+  { field: 'contact_name', type: 'contains' },
+  { field: 'locality', type: 'contains' },
+  { field: 'state', type: 'contains' },
+  { field: 'zip', type: 'contains' },
+  { field: 'contact_email', type: 'contains' },
+  { field: 'contact_phone', type: 'contains' },
+];
+
 const PHONE_CONTAINS_MIN_DIGITS = 7;
 
 export type ContactMatchSource = {
@@ -66,6 +112,14 @@ export type ProjectMatchSource = {
   zip?: string | null;
   contacts?: readonly ProjectContactSource[];
 };
+
+export function contactMatchStrength(match: ContactMatch): number {
+  return matchStrength(CONTACT_MATCH_ORDER, match);
+}
+
+export function projectMatchStrength(match: ProjectMatch): number {
+  return matchStrength(PROJECT_MATCH_ORDER, match);
+}
 
 export function classifyMatches(count: number): MatchClass {
   if (count <= 0) {
@@ -227,6 +281,16 @@ export function rankProject(query: string, project: ProjectMatchSource): Project
     }
   }
   return null;
+}
+
+function matchStrength<Field extends string>(
+  order: readonly { field: Field; type: MatchType }[],
+  match: { field: Field; type: MatchType },
+): number {
+  const index = order.findIndex(
+    (candidate) => candidate.field === match.field && candidate.type === match.type,
+  );
+  return index === -1 ? order.length : index;
 }
 
 function contactName(contact: ProjectContactSource): string | null {

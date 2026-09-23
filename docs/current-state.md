@@ -193,8 +193,8 @@ Errors return `isError: true` with no `structuredContent`.
 | `get_proposal_data` | `src/tools/raw-data.ts` | `raw_data`, read | `GET user_logins/?project_ids=` | Implemented |
 | `get_project_design` | `src/tools/raw-data.ts` | `raw_data`, read | `GET orgs/:org_id/projects/:id/` | Implemented |
 
-72 tools are registered. `search_projects` and `search_contacts` page the documented lists and match locally. They do not send a `search` query. Nine writes from the documented inventory are
-not, because those pages list the method and show no request example:
+72 tools are registered. `search_projects` and `search_contacts` page the documented lists and match locally. They do not send a `search` query. OpenSolar does not document those MCP tools. Nine writes from the documented inventory are
+not registered, because their request contracts are not established with sufficient confidence:
 `create_module_activation`, `create_inverter_activation`,
 `create_battery_activation`, `create_other_component_activation`,
 `create_pricing_scheme`, `create_payment_option`, `create_costing`,
@@ -395,7 +395,7 @@ is historical (it still describes a 19-tool v1). Phase 2 reads, phase 3 writes, 
 | HTTP transport | Stateless Streamable HTTP via `createMcpHandler` |
 | `--check` / `--list-tools` | Implemented |
 | Tool titles, `outputSchema`, `structuredContent` | Implemented for the registered reads and writes |
-| Documented inventory | 72 tools registered, including derived `search_projects` and `search_contacts`. Nine writes wait on a published request example. The public release checklist is not done. |
+| Documented inventory | 72 tools registered, including derived `search_projects` and `search_contacts`. Nine writes stay unsupported until their request contracts are established with sufficient confidence. Absence of an example request alone does not decide that. The public release checklist is not done. |
 | `OPENSOLAR_TOOLSETS` / `OPENSOLAR_READ_ONLY` | Read at registration |
 | Client GET timeout | Implemented (30s default; per-call override) |
 | Client auth / errors | Present |

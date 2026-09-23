@@ -3,7 +3,12 @@ import { z } from 'zod';
 import { openSolarSuccess, runOpenSolarTool } from '../client/errors.js';
 import type { OpenSolarClient } from '../client/index.js';
 import { enrichContact } from '../lib/contact-enrich.js';
-import { type ContactMatchSource, rankContact } from '../lib/entity-match.js';
+import {
+  type ContactMatch,
+  type ContactMatchSource,
+  contactMatchStrength,
+  rankContact,
+} from '../lib/entity-match.js';
 import { BareListPageError, scanPaginatedCollection } from '../lib/scan-pages.js';
 import type { ToolName } from '../lib/tier-policy.js';
 import {
@@ -156,7 +161,8 @@ export function registerCrmToolset(
         description:
           'Finds contacts by paging the documented contact list and matching locally. It does not send a search query. ' +
           'Matches name, email, and phone. Passport, licence, and date of birth are redacted. ' +
-          '`complete` is false when further pages were not read. `results_truncated` is true when some matches on the scanned pages were not returned. ' +
+          'The scan reads until the list ends or max_pages is reached. Returned rows are the strongest matches. Equal strength keeps list order. ' +
+          '`complete` is false when further pages were not read. `results_truncated` is true when some matches on the scanned pages were not returned. `stopped_by` is `end` or `max_pages`. ' +
           'The 20-page cap is an MCP work bound, not an OpenSolar quota. This server does not count that quota.',
         inputSchema: SearchInputSchema,
         outputSchema: SearchContactsOutputSchema,
@@ -170,6 +176,7 @@ export function registerCrmToolset(
               maxPages: max_pages,
               maxResults: max_results,
               match: (item: unknown) => matchContact(query, item),
+              strength: (row) => contactMatchStrength(row.match),
               fetchPage: async (page) => {
                 const params = new URLSearchParams({
                   page: String(page),
@@ -313,7 +320,10 @@ export function registerCrmToolset(
   }
 }
 
-function matchContact(query: string, item: unknown): Record<string, unknown> | null {
+function matchContact(
+  query: string,
+  item: unknown,
+): (Record<string, unknown> & { match: ContactMatch }) | null {
   const parsed = ContactSchema.safeParse(item);
   if (!parsed.success) {
     return null;

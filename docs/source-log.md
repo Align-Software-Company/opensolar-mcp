@@ -62,15 +62,15 @@ Base: https://developers.opensolar.com/api/
 
 Re-read on 2026-09-22 during the phase-1 audit and P1-11. The August pages were not re-fetched into git. Pricing schemes, costing, roof types, file tags, and other components were read on 2026-09-22 for the phase-2 reads. No response bodies stored.
 
-Modules, inverters, batteries, and other components were re-read on 2026-09-22 for component activation writes. Each page lists `POST` and `DELETE` on `/:id`. The only sample is a GET list. There is no request example and no sample curl, so no create body was guessed.
+Modules, inverters, batteries, and other components were re-read on 2026-09-22 for component activation writes. Each page lists `POST` and `DELETE` on `/:id`. The only sample is a GET list. That material does not establish the request body, required fields, or field semantics, so no create body was guessed.
 
-Pricing schemes were re-read on 2026-09-22 for P4-02. The page lists `POST` and `DELETE` on `/:id`. The only sample is a GET list. There is no request example and no sample curl, so no create body was guessed.
+Pricing schemes were re-read on 2026-09-22 for P4-02. The page lists `POST` and `DELETE` on `/:id`. The only sample is a GET list. That material does not establish the request body, required fields, or field semantics, so no create body was guessed.
 
-Payment options and costings were re-read on 2026-09-22 for P4-03 and P4-04. Each page lists `POST` and `DELETE` on `/:id`. The only sample is a GET list. There is no request example and no sample curl, so no create body was guessed.
+Payment options and costings were re-read on 2026-09-22 for P4-03 and P4-04. Each page lists `POST` and `DELETE` on `/:id`. The only sample is a GET list. That material does not establish the request body, required fields, or field semantics, so no create body was guessed.
 
-Workflows were re-read on 2026-09-22 for P4-05. The create sample sends `title`, `is_default`, and `description` on `POST /workflows/`. The page lists `PUT /workflows/:id/` and says a PUT replaces the entity, including stages and actions, but it shows no PUT request example. No update body was guessed.
+Workflows were re-read on 2026-09-22 for P4-05. The create sample sends `title`, `is_default`, and `description` on `POST /workflows/`. The page lists `PUT /workflows/:id/` and says a PUT replaces the entity, including stages and actions. The PUT request contract is not established with sufficient confidence. No update body was guessed.
 
-Orgs were re-read on 2026-09-22 for P4-06. The page lists `PUT /orgs/:org_id/` as Update Org. The only sample is Get Org Details, and that response is truncated. There is no Update Org request example, so no update body was guessed.
+Orgs were re-read on 2026-09-22 for P4-06. The page lists `PUT /orgs/:org_id/` as Update Org. The only sample is Get Org Details, and that response is truncated. The PUT request contract is not established with sufficient confidence, so no update body was guessed.
 
 Private files were read on 2026-09-22 for P5-01. The query table lists `project`, `user_id`, `file_tags`, `file_tags_exclude`, `search`, and `ordering`. It does not list `page` or `limit`. `list_private_files` still sends `page` and `limit` because the task requires a bounded page. `file_contents` is a download URL that expires after one hour. No response body was stored. Model-facing text, image blocks, and PDF resources are this server's delivery. They are not OpenSolar fields. PDF text uses `unpdf`.
 
@@ -138,12 +138,12 @@ ordering were re-checked on 2026-09-22 via `pnpm test:integration`
 
 | Item | Reason |
 |------|--------|
-| Component activation create body | Modules, inverters, batteries, and other-components pages list `POST /:id` and show no request example (retrieved 2026-09-22). No body was guessed. |
-| Pricing scheme create body | The pricing-schemes page lists `POST /:id` and shows no request example (retrieved 2026-09-22). No body was guessed. |
-| Payment option create body | The payment-options page lists `POST /:id` and shows no request example (retrieved 2026-09-22). No body was guessed. |
-| Costing create body | The costing page lists `POST /:id` and shows no request example (retrieved 2026-09-22). No body was guessed. |
-| Workflow update body | The workflows page lists `PUT /workflows/:id/` and shows no PUT request example (retrieved 2026-09-22). No body was guessed. |
-| Org update body | The orgs page lists `PUT /orgs/:org_id/` and shows no Update Org request example (retrieved 2026-09-22). No body was guessed. |
+| Component activation create body | Modules, inverters, batteries, and other-components pages list `POST /:id` (retrieved 2026-09-22). The request contract is not established with sufficient confidence. No body was guessed. |
+| Pricing scheme create body | The pricing-schemes page lists `POST /:id` (retrieved 2026-09-22). The request contract is not established with sufficient confidence. No body was guessed. |
+| Payment option create body | The payment-options page lists `POST /:id` (retrieved 2026-09-22). The request contract is not established with sufficient confidence. No body was guessed. |
+| Costing create body | The costing page lists `POST /:id` (retrieved 2026-09-22). The request contract is not established with sufficient confidence. No body was guessed. |
+| Workflow update body | The workflows page lists `PUT /workflows/:id/` (retrieved 2026-09-22). The request contract is not established with sufficient confidence. No body was guessed. |
+| Org update body | The orgs page lists `PUT /orgs/:org_id/` (retrieved 2026-09-22). The request contract is not established with sufficient confidence. No body was guessed. |
 | Private file `page` and `limit` | The private files query table (retrieved 2026-09-22) does not list `page` or `limit`. `list_private_files` sends both because P5-01 requires a bounded page. A live list on org 48389 the same day sent `project`, `page`, `limit`, and `ordering=-created_date` and received a page. |
 | Private file create, update, and delete | The page shows the multipart create sample and the JSON title patch (retrieved 2026-09-22). Those calls were not made against a live org. `get_private_file` with `include_contents` was not called either. |
 | Generate document pdf and docx bodies | The html `generate_document` path returned an id on org 48389 on 2026-09-22. The pdf and docx paths were not called. The page still shows no response JSON. |

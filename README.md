@@ -59,11 +59,9 @@ Tools registered today, in `--list-tools` order:
 
 `OPENSOLAR_READ_ONLY=1` omits every registered create, update, and delete. The reads stay. Phase 4 writes on that list are `delete_module_activation`, `delete_inverter_activation`, `delete_battery_activation`, `delete_other_component_activation`, `create_workflow`, `delete_workflow`, `delete_payment_option`, `delete_pricing_scheme`, and `delete_costing`. Phase 5 writes are `create_private_file`, `update_private_file`, `delete_private_file`, `generate_project_document`, and `get_system_image`. `get_system_image` is omitted because the first call can create a private file. Phase 6 writes are `create_webhook` and `update_webhook`. There is no webhook delete. Phase 7 writes are `create_connection_request`, `accept_connection_request`, `update_connection`, `delete_connection`, `share_project`, `share_entities`, and `create_permission_role`.
 
-Catalog activation creates, `create_pricing_scheme`, `create_payment_option`, `create_costing`, `update_workflow`, and `update_org` are not registered. Those pages list the write and show no request example.
+`search_projects` and `search_contacts` page those documented lists and match locally. They do not send an OpenSolar `search` query. OpenSolar does not document those two MCP tools. `documented` in the contract matrix names the list GET each one pages.
 
-`search_projects` and `search_contacts` page those documented lists and match locally. They do not send an OpenSolar `search` query.
-
-Nine writes from the documented inventory are not registered. Those pages list the method and show no request example. The public release checklist is not done.
+Catalog activation creates, `create_pricing_scheme`, `create_payment_option`, `create_costing`, `update_workflow`, and `update_org` are not registered. A write stays unsupported when its request contract has not been established with sufficient confidence. The contract may be established through sufficient official OpenSolar documentation or deliberate live verification recorded in the API contract and quirk docs. Absence of an example request alone does not make an operation unsupported. The public release checklist is not done.
 
 Filter the surface with `OPENSOLAR_TOOLSETS` (comma-separated names from the table). `OPENSOLAR_PLAN=api_access` omits `get_proposal_data` and `get_project_design`.
 

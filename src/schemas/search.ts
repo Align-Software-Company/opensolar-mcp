@@ -29,7 +29,9 @@ export const SearchInputSchema = z
       .min(1)
       .max(SEARCH_MAX_RESULTS)
       .default(SEARCH_DEFAULT_RESULTS)
-      .describe('Matches to return, from 1 to 25. Defaults to 10.'),
+      .describe(
+        'Strongest matches to return, from 1 to 25. Defaults to 10. This does not stop the page scan.',
+      ),
   })
   .strict();
 
@@ -40,7 +42,7 @@ export const SearchReportSchema = z
     pages_scanned: z.number().int().nonnegative(),
     complete: z.boolean(),
     results_truncated: z.boolean(),
-    stopped_by: z.enum(['end', 'max_pages', 'max_results']),
+    stopped_by: z.enum(['end', 'max_pages']),
   })
   .strict();
 

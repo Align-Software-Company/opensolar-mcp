@@ -1,6 +1,6 @@
 export class BareListPageError extends Error {}
 
-export type ScanStoppedBy = 'end' | 'max_pages' | 'max_results';
+export type ScanStoppedBy = 'end' | 'max_pages';
 
 export type PageScan<Match> = {
   matches: Match[];
@@ -17,12 +17,12 @@ export async function scanPaginatedCollection<Record, Match>(input: {
   maxPages: number;
   maxResults: number;
   match: (record: Record) => Match | null;
+  strength: (match: Match) => number;
 }): Promise<PageScan<Match>> {
-  const matches: Match[] = [];
+  const found: Match[] = [];
   let pagesScanned = 0;
   let recordsScanned = 0;
   let lastPageLength = 0;
-  let resultsTruncated = false;
 
   while (pagesScanned < input.maxPages) {
     const page = await input.fetchPage(pagesScanned + 1);
@@ -31,38 +31,26 @@ export async function scanPaginatedCollection<Record, Match>(input: {
     recordsScanned += page.length;
     for (const record of page) {
       const hit = input.match(record);
-      if (hit === null) {
-        continue;
-      }
-      if (matches.length < input.maxResults) {
-        matches.push(hit);
-      } else {
-        resultsTruncated = true;
+      if (hit !== null) {
+        found.push(hit);
       }
     }
-    if (lastPageLength < input.pageSize || resultsTruncated) {
-      break;
-    }
-    if (matches.length >= input.maxResults) {
+    if (lastPageLength < input.pageSize) {
       break;
     }
   }
 
+  const ordered = found
+    .map((hit, index) => ({ hit, index, strength: input.strength(hit) }))
+    .sort((left, right) => left.strength - right.strength || left.index - right.index);
   const complete = lastPageLength < input.pageSize;
-  const stoppedBy: ScanStoppedBy = resultsTruncated
-    ? 'max_results'
-    : complete
-      ? 'end'
-      : matches.length >= input.maxResults
-        ? 'max_results'
-        : 'max_pages';
 
   return {
-    matches,
+    matches: ordered.slice(0, input.maxResults).map((entry) => entry.hit),
     pages_scanned: pagesScanned,
     records_scanned: recordsScanned,
     complete,
-    results_truncated: resultsTruncated,
-    stopped_by: stoppedBy,
+    results_truncated: found.length > input.maxResults,
+    stopped_by: complete ? 'end' : 'max_pages',
   };
 }

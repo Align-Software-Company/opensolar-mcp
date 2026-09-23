@@ -111,10 +111,84 @@ describe('search_contacts', () => {
       max_results: 1,
     });
     expect(payload.matches).toHaveLength(1);
+    expect(payload.matches[0]?.id).toBe(1);
     expect(payload.search).toMatchObject({
       complete: true,
       results_truncated: true,
-      stopped_by: 'max_results',
+      stopped_by: 'end',
+    });
+  });
+
+  it('keeps a later exact email ahead of an earlier name match', async () => {
+    const rows = [
+      contact(1, { display: 'pat@example.test note', email: 'other@example.test' }),
+      contact(2, { email: 'pat@example.test', first_name: 'Ada', family_name: 'Other' }),
+    ];
+    const { payload } = await search('search_contacts', [rows], {
+      query: 'pat@example.test',
+      max_results: 2,
+    });
+    expect(payload.matches.map((row) => row.id)).toEqual([2, 1]);
+    expect(payload.matches[0]?.match).toEqual({ field: 'email', type: 'exact' });
+    expect(payload.matches[1]?.match).toEqual({ field: 'display', type: 'prefix' });
+  });
+
+  it('lets an exact email on a later page outrank an earlier weaker match', async () => {
+    const firstPage = Array.from({ length: 100 }, (_, index) =>
+      contact(index + 1, { display: 'pat@example.test note', email: `other${index}@example.test` }),
+    );
+    const secondPage = [
+      contact(9000, { email: 'pat@example.test', first_name: 'Ada', family_name: 'Other' }),
+    ];
+    const { payload, paths } = await search('search_contacts', [firstPage, secondPage], {
+      query: 'pat@example.test',
+      max_pages: 2,
+      max_results: 1,
+    });
+    expect(paths).toEqual([
+      'orgs/1/contacts/?page=1&limit=100',
+      'orgs/1/contacts/?page=2&limit=100',
+    ]);
+    expect(payload.matches.map((row) => row.id)).toEqual([9000]);
+    expect(payload.matches[0]?.match).toEqual({ field: 'email', type: 'exact' });
+    expect(payload.search).toMatchObject({
+      complete: true,
+      results_truncated: true,
+      stopped_by: 'end',
+      pages_scanned: 2,
+    });
+  });
+
+  it('keeps equal-ranked matches in upstream order', async () => {
+    const shared = [
+      contact(1, { email: 'one@example.test' }),
+      contact(2, { email: 'two@example.test' }),
+      contact(3, { email: 'three@example.test' }),
+    ];
+    const { payload } = await search('search_contacts', [shared], {
+      query: 'Pat Example',
+      max_results: 2,
+    });
+    expect(payload.matches.map((row) => row.id)).toEqual([1, 2]);
+    expect(payload.search).toMatchObject({
+      complete: true,
+      results_truncated: true,
+      stopped_by: 'end',
+    });
+  });
+
+  it('can truncate an unfinished scan', async () => {
+    const full = Array.from({ length: 100 }, (_, index) => contact(index + 1, {}));
+    const { payload } = await search('search_contacts', [full], {
+      query: 'Pat Example',
+      max_pages: 1,
+      max_results: 1,
+    });
+    expect(payload.matches.map((row) => row.id)).toEqual([1]);
+    expect(payload.search).toMatchObject({
+      complete: false,
+      results_truncated: true,
+      stopped_by: 'max_pages',
     });
   });
 

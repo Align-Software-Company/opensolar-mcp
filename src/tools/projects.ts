@@ -2,7 +2,12 @@ import type { McpServer } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 import { openSolarSuccess, runOpenSolarTool } from '../client/errors.js';
 import type { OpenSolarClient } from '../client/index.js';
-import { type ProjectMatchSource, rankProject } from '../lib/entity-match.js';
+import {
+  type ProjectMatch,
+  type ProjectMatchSource,
+  projectMatchStrength,
+  rankProject,
+} from '../lib/entity-match.js';
 import { DEFAULT_REDACTION, redactSensitive } from '../lib/redaction.js';
 import { BareListPageError, scanPaginatedCollection } from '../lib/scan-pages.js';
 import type { ToolName } from '../lib/tier-policy.js';
@@ -408,7 +413,8 @@ export function registerProjectsToolset(
           'Finds projects by paging the documented project list and matching locally. It does not call get_project and it does not send a search query. ' +
           'The documented list includes title, address, business_name, and embedded contact name, email, and phone. ' +
           'identifier, locality, state, and zip match only when that list row carries them. ' +
-          '`complete` is false when further pages were not read. `results_truncated` is true when some matches on the scanned pages were not returned. ' +
+          'The scan reads until the list ends or max_pages is reached. Returned rows are the strongest matches. Equal strength keeps list order. ' +
+          '`complete` is false when further pages were not read. `results_truncated` is true when some matches on the scanned pages were not returned. `stopped_by` is `end` or `max_pages`. ' +
           'The 20-page cap is an MCP work bound, not an OpenSolar quota. This server does not count that quota.',
         inputSchema: SearchInputSchema,
         outputSchema: SearchProjectsOutputSchema,
@@ -422,6 +428,7 @@ export function registerProjectsToolset(
               maxPages: max_pages,
               maxResults: max_results,
               match: (item: unknown) => matchProject(query, item),
+              strength: (row) => projectMatchStrength(row.match),
               fetchPage: async (page) => {
                 const params = new URLSearchParams({
                   page: String(page),
@@ -617,7 +624,10 @@ export function registerProjectsToolset(
   }
 }
 
-function matchProject(query: string, item: unknown): Record<string, unknown> | null {
+function matchProject(
+  query: string,
+  item: unknown,
+): (Record<string, unknown> & { match: ProjectMatch }) | null {
   const parsed = ProjectSummarySchema.safeParse(item);
   if (!parsed.success) {
     return null;
