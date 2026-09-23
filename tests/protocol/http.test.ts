@@ -196,6 +196,15 @@ describe('stateless HTTP transport', () => {
     });
     const listening = await listenApp(app);
     try {
+      const anonymousResponse = await fetch(`${listening.origin}/mcp`);
+      expect(anonymousResponse.status).toBe(401);
+      expect(anonymousResponse.headers.get('www-authenticate')).toBe('Bearer');
+
+      const malformedResponse = await fetch(`${listening.origin}/mcp`, {
+        headers: { Authorization: 'Bearer request-token extra' },
+      });
+      expect(malformedResponse.status).toBe(401);
+
       const anonymousTransport = new StreamableHTTPClientTransport(
         new URL(`${listening.origin}/mcp`),
       );
