@@ -39,15 +39,10 @@ for (const path of roots.flatMap(filesUnder)) {
   for (const [index, line] of lines.entries()) {
     for (const rule of liveIdentifierPatterns) {
       if (rule.pattern.test(line)) {
-        failures.push(
-          `${relative(repoRoot, path)}:${index + 1}: ${rule.label}: ${line.trim()}`,
-        );
+        failures.push(`${relative(repoRoot, path)}:${index + 1}: ${rule.label}: ${line.trim()}`);
       }
     }
-    if (
-      relative(repoRoot, path) === 'docs/source-log.md' &&
-      /^\|\s*\d{4,}\s*\|/.test(line)
-    ) {
+    if (relative(repoRoot, path) === 'docs/source-log.md' && /^\|\s*\d{4,}\s*\|/.test(line)) {
       failures.push(
         `${relative(repoRoot, path)}:${index + 1}: numeric live-org table key: ${line.trim()}`,
       );
