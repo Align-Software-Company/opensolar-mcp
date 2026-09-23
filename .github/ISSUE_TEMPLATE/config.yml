@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/Align-Software-Company/opensolar-mcp/security/advisories/new
+    about: Report vulnerabilities privately. Do not open a public issue.
+  - name: OpenSolar API access, billing, or account questions
+    url: https://developers.opensolar.com/api/
+    about: This project is unofficial. Contact OpenSolar for API access plans, tokens, and account support.
