@@ -3,7 +3,7 @@ import { realpath, stat } from 'node:fs/promises';
 import { basename, isAbsolute, relative, resolve, sep } from 'node:path';
 import type { McpServer } from '@modelcontextprotocol/server';
 import { z } from 'zod';
-import { openSolarSuccess, runOpenSolarTool } from '../client/errors.js';
+import { openSolarSuccess, runOpenSolarTool, structuredContentText } from '../client/errors.js';
 import {
   MAX_PRIVATE_FILE_BYTES,
   NON_JSON_BODY_MESSAGE,
@@ -414,7 +414,11 @@ function registerGetPrivateFile(server: McpServer, ctx: FilesContext): void {
           return openSolarSuccess(payload, summary);
         }
         return {
-          content: [{ type: 'text' as const, text: summary }, ...modelBlocks],
+          content: [
+            { type: 'text' as const, text: summary },
+            ...modelBlocks,
+            structuredContentText(payload),
+          ],
           structuredContent: payload,
         };
       }),

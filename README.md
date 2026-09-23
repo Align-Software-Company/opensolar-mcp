@@ -34,7 +34,7 @@ flowchart LR
 
 ## Highlights
 
-- **Curated for agents.** A 32-tool default profile covers everyday work. All 75 registered tools are one setting away.
+- **Curated for agents.** A 31-tool default profile covers everyday work. All 75 registered tools are one setting away.
 - **Semantic operations, not just endpoints.** Project and contact search, operational snapshots, stage changes by name, side-by-side system comparison, design summaries, and a read-only share preflight.
 - **Conservative by design.** Searches report whether a match is `unique`, `ambiguous`, or `incomplete`, and agents are told not to guess. Writes are never retried automatically, and read-only mode removes every mutation.
 - **Faithful to OpenSolar's documentation.** Every tool is backed by the official API documentation or by recorded live verification, and writes are exposed only when their request body is established. The evidence for each tool is in the [API contract matrix](docs/api-contract-matrix.md).
@@ -268,9 +268,9 @@ A **profile** is a curated operating surface. **Toolsets** are functional areas 
 
 | Surface | Tools | Use it for |
 | --- | ---: | --- |
-| `agent` (default) | 32 | Everyday project, contact, system, file, and sharing work |
+| `agent` (default) | 31 | Everyday project, contact, system, file, and sharing work |
 | `agent` + `OPENSOLAR_READ_ONLY=1` | 22 | Research, reporting, and trying things out safely |
-| `agent` + `OPENSOLAR_PLAN=api_access` | 30 | Organisations without Raw Data API Access |
+| `agent` + `OPENSOLAR_PLAN=api_access` | 29 | Organisations without Raw Data API Access |
 | `full` | 75 | Administration: component catalogs, workflows, webhooks, deletes, and Teams setup |
 
 `--list-tools` always prints the exact surface your settings produce:
@@ -294,7 +294,7 @@ OPENSOLAR_TOOLSETS=webhooks npx -y @alignco/opensolar-mcp --list-tools
 | Commercial | `list_payment_options` · `list_pricing_schemes` · `list_costings` |
 | Files & documents | `list_private_files` · `get_private_file` · `create_private_file` ✏️ · `generate_project_document` ✏️ |
 | Reference | `list_roof_types` · `list_file_tags` |
-| Teams sharing | `list_connected_orgs` · `preflight_project_share` · `share_project` ✏️ · `share_entities` ✏️ |
+| Teams sharing | `list_connected_orgs` · `preflight_project_share` · `share_entities` ✏️ |
 | Raw Data | `get_proposal_data` 🔒 · `get_project_design` 🔒 |
 
 <details>
@@ -442,10 +442,10 @@ Please report vulnerabilities privately — see [SECURITY.md](SECURITY.md).
 | --- | --- |
 | MCP protocol | 2026-07-28, with fallback for clients on 2025-11-25, 2025-06-18, and earlier revisions |
 | Transports | stdio; stateless Streamable HTTP |
-| Tool results | `structuredContent` that matches each tool's `outputSchema`, plus a short text summary |
+| Tool results | `structuredContent` that matches each tool's `outputSchema`, plus a short text summary and compact JSON text for compatibility |
 | Runtime | Node.js 24+, ESM |
 
-Tool results carry their data in `structuredContent`. A client that only passes the text content to the model will see the one-line summaries, so use a client that supports structured tool output.
+Successful structured tool results also include the same payload serialized as compact JSON text. Clients that do not forward `structuredContent` can therefore still pass the complete structured result to the model.
 
 ## Troubleshooting
 
@@ -492,7 +492,7 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request, especiall
 | [API contract matrix](docs/api-contract-matrix.md) | Endpoint, method, parameters, plan, throttle, and evidence for every tool |
 | [API quirks](docs/api-quirks.md) | OpenSolar behavior that surprised us, and how the server handles it |
 | [Source log](docs/source-log.md) | Documentation pages and live checks behind each contract |
-| [Default profile evaluation](docs/agent-profile-evaluation.md) | How the 32-tool default profile was chosen and tested |
+| [Default profile evaluation](docs/agent-profile-evaluation.md) | Behavioral evaluation of the default profile and its release adjustment |
 | [Release constraints](docs/terms-release-gate.md) | OpenSolar terms, throttles, and access plans that affect deployment |
 | [Release checklist](docs/release-checklist.md) | The release gate |
 | [Changelog](CHANGELOG.md) | Notable changes by version |

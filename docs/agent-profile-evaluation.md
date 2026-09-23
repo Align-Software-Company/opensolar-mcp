@@ -3,7 +3,8 @@
 This document records a small behavioral evaluation of the default `agent` profile. The goal is to verify that tool names, descriptions, and server instructions steer clients toward the intended MCP operations without requiring unnecessary primitive calls.
 
 Date: 2026-09-23  
-Profile: 32 tools  
+Evaluation baseline: 32 tools  
+Release profile: 31 tools  
 Cases: 15
 
 The evaluation does not test the OpenSolar API itself. API contracts and live verification are tracked separately.
@@ -52,9 +53,9 @@ All 10 overlap cases used the semantic path rather than reconstructing it from p
 
 ## Resulting profile
 
-The evaluation did not identify a reason to change profile membership.
+The behavioral evaluation itself did not identify a profile-membership problem. Before release, `share_project` was moved from the default profile to `full_only` because the documented one-entry `shared_with` PUT does not establish whether an existing share with another organisation is preserved.
 
-The default profile remains 32 tools, while `full` exposes all 75 registered tools. `list_projects` remains useful for browsing when no name, address, email, or other search term is available.
+The release default is therefore 31 tools, while `full` exposes all 75 registered tools. `preflight_project_share` remains in the default profile, and `share_project` remains available through `full` or the Teams toolset. `list_projects` remains useful for browsing when no name, address, email, or other search term is available.
 
 ## Known limitations
 

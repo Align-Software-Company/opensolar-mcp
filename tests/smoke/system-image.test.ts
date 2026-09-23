@@ -86,6 +86,7 @@ describe('get_system_image', () => {
     expect(result.content).toEqual([
       { type: 'text', text: 'System image for project 42.' },
       { type: 'image', data: encoded, mimeType: 'image/png' },
+      { type: 'text', text: JSON.stringify(payload) },
     ]);
   });
 

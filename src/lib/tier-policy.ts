@@ -94,7 +94,7 @@ export const TIER_POLICY = {
   accept_connection_request: { requires: 'api_access', mutation: true, exposure: 'full_only' },
   update_connection: { requires: 'api_access', mutation: true, exposure: 'full_only' },
   delete_connection: { requires: 'api_access', mutation: true, exposure: 'full_only' },
-  share_project: { requires: 'api_access', mutation: true, exposure: 'agent' },
+  share_project: { requires: 'api_access', mutation: true, exposure: 'full_only' },
   share_entities: { requires: 'api_access', mutation: true, exposure: 'agent' },
   create_permission_role: { requires: 'api_access', mutation: true, exposure: 'full_only' },
   get_proposal_data: { requires: 'raw_data', mutation: false, exposure: 'agent' },

@@ -30,7 +30,11 @@ describe('tool structured output', () => {
       throw new Error('expected text content');
     }
     expect(text.text).toBe('Org 1: Example Solar Co.');
-    expect(text.text.startsWith('{')).toBe(false);
+    const json = result.content[1];
+    if (json?.type !== 'text') {
+      throw new Error('expected structured JSON text content');
+    }
+    expect(json.text).toBe(JSON.stringify(payload));
   });
 
   it('returns enriched list_contacts and get_contact', async () => {

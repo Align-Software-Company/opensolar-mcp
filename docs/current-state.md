@@ -20,7 +20,7 @@ Last reviewed: 2026-09-23
 | Optional transport | Streamable HTTP |
 | Default profile | `agent` |
 | Registered tools | 75 |
-| Default tools | 32 |
+| Default tools | 31 |
 
 The server version is read from `package.json` at runtime so package metadata and the MCP server identity stay aligned.
 
@@ -43,7 +43,7 @@ Tool exposure is controlled by [`src/lib/tier-policy.ts`](../src/lib/tier-policy
 
 | Setting | Behavior |
 | --- | --- |
-| `OPENSOLAR_PROFILE=agent` | Curated 32-tool default surface |
+| `OPENSOLAR_PROFILE=agent` | Curated 31-tool default surface |
 | `OPENSOLAR_PROFILE=full` | All 75 registered tools |
 | `OPENSOLAR_TOOLSETS=...` | Exposes complete selected functional toolsets |
 | `OPENSOLAR_READ_ONLY=1` | Removes registered mutation tools. `1`, `true`, `yes`, `on` enable it; `0`, `false`, `no`, `off`, or empty disable it; any other value stops startup |

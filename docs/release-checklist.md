@@ -19,7 +19,7 @@ Last reviewed: 2026-09-23
 - [x] The npm tarball contains only package metadata, README, LICENSE, and `dist/`.
 - [x] A clean tarball install runs `--help`, `--version`, and `--list-tools`.
 - [x] The installed package reports the same version as `package.json`.
-- [x] The default profile exposes 32 tools.
+- [x] The default profile exposes 31 tools.
 - [x] The full profile exposes 75 tools.
 - [x] The webhook toolset exposes five tools.
 - [x] Unknown profiles fail clearly.
@@ -34,6 +34,7 @@ Last reviewed: 2026-09-23
 - [x] Wildcard HTTP binding without `MCP_HTTP_ALLOWED_HOSTS` fails closed.
 - [x] Untrusted browser Origin values are rejected when an allowlist is active.
 - [x] A 2026-07-28 client negotiates the modern protocol over HTTP and receives server identity metadata and `tools/list` cache hints.
+- [x] Successful structured tool results also include the structured payload as compact JSON text for text-only client compatibility.
 
 ## Files and resource limits
 
@@ -49,7 +50,7 @@ Last reviewed: 2026-09-23
 - [x] The runtime process is non-root.
 - [x] Health/readiness work on a non-default container port.
 - [x] MCP authentication is enforced.
-- [x] The image exposes the 32-tool default profile.
+- [x] The image exposes the 31-tool default profile.
 - [x] The image carries OCI labels and the `io.modelcontextprotocol.server.name` label.
 
 ## Metadata and documentation
