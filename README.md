@@ -1,6 +1,5 @@
 # OpenSolar MCP
 
-[![CI](https://github.com/Align-Software-Company/opensolar-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/Align-Software-Company/opensolar-mcp/actions/workflows/ci.yml)
 [![Node.js 24+](https://img.shields.io/badge/Node.js-24%2B-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 [![Model Context Protocol](https://img.shields.io/badge/MCP-server-5A67D8)](https://modelcontextprotocol.io/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -19,7 +18,7 @@ This project is not affiliated with, endorsed by, or maintained by OpenSolar Pty
 - **Semantic workflows:** local project/contact search, project snapshots, stage-name resolution, system comparison, design projections, and project-share preflight.
 - **Two transports:** stdio for local MCP clients and stateless Streamable HTTP for self-hosted deployments.
 - **BYO OpenSolar access:** your OpenSolar organisation ID and API token; no token vault or account service.
-- **Safer writes:** mutation tools are explicit, writes are never automatically retried, and uncertain write contracts stay unregistered.
+- **Safer writes:** mutation tools are explicit and writes are never automatically retried.
 - **Bounded reads:** ordinary JSON GET requests retry HTTP 429 at most three attempts with bounded backoff.
 - **Redacted output:** known credentials and large/raw fields are removed or projected before they reach model context.
 - **File safeguards:** private downloads are capped at 10 MB; local uploads are disabled unless an upload root is explicitly configured.
@@ -146,7 +145,6 @@ The default profile includes common project, contact, system, commercial configu
 
 </details>
 
-Several documented OpenSolar write operations remain intentionally unregistered because their request contracts have not been established with sufficient confidence. The server does not guess write bodies.
 
 ## Connect over stdio
 
@@ -277,7 +275,6 @@ Private-file downloads and system images are capped at 10 MB. Text content may a
 - Ordinary JSON GET requests retry HTTP 429 at most three attempts; writes, file GETs, downloads, and uploads are not automatically retried.
 - Search tools use bounded local scans over documented list endpoints. Only `resolution: unique` confirms one target; `resolution: incomplete` means the scan stopped before uniqueness could be proven.
 - `preflight_project_share` is read-only; an `unknown` share/readiness state is not treated as safe.
-- The package uses documented OpenSolar API endpoints and deliberately leaves insufficiently established writes unregistered.
 - This repository distributes self-hosted software. It does not operate a shared or multi-customer OpenSolar service.
 
 ## Development
