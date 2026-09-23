@@ -1,9 +1,6 @@
 import { gzipSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
-import {
-  decodeGzipJson,
-  MAX_GZIP_JSON_OUTPUT_BYTES,
-} from '../../src/lib/gzip-json.js';
+import { decodeGzipJson, MAX_GZIP_JSON_OUTPUT_BYTES } from '../../src/lib/gzip-json.js';
 
 describe('decodeGzipJson', () => {
   it('decodes gzip JSON within the output bound', () => {
