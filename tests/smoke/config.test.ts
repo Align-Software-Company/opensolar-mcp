@@ -44,11 +44,36 @@ describe('loadConfig', () => {
     expect(loadUploadRoot({})).toBeUndefined();
   });
 
-  it('appends a trailing slash to a custom base URL', () => {
+  it('appends a trailing slash to a custom HTTPS base URL', () => {
     vi.stubEnv('OPENSOLAR_API_TOKEN', 'test-token');
     vi.stubEnv('OPENSOLAR_ORG_ID', '42');
     vi.stubEnv('OPENSOLAR_BASE_URL', 'https://api.example.test/api');
 
     expect(loadConfig().BASE_URL).toBe('https://api.example.test/api/');
+  });
+
+  it('allows HTTP only for loopback development endpoints', () => {
+    vi.stubEnv('OPENSOLAR_API_TOKEN', 'test-token');
+    vi.stubEnv('OPENSOLAR_ORG_ID', '42');
+    vi.stubEnv('OPENSOLAR_BASE_URL', 'http://127.0.0.1:9000/api');
+
+    expect(loadConfig().BASE_URL).toBe('http://127.0.0.1:9000/api/');
+
+    vi.stubEnv('OPENSOLAR_BASE_URL', 'http://api.example.test/api');
+    expect(() => loadConfig()).toThrow(/HTTPS/);
+  });
+
+  it('rejects credentials, query parameters, and fragments in the API base URL', () => {
+    vi.stubEnv('OPENSOLAR_API_TOKEN', 'test-token');
+    vi.stubEnv('OPENSOLAR_ORG_ID', '42');
+
+    vi.stubEnv('OPENSOLAR_BASE_URL', 'https://user:pass@api.example.test/api/');
+    expect(() => loadConfig()).toThrow(/credentials/);
+
+    vi.stubEnv('OPENSOLAR_BASE_URL', 'https://api.example.test/api/?tenant=1');
+    expect(() => loadConfig()).toThrow(/query or hash/);
+
+    vi.stubEnv('OPENSOLAR_BASE_URL', 'https://api.example.test/api/#fragment');
+    expect(() => loadConfig()).toThrow(/query or hash/);
   });
 });
