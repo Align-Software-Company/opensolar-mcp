@@ -97,28 +97,34 @@ function walkFiles(root) {
   return files;
 }
 
-function readLocalToken() {
-  let text = '';
-  try {
-    text = readFileSync(join(repoRoot, '.env.local'), 'utf8');
-  } catch (error) {
-    if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
-      return null;
+function readLocalTokens() {
+  const tokens = [];
+  for (const relativePath of ['.env.local', 'dev-docs/private/.env.local']) {
+    let text = '';
+    try {
+      text = readFileSync(join(repoRoot, relativePath), 'utf8');
+    } catch (error) {
+      if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
+        continue;
+      }
+      throw error;
     }
-    throw error;
+    const match = text.match(/^OPENSOLAR_API_TOKEN=(.*)$/m);
+    if (!match) {
+      continue;
+    }
+    let value = match[1].trim();
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+    if (value.length >= 8 && !tokens.includes(value)) {
+      tokens.push(value);
+    }
   }
-  const match = text.match(/^OPENSOLAR_API_TOKEN=(.*)$/m);
-  if (!match) {
-    return null;
-  }
-  let value = match[1].trim();
-  if (
-    (value.startsWith('"') && value.endsWith('"')) ||
-    (value.startsWith("'") && value.endsWith("'"))
-  ) {
-    value = value.slice(1, -1);
-  }
-  return value.length >= 8 ? value : null;
+  return tokens;
 }
 
 function inspectTarball(tarballPath) {
@@ -152,7 +158,7 @@ function inspectTarball(tarballPath) {
   if (forbiddenPath) {
     fail(`forbidden path in tarball: ${forbiddenPath}`);
   }
-  const localToken = readLocalToken();
+  const localTokens = readLocalTokens();
   let tokenMatch = false;
   let bearerMatch = false;
   let fernetToken = false;
@@ -162,11 +168,13 @@ function inspectTarball(tarballPath) {
   for (const path of files) {
     const asString = readFileSync(path).toString('utf8');
     const rel = relative(packageRoot, path);
-    if (localToken && asString.includes(localToken)) {
-      tokenMatch = true;
-    }
-    if (localToken && asString.includes(`Bearer ${localToken}`)) {
-      bearerMatch = true;
+    for (const localToken of localTokens) {
+      if (asString.includes(localToken)) {
+        tokenMatch = true;
+      }
+      if (asString.includes(`Bearer ${localToken}`)) {
+        bearerMatch = true;
+      }
     }
     if (asString.includes('gAAAA')) {
       fernetPrefix = true;
@@ -204,7 +212,7 @@ function inspectTarball(tarballPath) {
   report(`top_level=${topLevel.join(',')}`);
   report(`file_count=${files.length}`);
   report('secret_scan=clear');
-  report(`local_token_searched=${localToken ? 'yes' : 'no'}`);
+  report(`local_tokens_searched=${localTokens.length}`);
   report(`token_match=${tokenMatch ? 'yes' : 'no'}`);
   report(`bearer_token_match=${bearerMatch ? 'yes' : 'no'}`);
   report(`fernet_token=${fernetToken ? 'yes' : 'no'}`);
@@ -416,6 +424,77 @@ async function smokeHttp(distIndex) {
   }
 }
 
+async function smokePublicHttpAuth(distIndex) {
+  const mock = await listenMockOrg();
+  const port = await freePort();
+  const origin = `http://127.0.0.1:${port}`;
+  const stderrChunks = [];
+  const child = spawn(process.execPath, [distIndex, '--http'], {
+    env: childEnv({
+      OPENSOLAR_ORG_ID: '1',
+      OPENSOLAR_API_TOKEN: 'server-env-token',
+      OPENSOLAR_BASE_URL: mock.baseUrl,
+      MCP_HTTP_HOST: '0.0.0.0',
+      MCP_HTTP_PORT: String(port),
+      MCP_HTTP_ALLOWED_HOSTS: '127.0.0.1',
+    }),
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  child.stderr.on('data', (chunk) => {
+    stderrChunks.push(Buffer.from(chunk));
+  });
+  try {
+    await waitForHealth(origin);
+
+    const anonymousTransport = new StreamableHTTPClientTransport(new URL(`${origin}/mcp`));
+    const anonymousClient = new Client({ name: 'release-smoke-public-anon', version: '0.0.0' });
+    let anonymousFailed = false;
+    try {
+      await anonymousClient.connect(anonymousTransport);
+    } catch {
+      anonymousFailed = true;
+    } finally {
+      await anonymousClient.close().catch(() => undefined);
+    }
+    if (!anonymousFailed) {
+      fail('non-loopback HTTP accepted an MCP client without Authorization');
+    }
+
+    const transport = new StreamableHTTPClientTransport(new URL(`${origin}/mcp`), {
+      requestInit: { headers: { Authorization: `Bearer ${FIXTURE_TOKEN}` } },
+    });
+    const client = new Client({ name: 'release-smoke-public-auth', version: '0.0.0' });
+    await client.connect(transport);
+    try {
+      const result = await client.callTool({ name: 'get_org', arguments: {} });
+      if (
+        typeof result.structuredContent !== 'object' ||
+        result.structuredContent === null ||
+        result.structuredContent.id !== 1
+      ) {
+        fail('authenticated non-loopback HTTP did not reach the mock org');
+      }
+    } finally {
+      await client.close();
+    }
+
+    const stderr = Buffer.concat(stderrChunks).toString('utf8');
+    if (!stderr.includes('OPENSOLAR_API_TOKEN is ignored for non-loopback HTTP')) {
+      fail('non-loopback HTTP did not warn that the environment token is ignored');
+    }
+    if (stderr.includes('server-env-token') || stderr.includes(FIXTURE_TOKEN)) {
+      fail('public HTTP stderr included a token');
+    }
+    report('http_public_requires_request_bearer=ok');
+  } finally {
+    child.kill('SIGTERM');
+    await new Promise((resolve) => {
+      child.once('exit', () => resolve());
+    });
+    await mock.close();
+  }
+}
+
 function smokeFailClosed(distIndex) {
   const result = spawnSync(process.execPath, [distIndex, '--http'], {
     encoding: 'utf8',
@@ -496,6 +575,7 @@ async function main() {
 
     await smokeStdio(distIndex, installed.version);
     await smokeHttp(distIndex);
+    await smokePublicHttpAuth(distIndex);
     smokeFailClosed(distIndex);
     report('release_smoke=ok');
   } finally {
