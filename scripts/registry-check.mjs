@@ -14,7 +14,11 @@ function expectEqual(actual, expected, label) {
   }
 }
 
-expectEqual(server.$schema, 'https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json', 'server.json $schema');
+expectEqual(
+  server.$schema,
+  'https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json',
+  'server.json $schema',
+);
 expectEqual(server.name, pkg.mcpName, 'server name / package mcpName');
 expectEqual(server.version, pkg.version, 'server version / package version');
 
@@ -29,9 +33,7 @@ if (!npmPackage) {
   expectEqual(npmPackage.version, pkg.version, 'registry package version / package version');
   expectEqual(npmPackage.transport?.type, 'stdio', 'registry package transport');
 
-  const env = new Map(
-    (npmPackage.environmentVariables ?? []).map((entry) => [entry.name, entry]),
-  );
+  const env = new Map((npmPackage.environmentVariables ?? []).map((entry) => [entry.name, entry]));
   const token = env.get('OPENSOLAR_API_TOKEN');
   const orgId = env.get('OPENSOLAR_ORG_ID');
 
