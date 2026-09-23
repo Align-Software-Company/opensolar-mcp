@@ -227,18 +227,21 @@ Important:
 
 The image runs the Streamable HTTP transport.
 
-For a local-only container:
+For a container reachable only from the local host, bind the host port to loopback while the process listens on the container interface:
 
 ```bash
 docker build -t opensolar-mcp .
 docker run --rm \
-  -e OPENSOLAR_API_TOKEN=your_token \
   -e OPENSOLAR_ORG_ID=12345 \
+  -e MCP_HTTP_HOST=0.0.0.0 \
+  -e MCP_HTTP_ALLOWED_HOSTS=localhost,127.0.0.1 \
   -p 127.0.0.1:3000:3000 \
   opensolar-mcp
 ```
 
-The image defaults to loopback inside the container, so for an externally reachable deployment configure a non-loopback bind and an allowed Host. Do not rely on `OPENSOLAR_API_TOKEN` as the remote HTTP credential:
+Because the process uses a non-loopback bind inside the container, the MCP client must send `Authorization: Bearer <OpenSolar token>`.
+
+For an externally reachable deployment, configure the public Host allowlist similarly. Do not rely on `OPENSOLAR_API_TOKEN` as the remote HTTP credential:
 
 ```bash
 docker run --rm \
