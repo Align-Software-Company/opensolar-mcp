@@ -375,7 +375,7 @@ const getProjectInputSchema = z.object({
     .number()
     .int()
     .positive()
-    .describe('The OpenSolar project ID. Use list_projects to discover IDs.'),
+    .describe('The OpenSolar project ID. Use search_projects for a named/address lookup or list_projects for browsing.'),
   verbose: z
     .boolean()
     .default(false)
@@ -400,7 +400,7 @@ export function registerProjectsToolset(
           'Lists one page of projects in the connected org. Default result is `{ projects, page, limit }` ' +
           'with id, title, address, dates, stage, stage_milestone, and workflow ids when OpenSolar sent them. ' +
           '`verbose: true` returns `{ projects, page, limit }` with the full redacted list objects. ' +
-          'Call get_project for one project.',
+          'Use search_projects when you know a name, address, email, or phone. Use get_project only when you need detail beyond a list or search row.',
         inputSchema: listProjectsInputSchema,
         outputSchema: ListProjectsOutputSchema,
         annotations: readAnnotations,
