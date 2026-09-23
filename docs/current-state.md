@@ -100,7 +100,7 @@ MCP server identity: name `@alignco/opensolar-mcp`, version read from `package.j
 The server advertises tools only (no empty resources/prompts handlers).
 
 Server instructions are five lines in `src/lib/server-instructions.ts`:
-read before mutate, a unique search match confirms the target, one page
+read before mutate, only `resolution=unique` confirms a search target, one page
 per list call, access-plan omissions, do not invent IDs or simulate bulk
 work by looping mutation calls, and do not open repository files for
 OpenSolar answers. A documented bulk operation is used only when the MCP
@@ -222,7 +222,7 @@ Errors return `isError: true` with no `structuredContent`.
 | `get_proposal_data` | `src/tools/raw-data.ts` | `raw_data`, read | `GET user_logins/?project_ids=` | Implemented |
 | `get_project_design` | `src/tools/raw-data.ts` | `raw_data`, read | `GET orgs/:org_id/projects/:id/` | Implemented |
 
-75 tools are registered. `preflight_project_share` checks a connection and a project share without writing. A resource share of `unknown` is not treated as safe. `compare_project_systems` returns only the columns each system payload has and does not rank a winner. `get_project_snapshot` joins one project with its workflow, systems, and file metadata. A failed section is a gap. `search_projects` and `search_contacts` page the documented lists and match locally. They do not send a `search` query. OpenSolar does not document those MCP tools. Nine writes from the documented inventory are
+75 tools are registered. `preflight_project_share` checks a connection and a project share without writing. A resource share of `unknown` is not treated as safe. `compare_project_systems` returns only the columns each system payload has and does not rank a winner. `get_project_snapshot` joins one project with its workflow, systems, and file metadata. A failed section is a gap. `search_projects` and `search_contacts` page the documented lists and match locally. They do not send a `search` query. Their search report includes `resolution`: `unique` only when the scan is complete and exactly one match exists; `ambiguous` when more than one match is observed; `incomplete` when the bounded scan cannot prove uniqueness; and `none` only after an exhaustive zero-match scan. OpenSolar does not document those MCP tools. Nine writes from the documented inventory are
 not registered, because their request contracts are not established with sufficient confidence:
 `create_module_activation`, `create_inverter_activation`,
 `create_battery_activation`, `create_other_component_activation`,
