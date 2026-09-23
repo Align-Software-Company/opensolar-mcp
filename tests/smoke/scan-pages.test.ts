@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { scanPaginatedCollection } from '../../src/lib/scan-pages.js';
+import { scanPaginatedCollection, searchResolution } from '../../src/lib/scan-pages.js';
 
 describe('scanPaginatedCollection', () => {
   it('treats a short final page as a finished scan', async () => {
@@ -134,4 +134,23 @@ describe('scanPaginatedCollection', () => {
       records_scanned: 0,
     });
   });
+
+  it('classifies resolution without treating truncated or unfinished single rows as unique', () => {
+    expect(searchResolution({ matchCount: 0, complete: true, resultsTruncated: false })).toBe(
+      'none',
+    );
+    expect(searchResolution({ matchCount: 1, complete: true, resultsTruncated: false })).toBe(
+      'unique',
+    );
+    expect(searchResolution({ matchCount: 1, complete: true, resultsTruncated: true })).toBe(
+      'ambiguous',
+    );
+    expect(searchResolution({ matchCount: 1, complete: false, resultsTruncated: false })).toBe(
+      'incomplete',
+    );
+    expect(searchResolution({ matchCount: 2, complete: false, resultsTruncated: false })).toBe(
+      'ambiguous',
+    );
+  });
+
 });
