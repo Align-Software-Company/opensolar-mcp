@@ -375,7 +375,9 @@ const getProjectInputSchema = z.object({
     .number()
     .int()
     .positive()
-    .describe('The OpenSolar project ID. Use search_projects for a named/address lookup or list_projects for browsing.'),
+    .describe(
+      'The OpenSolar project ID. Use search_projects for a named/address lookup or list_projects for browsing.',
+    ),
   verbose: z
     .boolean()
     .default(false)
