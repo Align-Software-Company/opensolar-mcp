@@ -228,5 +228,4 @@ describe('stateless HTTP transport', () => {
       await listening.close();
     }
   });
-
 });
