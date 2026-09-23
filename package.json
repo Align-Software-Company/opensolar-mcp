@@ -62,7 +62,7 @@
   "devDependencies": {
     "@biomejs/biome": "^2.4.15",
     "@modelcontextprotocol/client": "^2.0.0",
-    "@types/node": "^24.13.3",
+    "@types/node": "^26.6.2",
     "tsup": "^8.5.1",
     "tsx": "^4.23.15",
     "typescript": "^5.9.3",
