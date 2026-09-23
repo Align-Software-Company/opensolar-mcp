@@ -292,14 +292,19 @@ count them.
 `preflight_project_share` takes `project_id` and `target_org_id`. It
 reads up to three connected-org pages, the project, and one systems
 page. It does not call `share_project` or `share_entities`. `connection`
-is `active` only when the scan finishes and one match has `is_active`
-true. An unfinished scan is `unknown`, not `not_connected`.
-`project_share` uses `shared_with`. Payment option, pricing scheme,
-costing, and module activation rows carry ids when the documented
-payload has them. Their `share` stays `unknown` because those reads do
-not list the orgs an entity is shared with. Inverter, battery, and other
-activation ids stay `unknown` because the systems list example does not
-name those keys. `unknown` is not safe to share.
+is `ready` only when the scan finishes and one match has `is_active`,
+`is_other_active`, and `is_other_enabled` all true. A false flag is
+`not_ready`. An unfinished scan is `unknown`, not `not_connected`.
+`project_share` uses `shared_with` on the project. Payment option,
+pricing scheme, costing, and module activation rows carry ids when the
+documented payload has them. Those ids are checked with
+`fieldset=list` and `shared_with` set to the target org, at most three
+pages. Every referenced id in a finished filtered list is `shared`.
+None of them is `not_shared`. A mix is `partially_shared`, with
+`shared_ids` and `missing_share_ids`. An unfinished filtered scan is
+`unknown` and does not treat an unseen id as missing. Inverter, battery,
+and other activation ids stay `unknown` because the systems list example
+does not name those keys. `unknown` is not safe to share.
 
 `get_proposal_data` takes one `project_id` and calls
 `GET user_logins/?project_ids=`. It returns system name, annual kWh,

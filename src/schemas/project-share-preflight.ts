@@ -17,7 +17,9 @@ const ShareResourceRowSchema = z
     resource: z.enum(shareResources),
     referenced: z.enum(['yes', 'no', 'unknown']),
     ids: z.array(positiveId),
-    share: z.enum(['shared', 'not_shared', 'unknown']),
+    shared_ids: z.array(positiveId).optional(),
+    missing_share_ids: z.array(positiveId).optional(),
+    share: z.enum(['shared', 'not_shared', 'partially_shared', 'unknown']),
     gap: z.string().optional(),
   })
   .strict();
@@ -28,7 +30,7 @@ export const PreflightProjectShareSchema = z
     target_org_id: positiveId,
     connection: z
       .object({
-        status: z.enum(['active', 'inactive', 'not_connected', 'ambiguous', 'unknown']),
+        status: z.enum(['ready', 'not_ready', 'not_connected', 'ambiguous', 'unknown']),
         connection_id: positiveId.optional(),
         connection_ids: z.array(positiveId).optional(),
         is_active: z.boolean().nullable().optional(),

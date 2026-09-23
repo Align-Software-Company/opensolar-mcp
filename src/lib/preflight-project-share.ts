@@ -2,8 +2,9 @@ import { messageForOpenSolarError } from '../client/errors.js';
 import { OpenSolarApiError, type OpenSolarClient } from '../client/index.js';
 import type { PreflightProjectShare, ShareResource } from '../schemas/project-share-preflight.js';
 
-const CONNECTION_PAGE_SIZE = 100;
+const LIST_PAGE_SIZE = 100;
 const CONNECTION_MAX_PAGES = 3;
+const SHARED_ENTITY_MAX_PAGES = 3;
 const SYSTEMS_PAGE_SIZE = 100;
 const PARTNER_ORG_ID = /\/orgs\/(\d+)\/?$/;
 const PRICING_SCHEME_ID = /\/pricing_schemes\/(\d+)\/?$/;
@@ -19,6 +20,13 @@ const RESOURCE_ORDER = [
   'component_battery_activation',
   'component_other_activation',
 ] as const satisfies readonly ShareResource[];
+
+const SHARED_LISTS = {
+  payment_option: 'payment_options',
+  pricing_scheme: 'pricing_schemes',
+  costing: 'costings',
+  component_module_activation: 'component_module_activations',
+} as const satisfies Partial<Record<ShareResource, string>>;
 
 type Reference = {
   referenced: 'yes' | 'no' | 'unknown';
@@ -61,8 +69,20 @@ export async function loadProjectSharePreflight(
     connection,
     project_share: projectShare(project, projectRead.gap, targetOrgId),
     systems_list_complete: systemsComplete,
-    resources: RESOURCE_ORDER.map((resource) =>
-      resourceRow(resource, project, projectRead.gap, systems, systemsGap, systemsComplete),
+    resources: await Promise.all(
+      RESOURCE_ORDER.map((resource) =>
+        resourceRow(
+          client,
+          orgId,
+          targetOrgId,
+          resource,
+          project,
+          projectRead.gap,
+          systems,
+          systemsGap,
+          systemsComplete,
+        ),
+      ),
     ),
   };
 }
@@ -75,7 +95,7 @@ async function findConnection(
   const matches: ConnectionMatch[] = [];
   let listComplete = false;
   for (let page = 1; page <= CONNECTION_MAX_PAGES; page += 1) {
-    const path = `orgs/${orgId}/connected_orgs/?fieldset=list&page=${page}&limit=${CONNECTION_PAGE_SIZE}`;
+    const path = `orgs/${orgId}/connected_orgs/?fieldset=list&page=${page}&limit=${LIST_PAGE_SIZE}`;
     let body: unknown;
     try {
       body = await client.get(path);
@@ -94,7 +114,7 @@ async function findConnection(
         matches.push(match);
       }
     }
-    if (body.length < CONNECTION_PAGE_SIZE) {
+    if (body.length < LIST_PAGE_SIZE) {
       listComplete = true;
       break;
     }
@@ -120,17 +140,28 @@ function connectionStatus(
     };
   }
   const match = matches[0];
-  if (match === undefined || match.is_active === null) {
+  if (match === undefined) {
     return connectionUnknown(matches, undefined, listComplete);
   }
   return {
-    status: match.is_active ? 'active' : 'inactive',
+    status: connectionReadiness(match),
     connection_id: match.id,
     is_active: match.is_active,
     is_other_active: match.is_other_active,
     is_other_enabled: match.is_other_enabled,
     list_complete: true,
   };
+}
+
+function connectionReadiness(match: ConnectionMatch): 'ready' | 'not_ready' | 'unknown' {
+  const flags = [match.is_active, match.is_other_active, match.is_other_enabled];
+  if (flags.some((value) => value === false)) {
+    return 'not_ready';
+  }
+  if (flags.every((value) => value === true)) {
+    return 'ready';
+  }
+  return 'unknown';
 }
 
 function connectionUnknown(
@@ -185,14 +216,17 @@ function projectShare(
   return { status: flags[0] === true ? 'shared' : 'not_shared' };
 }
 
-function resourceRow(
+async function resourceRow(
+  client: OpenSolarClient,
+  orgId: number,
+  targetOrgId: number,
   resource: ShareResource,
   project: Record<string, unknown> | null,
   projectGap: string | undefined,
   systems: unknown[] | null,
   systemsGap: string | undefined,
   systemsComplete: boolean,
-): PreflightProjectShare['resources'][number] {
+): Promise<PreflightProjectShare['resources'][number]> {
   const reference = referenceFor(
     resource,
     project,
@@ -210,7 +244,120 @@ function resourceRow(
   if (reference.gap !== undefined) {
     row.gap = reference.gap;
   }
+  const segment = sharedListSegment(resource);
+  if (segment === undefined || reference.ids.length === 0) {
+    return row;
+  }
+  const membership = await sharedMembership(client, orgId, targetOrgId, segment, reference.ids);
+  row.share = membership.share;
+  row.shared_ids = membership.shared_ids;
+  if (membership.missing_share_ids !== undefined) {
+    row.missing_share_ids = membership.missing_share_ids;
+  }
+  if (membership.gap !== undefined) {
+    row.gap = membership.gap;
+  }
   return row;
+}
+
+async function sharedMembership(
+  client: OpenSolarClient,
+  orgId: number,
+  targetOrgId: number,
+  segment: string,
+  ids: number[],
+): Promise<{
+  share: 'shared' | 'not_shared' | 'partially_shared' | 'unknown';
+  shared_ids: number[];
+  missing_share_ids?: number[];
+  gap?: string;
+}> {
+  const wanted = new Set(ids);
+  const seen = new Set<number>();
+  let complete = false;
+  for (let page = 1; page <= SHARED_ENTITY_MAX_PAGES; page += 1) {
+    const path = `orgs/${orgId}/${segment}/?fieldset=list&shared_with=${targetOrgId}&page=${page}&limit=${LIST_PAGE_SIZE}`;
+    let body: unknown;
+    try {
+      body = await client.get(path);
+    } catch (error) {
+      if (error instanceof OpenSolarApiError) {
+        return unknownMembership(ids, seen, messageForOpenSolarError(error));
+      }
+      throw error;
+    }
+    if (!Array.isArray(body)) {
+      return unknownMembership(ids, seen, 'Shared entity list was not an array.');
+    }
+    for (const item of body) {
+      const record = objectRecord(item);
+      const id = record === null ? null : positive(record.id);
+      if (id !== null && wanted.has(id)) {
+        seen.add(id);
+      }
+    }
+    if (seen.size === wanted.size) {
+      return decidedMembership(ids, seen);
+    }
+    if (body.length < LIST_PAGE_SIZE) {
+      complete = true;
+      break;
+    }
+  }
+  if (!complete) {
+    return unknownMembership(ids, seen);
+  }
+  return decidedMembership(ids, seen);
+}
+
+function decidedMembership(
+  ids: number[],
+  seen: Set<number>,
+): {
+  share: 'shared' | 'not_shared' | 'partially_shared';
+  shared_ids: number[];
+  missing_share_ids: number[];
+} {
+  const sharedIds = ids.filter((id) => seen.has(id));
+  const missingIds = ids.filter((id) => !seen.has(id));
+  if (missingIds.length === 0) {
+    return { share: 'shared', shared_ids: sharedIds, missing_share_ids: missingIds };
+  }
+  if (sharedIds.length === 0) {
+    return { share: 'not_shared', shared_ids: sharedIds, missing_share_ids: missingIds };
+  }
+  return { share: 'partially_shared', shared_ids: sharedIds, missing_share_ids: missingIds };
+}
+
+function unknownMembership(
+  ids: number[],
+  seen: Set<number>,
+  gap?: string,
+): {
+  share: 'unknown';
+  shared_ids: number[];
+  gap?: string;
+} {
+  const membership: { share: 'unknown'; shared_ids: number[]; gap?: string } = {
+    share: 'unknown',
+    shared_ids: ids.filter((id) => seen.has(id)),
+  };
+  if (gap !== undefined) {
+    membership.gap = gap;
+  }
+  return membership;
+}
+
+function sharedListSegment(resource: ShareResource): string | undefined {
+  switch (resource) {
+    case 'payment_option':
+    case 'pricing_scheme':
+    case 'costing':
+    case 'component_module_activation':
+      return SHARED_LISTS[resource];
+    default:
+      return undefined;
+  }
 }
 
 function referenceFor(

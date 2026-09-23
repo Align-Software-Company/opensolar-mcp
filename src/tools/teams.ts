@@ -329,10 +329,12 @@ function registerPreflightProjectShare(server: McpServer, ctx: TeamsContext): vo
       title: 'Preflight project share',
       description:
         'Checks whether a project can be shared with a connected org. This does not share the project or any entity. ' +
-        'connection is active only when one completed list match has is_active true. ' +
+        'connection is ready only when one completed list match has is_active, is_other_active, and is_other_enabled all true. A false flag is not_ready. ' +
         'project_share comes from shared_with on the project. ' +
-        'A resource share of unknown means the documented reads do not show whether that entity is shared. unknown is not safe to share. ' +
-        'Payment options, pricing schemes, costings, and component activations are included. Inverter, battery, and other activation ids are unknown because the systems list example does not name those keys.',
+        'Payment options, pricing schemes, costings, and module activations are read with fieldset=list and shared_with set to the target org. ' +
+        'shared means every referenced id was in that filtered list. not_shared means a finished filtered scan omitted them. partially_shared lists both. ' +
+        'An unfinished filtered scan is unknown and does not treat a missing id as not_shared. ' +
+        'Inverter, battery, and other activation ids stay unknown because the systems list example does not name those keys.',
       inputSchema: z
         .object({
           project_id: positiveId.describe('Project id from list_projects or search_projects.'),

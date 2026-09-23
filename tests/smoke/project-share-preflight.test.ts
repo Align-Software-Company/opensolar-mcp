@@ -8,14 +8,22 @@ import {
   withMcpClient,
 } from '../helpers/mcp.js';
 
-function connection(id: number, partnerOrgId: number, isActive = true) {
+function connection(
+  id: number,
+  partnerOrgId: number,
+  flags: {
+    is_active?: boolean;
+    is_other_active?: boolean;
+    is_other_enabled?: boolean;
+  } = {},
+) {
   return {
     id,
     org_name: 'Partner',
     org_to: `https://api.opensolar.com/api/orgs/${partnerOrgId}/`,
-    is_active: isActive,
-    is_other_active: true,
-    is_other_enabled: true,
+    is_active: flags.is_active ?? true,
+    is_other_active: flags.is_other_active ?? true,
+    is_other_enabled: flags.is_other_enabled ?? true,
     permission: 'https://api.opensolar.com/api/orgs/1/permissions_role/3/',
     notify_roles: [],
   };
@@ -33,7 +41,7 @@ function resource(
 }
 
 describe('preflight_project_share', () => {
-  it('reports an active connection and leaves entity share unknown', async () => {
+  it('reports a ready connection and confirms referenced entities that the filtered list returns', async () => {
     const paths: string[] = [];
     const mcp = buildServer({
       client: testClient(async (path) => {
@@ -61,6 +69,15 @@ describe('preflight_project_share', () => {
             },
           ];
         }
+        if (path.startsWith('orgs/1/payment_options/')) {
+          return [{ id: 7, title: 'Cash' }];
+        }
+        if (path.startsWith('orgs/1/pricing_schemes/')) {
+          return [{ id: 1408, title: 'Standard' }];
+        }
+        if (path.startsWith('orgs/1/component_module_activations/')) {
+          return [{ id: 613, code: 'JKM285M-60' }];
+        }
         throw new Error(`unexpected read ${path}`);
       }),
       orgId: 1,
@@ -80,30 +97,46 @@ describe('preflight_project_share', () => {
     };
 
     expect(paths.every((path) => !path.includes('/bulk/'))).toBe(true);
+    expect(paths.some((path) => path.includes('component_inverter_activations'))).toBe(false);
+    expect(paths.some((path) => path.startsWith('orgs/1/costings/'))).toBe(false);
+    expect(paths).toContain(
+      'orgs/1/payment_options/?fieldset=list&shared_with=894&page=1&limit=100',
+    );
     expect(payload.connection).toMatchObject({
-      status: 'active',
+      status: 'ready',
       connection_id: 11,
       is_active: true,
+      is_other_active: true,
+      is_other_enabled: true,
     });
     expect(payload.project_share.status).toBe('shared');
     expect(resource(payload, 'payment_option')).toMatchObject({
       referenced: 'yes',
       ids: [7],
-      share: 'unknown',
+      shared_ids: [7],
+      missing_share_ids: [],
+      share: 'shared',
     });
     expect(resource(payload, 'pricing_scheme')).toMatchObject({
       referenced: 'yes',
       ids: [1408],
-      share: 'unknown',
+      shared_ids: [1408],
+      missing_share_ids: [],
+      share: 'shared',
     });
     expect(resource(payload, 'costing')).toMatchObject({ referenced: 'no', share: 'unknown' });
+    expect(resource(payload, 'costing')).not.toHaveProperty('shared_ids');
     expect(resource(payload, 'component_module_activation')).toMatchObject({
       referenced: 'yes',
       ids: [613],
+      shared_ids: [613],
+      missing_share_ids: [],
+      share: 'shared',
+    });
+    expect(resource(payload, 'component_inverter_activation')).toMatchObject({
+      referenced: 'unknown',
       share: 'unknown',
     });
-    expect(resource(payload, 'component_inverter_activation').share).toBe('unknown');
-    expect(resource(payload, 'component_inverter_activation').referenced).toBe('unknown');
   });
 
   it('does not treat a missing connection or an empty share list as unknown', async () => {
@@ -183,7 +216,7 @@ describe('preflight_project_share', () => {
     const mcp = buildServer({
       client: testClient(async (path) => {
         if (path.startsWith('orgs/1/connected_orgs/')) {
-          return [connection(11, 894), connection(12, 894, false)];
+          return [connection(11, 894), connection(12, 894, { is_active: false })];
         }
         if (path === 'orgs/1/projects/1001/') {
           return { id: 1001, shared_with: [{ org_id: 894, is_shared: false }] };
@@ -239,11 +272,157 @@ describe('preflight_project_share', () => {
       project_share: { status: string; gap?: string };
       resources: Array<{ share: string }>;
     };
-    expect(payload.connection.status).toBe('active');
+    expect(payload.connection.status).toBe('ready');
     expect(payload.project_share).toEqual({
       status: 'unknown',
       gap: 'The record was not found',
     });
     expect(payload.resources.every((row) => row.share === 'unknown')).toBe(true);
   });
+
+  it('marks a referenced payment option not shared after a finished filtered scan', async () => {
+    const payload = await sharePreflight(async (path) => {
+      if (path.startsWith('orgs/1/connected_orgs/')) {
+        return [connection(11, 894)];
+      }
+      if (path === 'orgs/1/projects/1001/') {
+        return { id: 1001, shared_with: [], payment_option_sold: 7 };
+      }
+      if (path.startsWith('orgs/1/systems/')) {
+        return [];
+      }
+      if (path.startsWith('orgs/1/payment_options/')) {
+        return [{ id: 8, title: 'Other' }];
+      }
+      throw new Error(`unexpected read ${path}`);
+    });
+    expect(resource(payload, 'payment_option')).toEqual({
+      resource: 'payment_option',
+      referenced: 'yes',
+      ids: [7],
+      shared_ids: [],
+      missing_share_ids: [7],
+      share: 'not_shared',
+    });
+  });
+
+  it('splits module activations that are only partly in the filtered list', async () => {
+    const payload = await sharePreflight(async (path) => {
+      if (path.startsWith('orgs/1/connected_orgs/')) {
+        return [connection(11, 894)];
+      }
+      if (path === 'orgs/1/projects/1001/') {
+        return { id: 1001, shared_with: [], payment_option_sold: null, costing: null };
+      }
+      if (path.startsWith('orgs/1/systems/')) {
+        return [
+          {
+            id: 1253,
+            modules: [{ module_activation_id: 613 }, { module_activation_id: 614 }],
+          },
+        ];
+      }
+      if (path.startsWith('orgs/1/component_module_activations/')) {
+        return [{ id: 613 }];
+      }
+      throw new Error(`unexpected read ${path}`);
+    });
+    expect(resource(payload, 'component_module_activation')).toMatchObject({
+      referenced: 'yes',
+      ids: [613, 614],
+      shared_ids: [613],
+      missing_share_ids: [614],
+      share: 'partially_shared',
+    });
+  });
+
+  it('does not treat a missing id on an unfinished filtered scan as not shared', async () => {
+    const calls: string[] = [];
+    const page = Array.from({ length: 100 }, (_, index) => ({ id: 2000 + index }));
+    const payload = await sharePreflight(async (path) => {
+      calls.push(path);
+      if (path.startsWith('orgs/1/connected_orgs/')) {
+        return [connection(11, 894)];
+      }
+      if (path === 'orgs/1/projects/1001/') {
+        return { id: 1001, shared_with: [], payment_option_sold: 7 };
+      }
+      if (path.startsWith('orgs/1/systems/')) {
+        return [];
+      }
+      if (path.startsWith('orgs/1/payment_options/')) {
+        return page;
+      }
+      throw new Error(`unexpected read ${path}`);
+    });
+    expect(calls.filter((path) => path.startsWith('orgs/1/payment_options/'))).toHaveLength(3);
+    const row = resource(payload, 'payment_option');
+    expect(row.share).toBe('unknown');
+    expect(row).not.toHaveProperty('missing_share_ids');
+    expect(row.shared_ids).toEqual([]);
+  });
+
+  it('keeps a locally enabled connection not ready until the partner has accepted and enabled it', async () => {
+    const unaccepted = await sharePreflight(async (path) =>
+      readyShell(path, { is_other_active: false }),
+    );
+    expect(unaccepted.connection).toMatchObject({
+      status: 'not_ready',
+      is_active: true,
+      is_other_active: false,
+      is_other_enabled: true,
+    });
+
+    const partnerDisabled = await sharePreflight(async (path) =>
+      readyShell(path, { is_other_enabled: false }),
+    );
+    expect(partnerDisabled.connection).toMatchObject({
+      status: 'not_ready',
+      is_active: true,
+      is_other_active: true,
+      is_other_enabled: false,
+    });
+
+    const ready = await sharePreflight(async (path) => readyShell(path, {}));
+    expect(ready.connection).toMatchObject({
+      status: 'ready',
+      is_active: true,
+      is_other_active: true,
+      is_other_enabled: true,
+    });
+  });
 });
+
+async function sharePreflight(get: (path: string) => Promise<unknown>) {
+  const mcp = buildServer({
+    client: testClient(get),
+    orgId: 1,
+    filters: ALL_TOOL_FILTERS,
+  });
+  const result = await withMcpClient(mcp, (session) =>
+    session.callTool({
+      name: 'preflight_project_share',
+      arguments: { project_id: 1001, target_org_id: 894 },
+    }),
+  );
+  return requireStructuredContent(result) as {
+    connection: Record<string, unknown>;
+    resources: Array<Record<string, unknown>>;
+  };
+}
+
+function readyShell(
+  path: string,
+  flags: { is_other_active?: boolean; is_other_enabled?: boolean },
+) {
+  if (path.startsWith('orgs/1/connected_orgs/')) {
+    return [connection(11, 894, flags)];
+  }
+  if (path === 'orgs/1/projects/1001/') {
+    return { id: 1001, shared_with: [], payment_option_sold: null };
+  }
+  if (path.startsWith('orgs/1/systems/')) {
+    return [];
+  }
+  throw new Error(`unexpected read ${path}`);
+}

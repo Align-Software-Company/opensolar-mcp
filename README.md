@@ -65,7 +65,7 @@ Tools registered today, in `--list-tools` order:
 
 `compare_project_systems` returns the columns each system payload actually has and does not pick a winner. `get_project_design` takes an optional section. `components` and `energy` stay unmapped until the decompress section names those keys. `OPENSOLAR_PLAN=api_access` still omits `get_project_design`.
 
-`preflight_project_share` reads the connection list, the project, and one systems page. It does not share the project or any entity. `unknown` on a resource means those reads do not show whether it is shared with the target org.
+`preflight_project_share` reads the connection list, the project, one systems page, and filtered entity lists. It does not share the project or any entity. `connection` is `ready` only when `is_active`, `is_other_active`, and `is_other_enabled` are all true. A filtered `shared_with` list decides whether a referenced payment option, pricing scheme, costing, or module activation is shared. An unfinished list stays `unknown`.
 
 Catalog activation creates, `create_pricing_scheme`, `create_payment_option`, `create_costing`, `update_workflow`, and `update_org` are not registered. A write stays unsupported when its request contract has not been established with sufficient confidence. The contract may be established through sufficient official OpenSolar documentation or deliberate live verification recorded in the API contract and quirk docs. Absence of an example request alone does not make an operation unsupported. The public release checklist is not done.
 
