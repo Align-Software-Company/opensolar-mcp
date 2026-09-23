@@ -1,4 +1,11 @@
 import { privateFileIdFromText } from '../lib/private-file-id.js';
+import {
+  acceptedDownloadUrl,
+  defaultLookupHost,
+  type HostLookup,
+  MAX_DOWNLOAD_REDIRECTS,
+  UnsafeDownloadTargetError,
+} from './download-target.js';
 
 export class OpenSolarApiError extends Error {
   constructor(
@@ -62,6 +69,21 @@ function isTimeoutError(error: unknown): boolean {
   return error instanceof DOMException && error.name === 'TimeoutError';
 }
 
+function isDownloadRedirect(status: number): boolean {
+  return status === 301 || status === 302 || status === 303 || status === 307 || status === 308;
+}
+
+async function requireDownloadUrl(input: string, lookupHost: HostLookup, base?: URL): Promise<URL> {
+  try {
+    return await acceptedDownloadUrl(input, lookupHost, base);
+  } catch (error) {
+    if (error instanceof UnsafeDownloadTargetError) {
+      throw new OpenSolarApiError('OpenSolar file download failed', 400, '');
+    }
+    throw error;
+  }
+}
+
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => {
     setTimeout(resolve, ms);
@@ -105,9 +127,13 @@ function withTrailingSlash(path: string): string {
 
 export function createClient(
   auth: { token: string; baseUrl: string },
-  deps?: { sleep?: (ms: number) => Promise<void> },
+  deps?: {
+    sleep?: (ms: number) => Promise<void>;
+    lookupHost?: HostLookup;
+  },
 ): OpenSolarClient {
   const sleep = deps?.sleep ?? delay;
+  const lookupHost = deps?.lookupHost ?? defaultLookupHost;
 
   async function request(
     method: 'GET' | WriteMethod,
@@ -272,53 +298,58 @@ export function createClient(
     },
     async download(url, options) {
       const timeoutMs = options?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-      let parsed: URL;
-      try {
-        parsed = new URL(url);
-      } catch {
-        throw new OpenSolarApiError('OpenSolar file download failed', 400, '');
-      }
-      if (parsed.protocol !== 'https:' || parsed.username !== '' || parsed.password !== '') {
-        throw new OpenSolarApiError('OpenSolar file download failed', 400, '');
-      }
+      const signal = AbortSignal.timeout(timeoutMs);
+      let target = await requireDownloadUrl(url, lookupHost);
 
-      let response: Response;
-      try {
-        response = await fetch(parsed, {
-          method: 'GET',
-          redirect: 'follow',
-          signal: AbortSignal.timeout(timeoutMs),
-        });
-      } catch (error) {
-        if (isTimeoutError(error)) {
-          throw new OpenSolarApiError(
-            `OpenSolar file download timed out after ${timeoutMs}ms`,
-            504,
-            '',
-          );
+      for (let redirectCount = 0; ; redirectCount += 1) {
+        let response: Response;
+        try {
+          response = await fetch(target, {
+            method: 'GET',
+            redirect: 'manual',
+            signal,
+          });
+        } catch (error) {
+          if (isTimeoutError(error)) {
+            throw new OpenSolarApiError(
+              `OpenSolar file download timed out after ${timeoutMs}ms`,
+              504,
+              '',
+            );
+          }
+          throw error;
         }
-        throw error;
-      }
 
-      if (!response.ok) {
-        await response.body?.cancel();
-        throw new OpenSolarApiError('OpenSolar file download failed', response.status, '');
-      }
+        if (isDownloadRedirect(response.status)) {
+          const location = response.headers.get('location')?.trim() ?? '';
+          await response.body?.cancel();
+          if (location === '' || redirectCount >= MAX_DOWNLOAD_REDIRECTS) {
+            throw new OpenSolarApiError('OpenSolar file download failed', 400, '');
+          }
+          target = await requireDownloadUrl(location, lookupHost, target);
+          continue;
+        }
 
-      const declaredLength = Number(response.headers.get('content-length'));
-      if (Number.isFinite(declaredLength) && declaredLength > MAX_PRIVATE_FILE_BYTES) {
-        await response.body?.cancel();
-        throw new OpenSolarApiError('Private file is over 10 MB', 413, '');
-      }
+        if (!response.ok) {
+          await response.body?.cancel();
+          throw new OpenSolarApiError('OpenSolar file download failed', response.status, '');
+        }
 
-      const bytes = new Uint8Array(await response.arrayBuffer());
-      if (bytes.byteLength > MAX_PRIVATE_FILE_BYTES) {
-        throw new OpenSolarApiError('Private file is over 10 MB', 413, '');
+        const declaredLength = Number(response.headers.get('content-length'));
+        if (Number.isFinite(declaredLength) && declaredLength > MAX_PRIVATE_FILE_BYTES) {
+          await response.body?.cancel();
+          throw new OpenSolarApiError('Private file is over 10 MB', 413, '');
+        }
+
+        const bytes = new Uint8Array(await response.arrayBuffer());
+        if (bytes.byteLength > MAX_PRIVATE_FILE_BYTES) {
+          throw new OpenSolarApiError('Private file is over 10 MB', 413, '');
+        }
+        return {
+          bytes,
+          contentType: response.headers.get('content-type'),
+        };
       }
-      return {
-        bytes,
-        contentType: response.headers.get('content-type'),
-      };
     },
     resourceUrl(path) {
       return new URL(path.replace(/^\//, ''), auth.baseUrl).toString();

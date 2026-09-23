@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { MAX_DOWNLOAD_REDIRECTS } from '../../src/client/download-target.js';
 import {
   createClient,
   DEFAULT_TIMEOUT_MS,
@@ -17,6 +18,14 @@ const testAuth = {
   token: 'test-token',
   baseUrl: 'https://api.opensolar.com/api/',
 };
+
+const signedFileUrl = 'https://files.example.test/private/site.json?Expires=1&Signature=fixture';
+
+function clientWithPublicLookup() {
+  return createClient(testAuth, {
+    lookupHost: async () => ['1.1.1.1'],
+  });
+}
 
 describe('OpenSolar client', () => {
   it('loads sanitized OpenSolar fixtures without a live token', () => {
@@ -267,21 +276,122 @@ describe('OpenSolar client', () => {
       }),
     );
     vi.stubGlobal('fetch', fetchMock);
-    const client = createClient(testAuth);
-    const url = 'https://files.example.test/private/site.json?Expires=1&Signature=fixture';
+    const client = clientWithPublicLookup();
 
-    const downloaded = await client.download(url);
+    const downloaded = await client.download(signedFileUrl);
 
     expect(new TextDecoder().decode(downloaded.bytes)).toBe('{"ok":true}');
     expect(downloaded.contentType).toBe('application/json');
     const init = fetchMock.mock.calls[0]?.[1] as RequestInit;
-    expect(String(fetchMock.mock.calls[0]?.[0])).toBe(url);
-    expect(init.redirect).toBe('follow');
+    expect(String(fetchMock.mock.calls[0]?.[0])).toBe(signedFileUrl);
+    expect(init.redirect).toBe('manual');
     expect(JSON.stringify(init.headers ?? {})).not.toContain('test-token');
   });
 
+  it('follows a public https redirect and checks that hop before fetching it', async () => {
+    const nextUrl = 'https://cdn.example.test/private/site.json?Expires=1&Signature=fixture';
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(null, {
+          status: 302,
+          headers: { Location: nextUrl },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response('{"ok":true}', {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      );
+    vi.stubGlobal('fetch', fetchMock);
+    const client = clientWithPublicLookup();
+
+    const downloaded = await client.download(signedFileUrl);
+
+    expect(new TextDecoder().decode(downloaded.bytes)).toBe('{"ok":true}');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(String(fetchMock.mock.calls[1]?.[0])).toBe(nextUrl);
+    const init = fetchMock.mock.calls[1]?.[1] as RequestInit;
+    expect(init.redirect).toBe('manual');
+    expect(JSON.stringify(init.headers ?? {})).not.toContain('test-token');
+  });
+
+  it('does not fetch a redirect target that fails the download checks', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(null, {
+        status: 302,
+        headers: { Location: 'http://127.0.0.1:3000/internal' },
+      }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    const client = clientWithPublicLookup();
+
+    const error = await client.download(signedFileUrl).catch((thrown: unknown) => thrown);
+
+    expect(error).toBeInstanceOf(OpenSolarApiError);
+    expect(error).toMatchObject({ status: 400, body: '' });
+    expect(String(error)).not.toContain(signedFileUrl);
+    expect(String(error)).not.toContain('127.0.0.1');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('refuses a redirect to a link-local address', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(null, {
+        status: 302,
+        headers: { Location: 'https://169.254.169.254/latest/meta-data' },
+      }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    const client = clientWithPublicLookup();
+
+    const error = await client.download(signedFileUrl).catch((thrown: unknown) => thrown);
+
+    expect(error).toBeInstanceOf(OpenSolarApiError);
+    expect(error).toMatchObject({ status: 400, body: '' });
+    expect(String(error)).not.toContain('169.254.169.254');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('refuses a redirect whose hostname resolves to a non-public address', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(null, {
+        status: 302,
+        headers: { Location: 'https://metadata.example.test/latest/meta-data' },
+      }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    const client = createClient(testAuth, {
+      lookupHost: async (hostname) =>
+        hostname === 'metadata.example.test' ? ['169.254.169.254'] : ['1.1.1.1'],
+    });
+
+    const error = await client.download(signedFileUrl).catch((thrown: unknown) => thrown);
+
+    expect(error).toBeInstanceOf(OpenSolarApiError);
+    expect(error).toMatchObject({ status: 400, body: '' });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('stops after the redirect cap', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(null, {
+        status: 302,
+        headers: { Location: 'https://cdn.example.test/private/site.json' },
+      }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    const client = clientWithPublicLookup();
+
+    const error = await client.download(signedFileUrl).catch((thrown: unknown) => thrown);
+
+    expect(error).toBeInstanceOf(OpenSolarApiError);
+    expect(error).toMatchObject({ status: 400, body: '' });
+    expect(fetchMock).toHaveBeenCalledTimes(MAX_DOWNLOAD_REDIRECTS + 1);
+  });
+
   it('refuses a private file download over 10 MB without echoing the URL', async () => {
-    const url = 'https://files.example.test/private/site.json?Expires=1&Signature=fixture';
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue(
@@ -291,12 +401,12 @@ describe('OpenSolar client', () => {
         }),
       ),
     );
-    const client = createClient(testAuth);
-    const error = await client.download(url).catch((thrown: unknown) => thrown);
+    const client = clientWithPublicLookup();
+    const error = await client.download(signedFileUrl).catch((thrown: unknown) => thrown);
 
     expect(error).toBeInstanceOf(OpenSolarApiError);
     expect(error).toMatchObject({ status: 413, body: '' });
-    expect(String(error)).not.toContain(url);
+    expect(String(error)).not.toContain(signedFileUrl);
     expect(String(error)).not.toContain('Signature');
   });
 });
