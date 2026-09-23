@@ -18,7 +18,11 @@ export function buildServer(requestContext: ServerRequestContext): McpServer {
   );
   registerAllToolsets(
     server,
-    { client: requestContext.client, orgId: requestContext.orgId, uploadRoot: requestContext.uploadRoot },
+    {
+      client: requestContext.client,
+      orgId: requestContext.orgId,
+      uploadRoot: requestContext.uploadRoot,
+    },
     requestContext.filters,
   );
   return server;
