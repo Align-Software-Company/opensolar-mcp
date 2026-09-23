@@ -115,4 +115,19 @@ describe('OPENSOLAR_PROFILE', () => {
     expect(leftNames).toEqual(rightNames);
     expect(leftNames).toEqual(selectTools(filters));
   });
+
+  it('keeps org lookup from being a required step before writes', async () => {
+    const mcp = buildServer({
+      client: unexpectedCallClient(),
+      orgId: 1,
+      filters: loadToolFilters({ OPENSOLAR_PROFILE: 'full' }),
+    });
+    const listed = await withMcpClient(mcp, (client) => client.listTools());
+    const getOrg = listed.tools.find((tool) => tool.name === 'get_org');
+    expect(getOrg?.description ?? '').not.toContain('Confirm the org before writes');
+    const stage = listed.tools.find((tool) => tool.name === 'update_project_stage');
+    expect(stage?.description ?? '').toContain('stage_name');
+    const project = listed.tools.find((tool) => tool.name === 'get_project');
+    expect(project?.description ?? '').toContain('does not need this call before a write');
+  });
 });

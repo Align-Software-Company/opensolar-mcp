@@ -51,7 +51,7 @@ function registerGetOrg(server: McpServer, ctx: OrgContext): void {
       title: 'Get organization',
       description:
         'Returns the connected OpenSolar org: id, name, address, contact info, and measurement units. ' +
-        'Confirm the org before writes. `verbose: true` returns the full redacted payload.',
+        '`verbose: true` returns the full redacted payload.',
       inputSchema: getOrgInputSchema,
       outputSchema: GetOrgOutputSchema,
       annotations: { readOnlyHint: true, openWorldHint: true },

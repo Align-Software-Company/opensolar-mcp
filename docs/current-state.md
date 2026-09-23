@@ -101,11 +101,11 @@ MCP server identity: `{ name: '@alignco/opensolar-mcp', version: '0.0.1' }`.
 The server advertises tools only (no empty resources/prompts handlers).
 
 Server instructions are five lines in `src/lib/server-instructions.ts`:
-read before mutate, one page per list call, access-plan omissions, do
-not invent IDs or simulate bulk work by looping mutation calls, and do
-not open repository files for OpenSolar answers. A documented bulk
-operation is used only when the MCP exposes it. `share_entities` is that
-case.
+read before mutate, a unique search match confirms the target, one page
+per list call, access-plan omissions, do not invent IDs or simulate bulk
+work by looping mutation calls, and do not open repository files for
+OpenSolar answers. A documented bulk operation is used only when the MCP
+exposes it. `share_entities` is that case.
 
 ---
 

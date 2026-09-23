@@ -505,8 +505,9 @@ export function registerProjectsToolset(
         title: 'Get project',
         description:
           'Returns one project by id: address, stage, stage_milestone, workflow ids, contacts, assigned role, ' +
-          'system_count, design_available, and events. Use after list_projects. `verbose: true` returns the ' +
-          'full redacted object; `design` is `[REDACTED]`. API Access may omit design.',
+          'system_count, design_available, and events. Use it for fields a search row does not include. ' +
+          'A unique search_projects match does not need this call before a write. ' +
+          '`verbose: true` returns the full redacted object; `design` is `[REDACTED]`. API Access may omit design.',
         inputSchema: getProjectInputSchema,
         outputSchema: GetProjectOutputSchema,
         annotations: readAnnotations,

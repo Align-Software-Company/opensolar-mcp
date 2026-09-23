@@ -8,6 +8,8 @@ describe('server instructions', () => {
     expect(SERVER_INSTRUCTIONS.toLowerCase()).not.toContain('7-day');
     expect(SERVER_INSTRUCTIONS.split('\n').length).toBeLessThanOrEqual(12);
     expect(SERVER_INSTRUCTIONS).toContain('Read before you mutate');
+    expect(SERVER_INSTRUCTIONS).toContain('unique search match');
+    expect(SERVER_INSTRUCTIONS).toContain('do not guess');
     expect(SERVER_INSTRUCTIONS).toContain('one page');
     expect(SERVER_INSTRUCTIONS).toContain('design');
     expect(SERVER_INSTRUCTIONS).toContain('Do not invent IDs');

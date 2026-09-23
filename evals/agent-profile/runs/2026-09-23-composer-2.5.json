@@ -1,0 +1,113 @@
+[
+  {
+    "id": "find-contact",
+    "first_tool": "search_contacts",
+    "calls": ["search_contacts", "get_contact"],
+    "mutation_planned": false,
+    "stop_if_ambiguous": true
+  },
+  {
+    "id": "find-project",
+    "first_tool": "search_projects",
+    "calls": ["search_projects", "get_project"],
+    "mutation_planned": false,
+    "stop_if_ambiguous": true
+  },
+  {
+    "id": "project-state",
+    "first_tool": "search_projects",
+    "calls": ["search_projects", "get_project_snapshot"],
+    "mutation_planned": false,
+    "stop_if_ambiguous": true
+  },
+  {
+    "id": "change-stage",
+    "first_tool": "get_org",
+    "calls": ["get_org", "search_projects", "get_project", "update_project_stage"],
+    "mutation_planned": true,
+    "stop_if_ambiguous": true
+  },
+  {
+    "id": "compare-systems",
+    "first_tool": "search_projects",
+    "calls": ["search_projects", "compare_project_systems"],
+    "mutation_planned": false,
+    "stop_if_ambiguous": true
+  },
+  {
+    "id": "design-components",
+    "first_tool": "search_projects",
+    "calls": ["search_projects", "get_project", "get_project_design"],
+    "mutation_planned": false,
+    "stop_if_ambiguous": true
+  },
+  {
+    "id": "share-project",
+    "first_tool": "search_projects",
+    "calls": ["search_projects", "list_connected_orgs", "preflight_project_share", "share_project"],
+    "mutation_planned": true,
+    "stop_if_ambiguous": true
+  },
+  {
+    "id": "share-entities",
+    "first_tool": "search_projects",
+    "calls": [
+      "search_projects",
+      "list_connected_orgs",
+      "preflight_project_share",
+      "list_payment_options",
+      "share_entities"
+    ],
+    "mutation_planned": true,
+    "stop_if_ambiguous": true
+  },
+  {
+    "id": "payment-options",
+    "first_tool": "list_payment_options",
+    "calls": ["list_payment_options"],
+    "mutation_planned": false,
+    "stop_if_ambiguous": null
+  },
+  {
+    "id": "pricing-schemes",
+    "first_tool": "list_pricing_schemes",
+    "calls": ["list_pricing_schemes"],
+    "mutation_planned": false,
+    "stop_if_ambiguous": null
+  },
+  {
+    "id": "costings",
+    "first_tool": "list_costings",
+    "calls": ["list_costings"],
+    "mutation_planned": false,
+    "stop_if_ambiguous": null
+  },
+  {
+    "id": "generate-doc",
+    "first_tool": "search_projects",
+    "calls": ["search_projects", "get_project", "generate_project_document"],
+    "mutation_planned": true,
+    "stop_if_ambiguous": true
+  },
+  {
+    "id": "read-file",
+    "first_tool": "search_projects",
+    "calls": ["search_projects", "list_private_files", "get_private_file"],
+    "mutation_planned": false,
+    "stop_if_ambiguous": true
+  },
+  {
+    "id": "readonly-create",
+    "first_tool": null,
+    "calls": [],
+    "mutation_planned": true,
+    "stop_if_ambiguous": null
+  },
+  {
+    "id": "api-access-design",
+    "first_tool": "search_projects",
+    "calls": ["search_projects", "get_project"],
+    "mutation_planned": false,
+    "stop_if_ambiguous": true
+  }
+]
