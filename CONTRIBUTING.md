@@ -2,7 +2,7 @@
 
 Thanks for contributing to OpenSolar MCP.
 
-This project is an unofficial, self-hosted Model Context Protocol server for the documented OpenSolar API. Contributions should preserve the project's conservative API-contract and agent-safety approach.
+OpenSolar MCP is an unofficial, self-hosted Model Context Protocol server for the documented OpenSolar API. Contributions should keep the public API surface predictable, preserve safety boundaries around writes and credentials, and avoid relying on undocumented OpenSolar behavior.
 
 ## Development setup
 
@@ -18,85 +18,78 @@ pnpm check:all
 pnpm build
 ```
 
-Docker changes should also pass:
+For Docker or HTTP-runtime changes, also run:
 
 ```bash
 pnpm test:docker
 ```
 
-The ordinary test suite is offline and must not require OpenSolar credentials.
+The ordinary test suite is offline and does not require OpenSolar credentials.
 
-## Before opening a pull request
+## Pull requests
 
-Run:
+Before opening a pull request, run:
 
 ```bash
 pnpm check:all
 pnpm build
 ```
 
-If your change affects packaging, transports, authentication, Docker, or the published artifact, also verify the relevant release smoke paths documented in `docs/release-checklist.md`.
+Changes that affect packaging, authentication, transports, Docker, or the published artifact should also satisfy the checks in [docs/release-checklist.md](docs/release-checklist.md).
 
-Keep pull requests focused. Separate unrelated refactors, feature work, documentation cleanup, and API-contract changes when practical.
+Keep pull requests focused. Separate unrelated feature work, refactors, documentation changes, and API-contract changes when practical.
 
-## OpenSolar API contract rules
+## OpenSolar API contracts
 
-Treat the official OpenSolar API documentation as the primary source of truth.
+The official OpenSolar API documentation is the primary source for request and response contracts.
 
-Do not infer write payloads from:
+Do not infer a write payload from a response object, conventional REST behavior, a similar endpoint, framework conventions, or third-party code. A mutation should be exposed only when its request contract is supported by authoritative documentation or recorded live verification.
 
-- response objects;
-- conventional REST behavior;
-- another endpoint with a similar shape;
-- Django REST Framework conventions;
-- old or third-party code.
+When API behavior changes or new evidence is added, update the relevant references:
 
-A documented OpenSolar operation may be implemented when its request contract is sufficiently established through authoritative documentation or deliberate live verification that is recorded in the repository.
+- [API contract matrix](docs/api-contract-matrix.md)
+- [API quirks](docs/api-quirks.md)
+- [Source log](docs/source-log.md)
+- [Current implementation](docs/current-state.md), when shipped behavior changes
 
-The absence of an example request is not, by itself, evidence that an operation is unsupported.
+Public documentation and fixtures must not contain live credentials, customer data, organisation IDs, project IDs, event IDs, system UUIDs, signed file URLs, or other production identifiers.
 
-When an API behavior is verified or its status changes, update the relevant documentation, especially:
+## Tool design
 
-- `docs/api-contract-matrix.md`
-- `docs/api-quirks.md`
-- `docs/source-log.md`
-- `docs/current-state.md`, when the implementation state changes
+Prefer task-oriented MCP operations over thin protocol plumbing when a stable semantic operation can be defined.
 
-Do not put live customer data, credentials, organisation IDs, project IDs, event IDs, system UUIDs, or other unnecessary production identifiers into tracked public documentation or fixtures.
+The public surfaces are intentionally distinct:
 
-## MCP and agent-design rules
+- `agent` is the curated default profile.
+- `full` exposes all registered tools.
+- `OPENSOLAR_TOOLSETS` selects complete functional categories.
+- `OPENSOLAR_READ_ONLY` removes mutation tools.
+- `OPENSOLAR_PLAN` removes tools that require unavailable OpenSolar access tiers.
 
-Prefer semantic operations that help an agent complete a real task over exposing protocol plumbing.
+Tool names, schemas, descriptions, annotations, profile membership, toolset membership, and server instructions are public behavior and should have regression coverage.
 
-Do not assume that one OpenSolar API operation should become one top-level MCP tool.
+For bounded project and contact search:
 
-The default `agent` profile is deliberately curated. The `full` profile preserves the broader registered surface. Functional `OPENSOLAR_TOOLSETS` are a separate operator override.
-
-Changes to tool names, schemas, descriptions, annotations, profile membership, toolset membership, or server instructions are public MCP behavior and should receive regression coverage.
-
-For bounded project/contact search:
-
-- only `resolution: unique` confirms one target;
-- `resolution: incomplete` does not prove uniqueness;
-- `resolution: ambiguous` must not be guessed through.
-
-Mutation tools change a live OpenSolar organisation. Do not weaken read-only filtering, target-resolution safeguards, or mutation annotations.
+- `resolution: unique` confirms a single target only after the scan is complete.
+- `resolution: incomplete` means uniqueness was not established.
+- `resolution: ambiguous` means multiple matches were observed.
 
 Writes are not automatically retried.
 
 ## Security boundaries
 
-Do not weaken the existing transport and file boundaries without a documented reason and tests.
+Changes must preserve the existing credential, transport, file, and resource limits unless the change includes a documented reason and tests.
 
 In particular:
 
 - non-loopback HTTP requires a per-request OpenSolar Bearer token;
 - Host and browser-Origin allowlists are separate from authentication;
-- public HTTP should be placed behind TLS termination;
-- `create_private_file` is disabled unless `OPENSOLAR_UPLOAD_ROOT` is configured;
-- resolved upload paths must remain inside that root, including through symlinks;
-- binary/file size and Raw Data decompression limits should remain bounded;
-- secrets must not be logged, committed, or copied into model-facing output.
+- internet-facing HTTP requires TLS termination outside this server;
+- local file upload is disabled unless `OPENSOLAR_UPLOAD_ROOT` is configured;
+- upload paths are resolved and confined to that root, including through symlinks;
+- private-file downloads and system images are size-limited;
+- compressed Raw Data expansion is bounded;
+- secrets must not be logged, committed, or returned in model-facing output.
 
 ## Live integration tests
 
@@ -106,27 +99,23 @@ Live integration tests are separate from the ordinary suite:
 pnpm test:integration
 ```
 
-Credentials alone must only enable read-only live checks.
-
-Live mutation tests require an explicit write gate:
+Credentials alone enable read-only live checks. Live mutation tests additionally require:
 
 ```bash
 OPENSOLAR_INTEGRATION_WRITES=1 pnpm test:integration
 ```
 
-Some live checks also require dedicated fixture IDs. See `.env.example`.
+Some checks require dedicated fixture IDs documented in [`.env.example`](.env.example). Do not use customer records as disposable fixtures.
 
-Do not use customer records as disposable test fixtures.
+## Documentation
 
-## Documentation and public surface
+The README should stay focused on installation, configuration, normal operation, and user-facing safety notes. Detailed endpoint evidence and implementation notes belong under `docs/`.
 
-Keep the README focused on installation, configuration, normal use, safety, and development entry points. Put detailed API evidence and implementation history in `docs/`.
+This project is not affiliated with or endorsed by OpenSolar Pty Ltd.
 
-This project is unofficial and is not affiliated with or endorsed by OpenSolar Pty Ltd. Contributions should not imply otherwise.
+## Security reports
 
-## Reporting security issues
-
-Follow [SECURITY.md](SECURITY.md). Do not post credentials, customer data, or a working exploit in a public issue.
+Follow [SECURITY.md](SECURITY.md). Do not post credentials, customer data, or working exploit details in a public issue.
 
 ## License
 

@@ -1,59 +1,76 @@
 # Release checklist
 
-Technical readiness, package publication, and any future managed hosting are separate decisions.
-
+Release target: `0.1.0`  
 Last reviewed: 2026-09-23
 
-The package version under review is `0.1.0`. This checklist does not publish it.
+## Code and tests
 
-## Technical artifact
+- [x] `pnpm check:all` passes.
+- [x] `pnpm build` passes.
+- [x] The ordinary test suite runs without OpenSolar credentials.
+- [x] Tool registration, annotations, schemas, profile filtering, and read-only filtering have regression coverage.
+- [x] Bounded search reports `unique` only after a complete one-match scan.
+- [x] Writes are not automatically retried.
 
-The original RC artifact was verified at `6e1bd14`. The final `0.1.0` release branch incorporates the subsequent HTTP/authentication, Origin, upload-confinement, binary-output, Docker/runtime, public-repo, search-resolution, Registry-metadata, and documentation hardening. The exact `0.1.0` artifact must pass the full release gate before publication.
+## Package artifact
 
-- [x] `pnpm check:all` is green. The ordinary suite does not call OpenSolar. The current search-safety tree passed 39 files / 262 tests.
-- [x] `pnpm build` is green. Post-audit CI built the release bundle successfully.
-- [x] `npm pack` contains only `package.json`, `README.md`, `LICENSE`, and `dist/` (five files total including the source map).
-- [x] A clean `npm install` of the tarball runs `--help`, the 32-tool agent profile, the 75-tool full profile, the five webhook tools, and rejects an unknown profile.
-- [x] Installed stdio completes `initialize`, `tools/list`, and one mocked read. Logs stay on stderr.
-- [x] Installed loopback HTTP serves `/health`, `/ready`, initializes MCP, and lists the agent profile.
-- [x] Installed non-loopback HTTP requires a per-request Bearer token even when `OPENSOLAR_API_TOKEN` is set in the server environment, and succeeds with an explicit Bearer token. The release smoke passed `http_public_requires_request_bearer=ok`.
-- [x] Binding `0.0.0.0` without `MCP_HTTP_ALLOWED_HOSTS` fails closed.
-- [x] `create_private_file` is disabled without `OPENSOLAR_UPLOAD_ROOT` and cannot escape the configured real path, including through symlinks; the offline test suite covers both cases.
-- [x] Binary private files and system images are not duplicated as base64 in `structuredContent`; the offline test suite covers image, PDF, and generic binary behavior.
-- [x] The release-smoke implementation checks both supported local env files without printing token values. CI had no local tokens to search and its tarball secret scan was clear.
-- [x] Post-audit Docker smoke passed in CI: runtime UID 1000, health/readiness on a non-default container port, 401 without a Bearer token, untrusted browser Origin rejected, and the 32-tool agent profile exposed.
-- [x] GitHub Dependabot reported 0 open alerts on 2026-09-23.
-- [x] Public project guides include `CONTRIBUTING.md`, `SECURITY.md`, `CHANGELOG.md`, `AGENTS.md`, and a thin `CLAUDE.md` entry point.
-- [x] MCP Registry metadata is staged in `server.json`; `package.json#mcpName`, package/version identity, stdio transport, and required environment-variable metadata are checked by `pnpm check:registry`.
-- [x] The Registry metadata uses the official 2025-12-11 schema URI. Registry publication remains deferred until after the npm artifact exists.
+- [x] `prepack` runs the offline checks and build.
+- [x] The npm tarball contains only package metadata, README, LICENSE, and `dist/`.
+- [x] A clean tarball install runs `--help` and `--list-tools`.
+- [x] The installed package reports the same version as `package.json`.
+- [x] The default profile exposes 32 tools.
+- [x] The full profile exposes 75 tools.
+- [x] The webhook toolset exposes five tools.
+- [x] Unknown profiles fail clearly.
+- [x] The release artifact is scanned for known credential and customer-data markers.
 
-`prepack` runs `pnpm check:all && pnpm build`. Packaging must not require OpenSolar credentials or call OpenSolar.
+## MCP transports
 
-## OpenSolar/API
+- [x] Installed stdio completes MCP initialization, tool listing, and a mocked read.
+- [x] Logs remain on stderr.
+- [x] Installed loopback HTTP serves health/readiness and MCP.
+- [x] Non-loopback HTTP rejects MCP requests without a Bearer token even when an environment token exists.
+- [x] Wildcard HTTP binding without `MCP_HTTP_ALLOWED_HOSTS` fails closed.
+- [x] Untrusted browser Origin values are rejected when an allowlist is active.
 
-- [x] Tools call the official OpenSolar API only.
-- [x] Throttle behavior is documented. Ordinary JSON reads use bounded 429 retry; writes are not retried.
-- [x] Writes whose request contracts are not established stay unregistered.
-- [x] The package is self-hosted software. The caller supplies their own OpenSolar access; there is no token vault or multi-customer service in this repository.
-- [x] Raw Data entitlement is documented. `OPENSOLAR_PLAN=api_access` omits `get_proposal_data` and `get_project_design`.
-- [x] Bounded contact/project searches expose a conservative `resolution`; only an exhaustive one-match scan reports `unique`.
+## Files and resource limits
 
-## Package publication decision
+- [x] Local upload is disabled without `OPENSOLAR_UPLOAD_ROOT`.
+- [x] Upload path resolution prevents escape from the configured root, including through symlinks.
+- [x] Private-file and system-image bodies are capped at 10 MB.
+- [x] Binary file bytes are not duplicated into `structuredContent`.
+- [x] Raw Data decompression has a fixed output limit.
 
-Publishing this self-hosted source/package is a maintainer release decision. This checklist does not make a legal conclusion that OpenSolar consent is or is not required for software distribution.
+## Docker
 
-- [ ] Maintainer approves publishing the exact tested `0.1.0` commit and npm artifact.
-- [ ] Publish the final npm artifact before publishing the matching `server.json` to the MCP Registry.
-- [ ] Publish the matching MCP Registry metadata only after the npm package ownership check can succeed.
-- [x] The `0.1.0` release does not include an Align-operated shared or multi-customer OpenSolar service.
+- [x] The Docker image builds successfully.
+- [x] The runtime process is non-root.
+- [x] Health/readiness work on a non-default container port.
+- [x] MCP authentication is enforced.
+- [x] The image exposes the 32-tool default profile.
 
-## Managed hosting — separate future track
+## Metadata and documentation
 
-OpenSolar's current User Terms include restrictions on operating as a proxy, aggregator, or third-party service interface without prior written consent. That issue is materially more direct for any future Align-operated shared service than for this self-hosted package.
+- [x] `package.json`, server-reported version, and `server.json` use `0.1.0`.
+- [x] MCP Registry metadata passes `pnpm check:registry`.
+- [x] README installation and configuration examples match the shipped CLI.
+- [x] Public documentation contains no live organisation/project identifiers or credentials.
+- [x] `CONTRIBUTING.md`, `SECURITY.md`, and `CHANGELOG.md` are present.
+- [x] API contracts and live-verification status are recorded under `docs/`.
 
-Managed/shared hosting is outside the `0.1.0` package release:
+## OpenSolar behavior
 
-- [x] No managed/shared OpenSolar service is part of this release.
-- [ ] Before any future Align-operated shared service goes live, review and authorize that operating model separately.
+- [x] Registered tools use documented OpenSolar API endpoints or local composition over documented reads.
+- [x] Raw Data-only tools can be removed with `OPENSOLAR_PLAN=api_access`.
+- [x] Mutation tools with insufficiently established request contracts are not registered.
+- [x] OpenSolar throttle behavior and access-plan requirements are documented.
+- [x] The package is self-hosted and does not provide a shared OpenSolar credential service.
 
-Do not treat the managed-hosting checkbox as a blocker to testing or packaging the self-hosted client. Do not publish until the maintainer makes the package-publication decision above.
+## Publication
+
+- [ ] Publish `@alignco/opensolar-mcp@0.1.0` to npm.
+- [ ] Verify the published npm package and package ownership.
+- [ ] Publish matching MCP Registry metadata.
+- [ ] Create the matching GitHub release/tag.
+
+Any future shared or multi-customer hosted service is a separate deployment model and is not part of the `0.1.0` release.

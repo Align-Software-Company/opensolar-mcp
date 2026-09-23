@@ -2,81 +2,74 @@
 
 ## Supported versions
 
-OpenSolar MCP is currently prerelease software.
+OpenSolar MCP is prerelease software. Security fixes are applied to the current codebase and, when releases are available, to the latest published release.
 
-| Version | Supported |
+| Version | Support |
 | --- | --- |
-| Latest code on `main` | Yes |
-| Latest published release | Yes, once published |
+| Latest code on `main` | Supported |
+| Latest published release | Supported |
 | Older prerelease snapshots | Best effort |
-
-Security fixes may require upgrading to the latest release.
 
 ## Reporting a vulnerability
 
-Please do not disclose credentials, customer data, or a working exploit in a public issue.
+Do not disclose credentials, customer data, signed file URLs, or working exploit details in a public issue.
 
-If GitHub shows **Report a vulnerability** for this repository under the Security tab, use that private reporting channel. If private vulnerability reporting is unavailable, open a minimal issue that contains no sensitive details and asks the maintainers for a private contact path.
+Use GitHub private vulnerability reporting when it is available for this repository. If that option is unavailable, open a minimal public issue requesting a private contact path without including sensitive details.
 
-Include, when possible:
+A useful report includes:
 
 - the affected version or commit;
-- the transport involved (stdio or HTTP);
-- the impacted tool or subsystem;
-- reproduction steps that do not expose real OpenSolar credentials or customer data;
-- the security impact you believe is possible.
-
-Do not include a live OpenSolar bearer token, organisation ID, customer record, signed file URL, or other production secret.
+- the transport or subsystem involved;
+- the affected tool, endpoint, or configuration;
+- reproduction steps using synthetic data;
+- the security impact.
 
 ## Security model
 
-This package is a self-hosted MCP client for the documented OpenSolar API. It does not operate a shared credential or multi-customer service.
+OpenSolar MCP is self-hosted software. It does not provide a shared OpenSolar credential service or operate a multi-customer OpenSolar proxy.
 
 ### Credentials
 
 - OpenSolar bearer tokens are secrets.
-- Stdio uses `OPENSOLAR_API_TOKEN` from the local process environment.
-- Loopback HTTP may use that environment token as a local fallback.
-- Non-loopback HTTP deliberately ignores the environment-token fallback and requires `Authorization: Bearer <OpenSolar token>` on each MCP request.
-- Credentials are not intentionally persisted by the server.
-- Known credential-like values are redacted from model-facing structured output.
+- Stdio reads `OPENSOLAR_API_TOKEN` from the local process environment.
+- Loopback HTTP may use the environment token as a local fallback.
+- Non-loopback HTTP requires `Authorization: Bearer <token>` on every MCP request and does not use the environment token as a request fallback.
+- Tokens are not intentionally written to disk or included in normal logs.
 
-### Remote HTTP
+### HTTP transport
 
-`MCP_HTTP_ALLOWED_HOSTS` and `MCP_HTTP_ALLOWED_ORIGINS` reduce Host/DNS-rebinding and browser-Origin risk. They are not authentication.
-
-The built-in server speaks plain HTTP. Internet-facing deployments should terminate TLS at a trusted reverse proxy or hosting platform before transmitting an OpenSolar bearer token.
-
-`/health` and `/ready` are unauthenticated process-status endpoints and should not expose customer data or credentials.
+- Host allowlisting protects against DNS-rebinding-style Host manipulation.
+- Browser Origin allowlisting is a separate control.
+- Neither control replaces authentication.
+- The built-in server uses plain HTTP. Internet-facing deployments must terminate TLS at a trusted reverse proxy or hosting platform.
+- `/health` and `/ready` expose process status only and do not require an OpenSolar token.
 
 ### Mutations
 
-An authorized MCP client can expose tools that change the live OpenSolar organisation.
+Mutation tools operate on the configured live OpenSolar organisation.
 
 - `OPENSOLAR_READ_ONLY=1` removes registered mutation tools.
 - Writes are not automatically retried.
-- Bounded entity searches confirm a target only when `resolution: unique`.
-- Insufficiently established OpenSolar write contracts are deliberately not registered.
-
-A client intentionally invoking an exposed mutation with valid OpenSolar credentials is not, by itself, a vulnerability.
+- Mutation annotations identify read/write and destructive behavior.
+- Search results are not treated as a confirmed target unless the bounded scan reports `resolution: unique`.
 
 ### Local files
 
-`create_private_file` is disabled unless `OPENSOLAR_UPLOAD_ROOT` is configured.
+`create_private_file` is disabled unless `OPENSOLAR_UPLOAD_ROOT` is configured. Resolved file paths must remain inside that root, including through symlinks.
 
-Resolved file paths must remain within that root, including through symlinks. Private-file downloads are size-bounded, and binary data is returned through MCP content/resource blocks rather than duplicated into structured JSON.
+Private-file downloads and system images are capped at 10 MB. Signed download URLs are not returned to the model.
 
 ### Resource limits
 
-The server applies bounded pagination, download limits, retry limits, and a decompressed-output limit for compressed Raw Data payloads. Reports of ways to bypass those limits are in scope.
+Compressed Raw Data expansion is bounded before JSON parsing. Model-facing text from private files is truncated at a fixed limit. Ordinary JSON GET retries are bounded; writes and file transfers are not automatically retried.
 
 ## Out of scope
 
-The following generally are not security vulnerabilities in this repository:
+The following are deployment responsibilities rather than vulnerabilities in this package:
 
-- OpenSolar service availability or behavior outside this client's control;
-- a user intentionally giving an untrusted agent valid credentials and mutation access;
-- failures that require an already-compromised host running the MCP server;
-- unsupported or undocumented OpenSolar behavior that this server does not expose.
+- protecting the host operating system and environment variables;
+- securing the reverse proxy, TLS certificates, network perimeter, and container platform;
+- OpenSolar account permissions and token issuance;
+- security of third-party MCP clients that receive tool output.
 
-Security issues in OpenSolar itself should be reported to OpenSolar through its own channels.
+Reports that demonstrate a package-level bypass of the documented boundaries above are in scope.

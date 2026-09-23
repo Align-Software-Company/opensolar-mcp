@@ -1,112 +1,83 @@
 # Release constraints
 
-Contractual and operational gates for publishing or hosting this MCP.
-Architecture detail: `dev-docs/decisions/004-byo-token.md` (local).
-Sources and dates: [source-log.md](./source-log.md).
+This document summarizes external terms and operational limits that affect distribution and deployment of OpenSolar MCP.
 
 Last reviewed: 2026-09-23
 
----
+Sources and retrieval dates are recorded in [source-log.md](./source-log.md).
 
-## Official API only
+## API boundary
 
-Tools call documented OpenSolar HTTP endpoints under
-`https://api.opensolar.com/api/` (or a configured equivalent). They do
-not scrape `app.opensolar.com`, parse undocumented HTML, or invent query
-parameters.
+OpenSolar MCP uses the documented OpenSolar API under `https://api.opensolar.com/api/` or a configured equivalent. It does not scrape the OpenSolar web application or depend on undocumented HTML.
 
-Binding rules:
+The implementation follows these contract rules:
 
-- Map each tool to a row in [api-contract-matrix.md](./api-contract-matrix.md).
-- If the matrix marks a parameter `deferred` or not live-verified, do not
-  ship that parameter. OpenSolar `GET /contacts/?search=` stays deferred.
-  `search_contacts` is a separate derived tool: it pages the documented
-  list and matches locally.
-- Do not hide bulk work inside a tool (N sequential POSTs presented as
-  one call). OpenSolar has no batch project API; looping belongs with
-  the caller so per-item failures stay visible.
-- `get_proposal_data` calls `GET /api/user_logins/` with one project id. It requires Raw Data API Access and returns HTTP 402 otherwise.
+- tool operations map to documented endpoints recorded in [api-contract-matrix.md](./api-contract-matrix.md);
+- undocumented query parameters are not introduced as if they were supported API contracts;
+- derived MCP tools may compose documented reads locally;
+- multi-record writes are not hidden behind loops unless OpenSolar documents and the MCP exposes an actual bulk operation;
+- Raw Data tools are available only when the caller's OpenSolar plan provides the required access.
 
-User Terms clause 17 also forbids robots/scrapers without written
-permission and forbids bypassing access controls.
+## Rate and fair-use limits
 
----
+OpenSolar publishes per-endpoint throttles and additional fair-use limits. The limits applicable to a deployment are controlled by OpenSolar and may change.
 
-## Rate and fee safeguards
+Examples recorded from the current documentation:
 
-Two layers, both binding.
+| Operation | Per user | Per organisation |
+| --- | ---: | ---: |
+| Create project | 10/min | 10,000/day |
+| Update project | 10/min | 10,000/day |
+| Read project | 100/min | 10,000/day |
+| System details | 60/min | 10,000/day |
+| Proposal/Raw Data login endpoint | 100/min | 10,000/day |
 
-**Contractual (User Terms 17.8), unless OpenSolar agrees otherwise in
-writing:**
+OpenSolar's User Terms also state separate ceilings for Google Solar API and webhook traffic. This repository does not expose Google Solar API tools.
 
-| Channel | Ceiling |
-|---------|---------|
-| Google Solar API | 1,000 calls per calendar month and 200 per calendar day |
-| Webhooks | 2,000 calls per calendar month |
-| All other API usage | [documented per-endpoint throttles](https://developers.opensolar.com/api/throttle/) |
+The client uses bounded retry only for ordinary JSON GET requests that return HTTP 429. It does not attempt to maintain a quota ledger or bypass OpenSolar rate limits.
 
-Exceeding these is a terms breach (17.6), not only an HTTP 429.
-OpenSolar may throttle, suspend, or terminate under clauses 13 or 15.
+## Access plans
 
-**Operational throttles (examples):**
+OpenSolar documents two relevant products:
 
-| Action | Per user | Per org |
-|--------|----------|---------|
-| POST project | 10/min | 10,000/day |
-| PATCH/PUT project | 10/min | 10,000/day |
-| GET project | 100/min | 10,000/day |
-| GET system details | 60/min | 10,000/day |
-| GET `/api/user_logins/` | 100/min | 10,000/day |
+- API Access;
+- Raw Data API Access.
 
-Unlisted endpoints still have a quota.
+Raw Data API Access is required for the MCP tools that decode proposal data or project design.
 
-MCP policy:
+Access can also be project-dependent. Enabling API Access for an organisation does not imply that every historical or future project is readable under every plan state.
 
-- Honor 429 on ordinary JSON GET. The client retries at most three attempts. `Retry-After` is used when it is at most 5 seconds. Without that header the waits are 200 ms and then 400 ms. A longer `Retry-After` is returned as 429 with no sleep. Writes, form upload, file GET, and download are not retried.
-- Fail fast rather than retry past a per-minute ceiling inside one tool
-  call.
-- Do not ship Google Solar API tools. The 200/day cap is too tight
-  for typical agent traffic.
-- API Access uses project-level paid entitlement while enabled. A new
-  project can be blocked when the wallet is empty. Other calls continue.
-  Do not retry `create_project` in a tight loop when the wallet is empty.
+## Self-hosted operation
 
----
+The package is designed for self-hosted use:
 
-## Self-hosted distribution and managed hosting
+- the operator supplies the OpenSolar organisation ID and credentials;
+- credentials remain with the operator's process or MCP client;
+- the repository does not provide a shared credential vault;
+- the repository does not operate a multi-customer OpenSolar proxy.
 
-This repository distributes a self-hosted client. It does not operate a multi-tenant OpenSolar proxy.
+### Authentication
 
-| Area | Requirement |
-|------|-------------|
-| Stdio auth | The local process receives `OPENSOLAR_API_TOKEN`. No OAuth, disk persistence, or token logs. |
-| Loopback HTTP auth | A request `Authorization: Bearer` token takes precedence; the local env token may be used as fallback. |
-| Non-loopback HTTP auth | Every MCP request must supply `Authorization: Bearer <OpenSolar token>`. The server deliberately ignores `OPENSOLAR_API_TOKEN` as a request fallback. `MCP_HTTP_ALLOWED_HOSTS` protects Host/DNS-rebinding handling; `MCP_HTTP_ALLOWED_ORIGINS` limits browser Origin hostnames and defaults to the Host allowlist. Neither is authentication. Public traffic must be protected by TLS termination. |
-| Local uploads | `create_private_file` is disabled unless `OPENSOLAR_UPLOAD_ROOT` is set, and resolved paths must remain inside that root. |
-| Package distribution | README identifies the project as unofficial and self-hosted. Secret/artifact checks, public-doc identifier hygiene, and Docker smoke tests run before release. |
-| Machine user | Document that default tokens expire in 7 days; recommend a dedicated machine user. Do not PATCH `is_machine_user` for the operator. |
-| Future managed hosting | Any Align-operated shared/multi-customer service is a separate operating model and must be reviewed separately before it goes live. |
+| Deployment | Credential behavior |
+| --- | --- |
+| Stdio | Token is supplied through the local process environment |
+| Loopback HTTP | Request Bearer token takes precedence; the environment token may be used as a local fallback |
+| Non-loopback HTTP | Every MCP request must provide a Bearer token; the environment token is not used as a request fallback |
 
-A user running this package enables API Access for **their** OpenSolar org,
-supplies their own credentials, and points their own MCP client at the
-process. Package publication and any future Align-operated managed service
-are separate release decisions. This document does not make a legal
-conclusion about whether distributing the self-hosted package requires
-OpenSolar consent.
+Host and Origin allowlists are transport safeguards, not authentication. Internet-facing traffic must be protected with TLS termination outside the built-in server.
 
----
+## Local files
 
-## Wallet and plan activation
+`create_private_file` is disabled unless `OPENSOLAR_UPLOAD_ROOT` is configured. Real-path resolution confines uploads to that directory.
 
-From [API Access Plans](https://developers.opensolar.com/api/api-access-plans/)
-and [FAQs](https://developers.opensolar.com/api/api-access-faqs/):
+Private-file downloads and system images are size-limited, and signed OpenSolar download URLs are not returned to model-facing output.
 
-- Paid plan required from 17 March 2026. 30-day trial exists.
-- Two products: API Access (core) and Raw Data API Access (core plus
-  `design`, system-details `custom_data`, proposal data).
-- If both products are enabled, OpenSolar charges Raw Data.
-- After enabling a wallet product, changes can take **up to 5 minutes**.
-- Disabling the wallet: projects created while it was enabled keep API
-  access; later projects do not.
+## Distribution and hosted services
 
-Do not treat "org has API Access" as "every project is readable."
+OpenSolar's current User Terms include restrictions related to proxy, aggregator, and third-party service interfaces. Those restrictions are especially relevant to any service that would operate centrally for multiple OpenSolar customers.
+
+The `0.1.0` package is self-hosted software and does not include such a managed service.
+
+A future Align-operated shared or multi-customer service would require its own legal, contractual, security, and operational review before launch.
+
+This document summarizes repository constraints and is not legal advice.

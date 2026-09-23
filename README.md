@@ -6,13 +6,13 @@
 
 An unofficial, self-hosted [Model Context Protocol](https://modelcontextprotocol.io/) server for the documented [OpenSolar API](https://developers.opensolar.com/api/).
 
-It gives MCP-capable agents a smaller operational tool surface by default, while retaining a full API-oriented surface for advanced use. OpenSolar credentials stay with the process or MCP client you control; this project does not operate a shared OpenSolar service.
+It exposes a compact default tool surface for common MCP workflows, with a full API-oriented surface available when needed. OpenSolar credentials stay with the process or MCP client you control; this project does not operate a shared OpenSolar service.
 
 This project is not affiliated with, endorsed by, or maintained by OpenSolar Pty Ltd.
 
 ## Features
 
-- **Agent-oriented default:** 32 operational tools, selected from 75 registered tools.
+- **Curated default:** 32 operational tools, selected from 75 registered tools.
 - **Semantic workflows:** local project/contact search, project snapshots, stage-name resolution, system comparison, design projections, and project-share preflight.
 - **Two transports:** stdio for local MCP clients and stateless Streamable HTTP for self-hosted deployments.
 - **BYO OpenSolar access:** your OpenSolar organisation ID and API token; no token vault or account service.
@@ -104,7 +104,7 @@ OPENSOLAR_PROFILE=full npx -y @alignco/opensolar-mcp --list-tools
 OPENSOLAR_TOOLSETS=webhooks npx -y @alignco/opensolar-mcp --list-tools
 ```
 
-The default profile includes common project, contact, system, commercial configuration, file, Teams, and Raw Data workflows. Administrative catalog, workflow, webhook, delete, and other specialized primitives remain available through `full` or explicit toolsets.
+The default profile covers common project, contact, system, commercial configuration, file, Teams, and Raw Data workflows. Administrative catalog, workflow, webhook, delete, and other specialized primitives remain available through `full` or explicit toolsets.
 
 <details>
 <summary>Full toolsets</summary>
@@ -298,7 +298,6 @@ Packaging runs the offline checks and build through `prepack`. CI also packs the
 - [Contributing](CONTRIBUTING.md)
 - [Security policy](SECURITY.md)
 - [Changelog](CHANGELOG.md)
-- [Coding-agent instructions](AGENTS.md)
 - [MCP Registry metadata](server.json)
 
 ## Documentation
@@ -307,7 +306,7 @@ Packaging runs the offline checks and build through `prepack`. CI also packs the
 - [API contract matrix](docs/api-contract-matrix.md)
 - [API quirks](docs/api-quirks.md)
 - [Source log](docs/source-log.md)
-- [Agent-profile evaluation](docs/agent-profile-evaluation.md)
+- [Default profile evaluation](docs/agent-profile-evaluation.md)
 - [Release checklist](docs/release-checklist.md)
 - [Release constraints](docs/terms-release-gate.md)
 
