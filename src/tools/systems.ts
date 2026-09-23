@@ -69,6 +69,8 @@ const getSystemImageInput = z
 
 // Large projects time out on this endpoint. See docs/api-quirks.md.
 const SYSTEM_DETAILS_TIMEOUT_MS = 120_000;
+// OpenSolar applies part filters only to each system's `data` field, which
+// this tool does not return. The default keeps that field small.
 const DEFAULT_INCLUDE_PARTS = 'modules,inverters,batteries,module_groups,incentives';
 
 const pageLimitFields = {
@@ -110,14 +112,16 @@ const getSystemDetailsInputSchema = z
       .string()
       .optional()
       .describe(
-        'Comma-separated parts to keep. Defaults to modules, inverters, batteries, module_groups, and incentives. ' +
-          'Do not set this together with exclude_parts.',
+        "Comma-separated fields to keep inside each system's upstream `data` field. " +
+          'OpenSolar applies it only to `data`, which this tool does not return, so it does not change the result. ' +
+          'Defaults to modules,inverters,batteries,module_groups,incentives. Do not set this together with exclude_parts.',
       ),
     exclude_parts: z
       .string()
       .optional()
       .describe(
-        'Comma-separated parts to drop. Do not set this together with include_parts. A timeout means narrow the request.',
+        "Comma-separated fields to drop from each system's upstream `data` field instead of include_parts. " +
+          'It does not change the result. Do not set this together with include_parts.',
       ),
   })
   .refine(
@@ -245,9 +249,10 @@ export function registerSystemsToolset(
       {
         title: 'Get system details',
         description:
-          'Returns design parts for systems on a project the org owns. Shared team projects cannot use this endpoint. ' +
-          'Default parts are modules, inverters, batteries, module groups, and incentives. ' +
-          'A timeout means narrow include_parts. custom_data is omitted.',
+          'Returns modules, inverters, batteries, module groups, and incentives for systems on a project the org owns. ' +
+          'Shared team projects cannot use this endpoint. ' +
+          'include_parts and exclude_parts only filter the upstream `data` field, which is not returned. ' +
+          'OpenSolar can time out on large projects; do not retry in a loop. custom_data is omitted.',
         inputSchema: getSystemDetailsInputSchema,
         outputSchema: GetSystemDetailsOutputSchema,
         annotations: readAnnotations,

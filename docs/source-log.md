@@ -12,50 +12,58 @@ Base: https://developers.opensolar.com/api/
 
 | Topic | URL | Last checked |
 | --- | --- | --- |
-| API introduction | https://developers.opensolar.com/api/ | 2026-08-22 |
-| API conventions | https://developers.opensolar.com/api/api-conventions/ | 2026-08-22 |
-| Throttle limits | https://developers.opensolar.com/api/throttle/ | 2026-08-22 |
-| Errors | https://developers.opensolar.com/api/error/ | 2026-08-22 |
-| API access plans | https://developers.opensolar.com/api/api-access-plans/ | 2026-08-22 |
-| API access FAQs | https://developers.opensolar.com/api/api-access-faqs/ | 2026-08-22 |
-| Bearer tokens | https://developers.opensolar.com/api/getting-bearer-tokens/ | 2026-08-22 |
-| Schema overview | https://developers.opensolar.com/api/schema-overview/ | 2026-08-22 |
-| Projects | https://developers.opensolar.com/api/projects/ | 2026-09-22 |
-| Contacts | https://developers.opensolar.com/api/contacts/ | 2026-08-22 |
-| Systems | https://developers.opensolar.com/api/system/ | 2026-08-22 |
-| System details | https://developers.opensolar.com/api/system-details/ | 2026-08-22 |
-| Organisations | https://developers.opensolar.com/api/orgs/ | 2026-09-22 |
-| Roles | https://developers.opensolar.com/api/roles/ | 2026-08-22 |
-| Workflows | https://developers.opensolar.com/api/workflows/ | 2026-09-22 |
-| Events | https://developers.opensolar.com/api/events/ | 2026-08-22 |
-| Modules | https://developers.opensolar.com/api/modules/ | 2026-09-22 |
-| Inverters | https://developers.opensolar.com/api/inverters/ | 2026-09-22 |
-| Batteries | https://developers.opensolar.com/api/batteries/ | 2026-09-22 |
-| Other components | https://developers.opensolar.com/api/other-components/ | 2026-09-22 |
-| Payment options | https://developers.opensolar.com/api/payment-options/ | 2026-09-22 |
-| Pricing schemes | https://developers.opensolar.com/api/pricing-schemes/ | 2026-09-22 |
-| Costing | https://developers.opensolar.com/api/costing/ | 2026-09-22 |
-| Roof types | https://developers.opensolar.com/api/roof-types/ | 2026-09-22 |
-| File tags | https://developers.opensolar.com/api/file-tags/ | 2026-09-22 |
-| Proposal data | https://developers.opensolar.com/api/proposal-data/ | 2026-09-22 |
-| Private files | https://developers.opensolar.com/api/private-files/ | 2026-09-22 |
-| Generating project files | https://developers.opensolar.com/api/generating-project-files/ | 2026-09-22 |
-| System image | https://developers.opensolar.com/api/system-image/ | 2026-09-22 |
-| Webhooks | https://developers.opensolar.com/api/webhooks/ | 2026-09-22 |
-| Webhook logs | https://developers.opensolar.com/api/webhooks-logs/ | 2026-09-22 |
-| Webhook queue | https://developers.opensolar.com/api/webhooks-queue/ | 2026-09-22 |
-| Teams overview | https://developers.opensolar.com/api/teams-overview/ | 2026-09-22 |
-| Create connection request | https://developers.opensolar.com/api/creating-a-connection-request/ | 2026-09-22 |
-| Shared projects and entities | https://developers.opensolar.com/api/accessing-shared-projects-and-entities/ | 2026-09-22 |
-| Connected-org schema | https://developers.opensolar.com/api/connected-org-record-schema/ | 2026-09-22 |
-| Pending connection requests | https://developers.opensolar.com/api/fetch-pending-requests/ | 2026-09-22 |
-| Accept connection request | https://developers.opensolar.com/api/accept-a-pending-connection-request/ | 2026-09-22 |
-| Established connections | https://developers.opensolar.com/api/listing-established-connections/ | 2026-09-22 |
-| Share project | https://developers.opensolar.com/api/sharing-a-project/ | 2026-09-22 |
-| Bulk entity sharing | https://developers.opensolar.com/api/sharing-entities-to-a-connected-org-bulk/ | 2026-09-22 |
-| Disable connection | https://developers.opensolar.com/api/disabling-a-connection/ | 2026-09-22 |
-| Delete connection | https://developers.opensolar.com/api/deleting-a-connection/ | 2026-09-22 |
-| Custom Teams permission | https://developers.opensolar.com/api/custom-permission-for-teams/ | 2026-09-22 |
+| API introduction | https://developers.opensolar.com/api/ | 2026-09-23 |
+| API conventions | https://developers.opensolar.com/api/api-conventions/ | 2026-09-23 |
+| Throttle limits | https://developers.opensolar.com/api/throttle/ | 2026-09-23 |
+| Errors | https://developers.opensolar.com/api/error/ | 2026-09-23 |
+| API access plans | https://developers.opensolar.com/api/api-access-plans/ | 2026-09-23 |
+| API access FAQs | https://developers.opensolar.com/api/api-access-faqs/ | 2026-09-23 |
+| Bearer tokens | https://developers.opensolar.com/api/getting-bearer-tokens/ | 2026-09-23 |
+| Using bearer tokens | https://developers.opensolar.com/api/using-bearer-tokens/ | 2026-09-23 |
+| Machine users | https://developers.opensolar.com/api/how-to-set-machine-user/ | 2026-09-23 |
+| Schema overview | https://developers.opensolar.com/api/schema-overview/ | 2026-09-23 |
+| Projects | https://developers.opensolar.com/api/projects/ | 2026-09-23 |
+| Contacts | https://developers.opensolar.com/api/contacts/ | 2026-09-23 |
+| Systems | https://developers.opensolar.com/api/system/ | 2026-09-23 |
+| System details | https://developers.opensolar.com/api/system-details/ | 2026-09-23 |
+| Organisations | https://developers.opensolar.com/api/orgs/ | 2026-09-23 |
+| Roles | https://developers.opensolar.com/api/roles/ | 2026-09-23 |
+| Workflows | https://developers.opensolar.com/api/workflows/ | 2026-09-23 |
+| Events | https://developers.opensolar.com/api/events/ | 2026-09-23 |
+| Modules | https://developers.opensolar.com/api/modules/ | 2026-09-23 |
+| Inverters | https://developers.opensolar.com/api/inverters/ | 2026-09-23 |
+| Batteries | https://developers.opensolar.com/api/batteries/ | 2026-09-23 |
+| Other components | https://developers.opensolar.com/api/other-components/ | 2026-09-23 |
+| Payment options | https://developers.opensolar.com/api/payment-options/ | 2026-09-23 |
+| Pricing schemes | https://developers.opensolar.com/api/pricing-schemes/ | 2026-09-23 |
+| Costing | https://developers.opensolar.com/api/costing/ | 2026-09-23 |
+| Roof types | https://developers.opensolar.com/api/roof-types/ | 2026-09-23 |
+| File tags | https://developers.opensolar.com/api/file-tags/ | 2026-09-23 |
+| Proposal data | https://developers.opensolar.com/api/proposal-data/ | 2026-09-23 |
+| Private files | https://developers.opensolar.com/api/private-files/ | 2026-09-23 |
+| Generating project files | https://developers.opensolar.com/api/generating-project-files/ | 2026-09-23 |
+| System image | https://developers.opensolar.com/api/system-image/ | 2026-09-23 |
+| Webhooks | https://developers.opensolar.com/api/webhooks/ | 2026-09-23 |
+| Webhook structure | https://developers.opensolar.com/api/webhooks-structure/ | 2026-09-23 |
+| Webhook project payload | https://developers.opensolar.com/api/webhooks-project/ | 2026-09-23 |
+| Webhook contact payload | https://developers.opensolar.com/api/webhooks-contact/ | 2026-09-23 |
+| Webhook event payload | https://developers.opensolar.com/api/webhooks-event/ | 2026-09-23 |
+| Webhook quote payload | https://developers.opensolar.com/api/webhooks-quote/ | 2026-09-23 |
+| Webhook quote activity log payload | https://developers.opensolar.com/api/webhooks-quote-activity-log/ | 2026-09-23 |
+| Webhook logs | https://developers.opensolar.com/api/webhooks-logs/ | 2026-09-23 |
+| Webhook queue | https://developers.opensolar.com/api/webhooks-queue/ | 2026-09-23 |
+| Teams overview | https://developers.opensolar.com/api/teams-overview/ | 2026-09-23 |
+| Create connection request | https://developers.opensolar.com/api/creating-a-connection-request/ | 2026-09-23 |
+| Shared projects and entities | https://developers.opensolar.com/api/accessing-shared-projects-and-entities/ | 2026-09-23 |
+| Connected-org schema | https://developers.opensolar.com/api/connected-org-record-schema/ | 2026-09-23 |
+| Pending connection requests | https://developers.opensolar.com/api/fetch-pending-requests/ | 2026-09-23 |
+| Accept connection request | https://developers.opensolar.com/api/accept-a-pending-connection-request/ | 2026-09-23 |
+| Established connections | https://developers.opensolar.com/api/listing-established-connections/ | 2026-09-23 |
+| Share project | https://developers.opensolar.com/api/sharing-a-project/ | 2026-09-23 |
+| Bulk entity sharing | https://developers.opensolar.com/api/sharing-entities-to-a-connected-org-bulk/ | 2026-09-23 |
+| Disable connection | https://developers.opensolar.com/api/disabling-a-connection/ | 2026-09-23 |
+| Delete connection | https://developers.opensolar.com/api/deleting-a-connection/ | 2026-09-23 |
+| Custom Teams permission | https://developers.opensolar.com/api/custom-permission-for-teams/ | 2026-09-23 |
 
 ## Contract notes
 
@@ -77,7 +85,7 @@ Base: https://developers.opensolar.com/api/
 
 | Source | URL | Last checked |
 | --- | --- | --- |
-| User Terms & Conditions | https://www.opensolar.com/terms-conditions/ | 2026-09-22 |
+| User Terms & Conditions | https://www.opensolar.com/terms-conditions/ | 2026-09-23 |
 
 The release constraints document references terms covering access controls, unreasonable load, service-interface restrictions, and fair-use limits. See [terms-release-gate.md](./terms-release-gate.md).
 
@@ -85,11 +93,14 @@ The release constraints document references terms covering access controls, unre
 
 | Source | Version or URL | Last checked |
 | --- | --- | --- |
-| `@modelcontextprotocol/server` | 2.x | 2026-09-23 |
-| `@modelcontextprotocol/client` | 2.x | 2026-09-23 |
-| `@modelcontextprotocol/hono` | 2.x | 2026-09-23 |
+| `@modelcontextprotocol/server` | 2.0.0 (implements protocol 2026-07-28 with 2025-era fallback) | 2026-09-23 |
+| `@modelcontextprotocol/client` | 2.0.0 | 2026-09-23 |
+| `@modelcontextprotocol/hono` | 2.0.0 | 2026-09-23 |
 | TypeScript SDK v2 docs | https://ts.sdk.modelcontextprotocol.io/v2/ | 2026-08-22 |
-| MCP specification | https://spec.modelcontextprotocol.io/ | 2026-08-22 |
+| MCP specification 2026-07-28 | https://modelcontextprotocol.io/specification/2026-07-28 | 2026-09-23 |
+| MCP 2026-07-28 changelog | https://modelcontextprotocol.io/specification/2026-07-28/changelog | 2026-09-23 |
+| MCP tools specification | https://modelcontextprotocol.io/specification/2026-07-28/server/tools | 2026-09-23 |
+| MCP Registry `server.json` schema | https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json | 2026-09-23 |
 
 ## Live verification
 
@@ -100,7 +111,7 @@ Live verification uses non-customer fixture records and stores only the asserted
 | 2026-05 | Contacts and projects | Contacts list is a bare array; `ordering=-field` is descending; `ordering=-id` is ignored; synthetic `@os.code` emails occur; events are org-level; project `design` is gzip+base64; selected integration fields contain encrypted or non-JSON values |
 | 2026-09-22 | Events and contact ordering | Org event lookup succeeded for an event referenced by project data; contact family-name descending ordering was confirmed; `ordering=-id` matched default ordering |
 | 2026-09-22 | Contact writes | Fixture contact create, partial update behavior, full supported-field update, and delete succeeded |
-| 2026-09-22 | Project document generation | HTML proposal generation with `action=save` returned a private-file identifier |
+| 2026-09-22 | Project document generation | Proposal generation through `generate_document` with `action=save` and no `file_format` (the tool's former `html` option) returned a private-file identifier; the generated file's format was not recorded |
 | 2026-09-22 | System image | A 500x500 request returned `image/jpeg`; the response did not expose a private-file identifier; a corresponding System Image file appeared in the project file list |
 | 2026-09-22 | Local search | Project and contact searches returned expected list records; incomplete scans were not reported as unique or absent |
 | 2026-09-22 | Project snapshot | Snapshot preserved the project identity when a secondary section failed and did not expose raw design, signed URLs, configuration blobs, or credentials |
@@ -118,10 +129,10 @@ These behaviors rely on published documentation and offline contract tests rathe
 - workflow update requests;
 - organisation update requests;
 - private-file create, update, delete, and content download;
-- PDF and DOCX project-document generation;
+- project-document generation with `file_format` (`pdf`, `csv`) or through `generate_document_docx`;
 - system-image content download;
 - webhook response bodies and queue paging behavior;
-- Teams writes and project-share preflight;
+- Teams writes and project-share preflight, including whether `share_project` keeps shares with other orgs;
 - project-stage mutation.
 
 The exact status of each MCP operation is maintained in [api-contract-matrix.md](./api-contract-matrix.md).

@@ -274,7 +274,7 @@ describe('list_webhook_logs', () => {
 });
 
 describe('list_webhook_queue', () => {
-  it('requests one page and leaves event_queue_name empty when the row has none', async () => {
+  it('requests one page and returns the documented queue fields', async () => {
     const calls: string[] = [];
     const client = testClient(async (path) => {
       calls.push(path);
@@ -305,7 +305,9 @@ describe('list_webhook_queue', () => {
       {
         id: 38815749,
         webhook_id: 132,
-        event_queue_name: null,
+        model_name: 'Project',
+        event: 'UPDATE',
+        number_of_attempts: 1,
         next_attempt_at: '2024-12-02T05:36:47.049268Z',
         processing_started_at: '2024-12-02T05:37:11.482920Z',
       },

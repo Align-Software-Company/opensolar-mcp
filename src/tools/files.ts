@@ -509,9 +509,11 @@ const generateProjectDocumentInput = z
       .enum(DOCUMENT_TYPES)
       .describe('Document type from the Generating Project Files page.'),
     format: z
-      .enum(['html', 'pdf', 'docx'])
+      .enum(['pdf', 'csv', 'docx'])
+      .optional()
       .describe(
-        'html calls generate_document. pdf calls generate_document_pdf. docx calls generate_document_docx.',
+        "Output format. Omit to use the document type's default (PDF for most types, CSV for some). " +
+          'pdf and csv call generate_document with file_format. docx calls generate_document_docx.',
       ),
   })
   .strict();
@@ -553,19 +555,19 @@ function privateFileIdFromGenerated(raw: unknown): number | null {
   return null;
 }
 
+// generate_document is OpenSolar's recommended endpoint; generate_document_pdf
+// is documented as legacy and is not used.
 function generateDocumentPath(
   orgId: number,
   projectId: number,
   documentType: string,
-  format: 'html' | 'pdf' | 'docx',
+  format: 'pdf' | 'csv' | 'docx' | undefined,
 ): string {
-  const endpoint =
-    format === 'pdf'
-      ? 'generate_document_pdf'
-      : format === 'docx'
-        ? 'generate_document_docx'
-        : 'generate_document';
+  const endpoint = format === 'docx' ? 'generate_document_docx' : 'generate_document';
   const params = new URLSearchParams({ action: 'save' });
+  if (format === 'pdf' || format === 'csv') {
+    params.set('file_format', format);
+  }
   return `orgs/${orgId}/projects/${projectId}/${endpoint}/${encodeURIComponent(documentType)}/?${params.toString()}`;
 }
 
@@ -576,7 +578,7 @@ function registerGenerateProjectDocument(server: McpServer, ctx: FilesContext): 
       title: 'Generate project document',
       description:
         'Creates a project document in the live org and returns the private file id. ' +
-        'format html calls generate_document, pdf calls generate_document_pdf, and docx calls generate_document_docx. ' +
+        "Omit format for the document type's default. pdf and csv set file_format on generate_document; docx calls generate_document_docx. " +
         'The call sends action=save so OpenSolar stores a private file. File bytes are not returned. ' +
         'Use get_private_file for contents. This call is not retried.',
       inputSchema: generateProjectDocumentInput,

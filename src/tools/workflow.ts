@@ -86,7 +86,7 @@ function registerListWorkflows(server: McpServer, ctx: WorkflowContext): void {
     {
       title: 'List workflows',
       description:
-        'Lists one page of workflows as `{ workflows, page, limit }`. Each stage includes id, title, milestone, and order. ' +
+        'Lists one page of workflows as `{ workflows, page, limit }`. Each stage includes id, title, milestone, order, and is_archived. ' +
         'Use a stage id as active_stage_id. Actions are omitted.',
       inputSchema: listWorkflowsInputSchema,
       outputSchema: ListWorkflowsOutputSchema,
@@ -116,7 +116,7 @@ function registerGetWorkflow(server: McpServer, ctx: WorkflowContext): void {
     {
       title: 'Get workflow',
       description:
-        'Returns one workflow by id, including stage id, title, milestone, and order. Actions are omitted. ' +
+        'Returns one workflow by id, including stage id, title, milestone, order, and is_archived. Actions are omitted. ' +
         'Use a stage id as active_stage_id.',
       inputSchema: workflowIdInput,
       outputSchema: CuratedWorkflowSchema,

@@ -191,7 +191,7 @@ const updateProjectStageInputSchema = z
       .min(1)
       .optional()
       .describe(
-        'Stage title on the workflow. Resolved locally. Do not send this together with active_stage_id.',
+        'Stage title on the workflow. Resolved locally against stages that are not archived. Do not send this together with active_stage_id.',
       ),
     workflow_id: z
       .number()
@@ -629,7 +629,7 @@ export function registerProjectsToolset(
         title: 'Update project stage',
         description:
           'Sets the workflow stage on a project in the live org. Send active_stage_id with workflow_id, or stage_name. ' +
-          'A stage title is resolved on that workflow. No match or two matches with the same title do not PATCH. ' +
+          'A stage title is resolved on that workflow and never matches an archived stage. No match or two matches with the same title do not PATCH. ' +
           'The deprecated stage field is not accepted. This call is not retried.',
         inputSchema: updateProjectStageInputSchema,
         outputSchema: ProjectStageResultSchema,

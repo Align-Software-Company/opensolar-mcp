@@ -32,7 +32,7 @@ Examples recorded from the current documentation:
 | System details | 60/min | 10,000/day |
 | Proposal/Raw Data login endpoint | 100/min | 10,000/day |
 
-OpenSolar's User Terms also state separate ceilings for Google Solar API and webhook traffic. This repository does not expose Google Solar API tools.
+OpenSolar's User Terms also state separate fair-use ceilings for Google Solar API calls (1,000 a month, 200 a day) and webhook calls (2,000 a month), "unless otherwise agreed with us in writing (including under a commercial plan)". The API Access FAQ describes the plan as including unlimited API calls and webhook events. This repository does not expose Google Solar API tools.
 
 The client uses bounded retry only for ordinary JSON GET requests that return HTTP 429. It does not attempt to maintain a quota ledger or bypass OpenSolar rate limits.
 

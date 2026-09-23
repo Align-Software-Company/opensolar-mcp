@@ -13,7 +13,7 @@ export function messageForOpenSolarError(error: OpenSolarApiError): string {
     case 429:
       return 'Throttled. Wait. Do not loop';
     case 504:
-      return 'Timed out. For system details, narrow the request';
+      return 'Timed out. Large projects can time out upstream. Do not loop';
     default:
       return `OpenSolar API returned HTTP ${error.status}`;
   }
