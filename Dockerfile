@@ -20,6 +20,7 @@ RUN corepack enable
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile --prod
 COPY --from=build /app/dist ./dist
+COPY LICENSE ./
 ENV NODE_ENV=production
 ENV MCP_HTTP_HOST=0.0.0.0
 ENV MCP_HTTP_ALLOWED_HOSTS=localhost,127.0.0.1
