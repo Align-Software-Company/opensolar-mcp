@@ -76,6 +76,8 @@ Last reviewed: 2026-09-23
 
 ## Publication
 
+Tag `vX.Y.Z` on the release commit. Approving the `release` environment runs `.github/workflows/publish.yml`, which publishes the npm package with provenance and then the MCP Registry entry. Trusted publishing uses GitHub OIDC. There is no npm token in the workflow.
+
 - [ ] Publish `@alignco/opensolar-mcp@0.1.0` to npm.
 - [ ] Verify the published npm package and package ownership.
 - [ ] Publish matching MCP Registry metadata.
