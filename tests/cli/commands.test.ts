@@ -60,6 +60,25 @@ describe('CLI flags', () => {
       }),
     );
   });
+
+  it('treats a mixed-case loopback host as loopback and normalises allowlists', () => {
+    expect(resolveHttpBind(parseFlags(['--http', '--host', 'LOCALHOST']))).toEqual(
+      expect.objectContaining({
+        host: 'localhost',
+        allowedHosts: undefined,
+      }),
+    );
+
+    expect(
+      resolveHttpBind(parseFlags(['--http', '--host', '0.0.0.0']), {
+        MCP_HTTP_ALLOWED_HOSTS: 'MCP.Example.com:8443, fd00::5',
+      }).allowedHosts,
+    ).toEqual(['mcp.example.com', '[fd00::5]']);
+
+    expect(() =>
+      resolveHttpBind(parseFlags(['--http']), { MCP_HTTP_ALLOWED_HOSTS: 'bad host' }),
+    ).toThrow(ConfigError);
+  });
 });
 
 describe('CLI commands', () => {
