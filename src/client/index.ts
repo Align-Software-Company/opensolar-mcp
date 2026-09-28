@@ -12,6 +12,7 @@ export class OpenSolarApiError extends Error {
     message: string,
     readonly status: number,
     readonly body: string,
+    readonly method?: string,
   ) {
     super(message);
     this.name = 'OpenSolarApiError';
@@ -208,6 +209,7 @@ export function createClient(
             `OpenSolar API timed out after ${timeoutMs}ms on ${method} ${requestPath}`,
             504,
             '',
+            method,
           );
         }
         throw error;
@@ -239,6 +241,7 @@ export function createClient(
           `OpenSolar API ${response.status} ${response.statusText} on ${method} ${requestPath}`,
           response.status,
           errorBody,
+          method,
         );
       }
       if (body === '') {

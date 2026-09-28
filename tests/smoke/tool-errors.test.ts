@@ -97,6 +97,26 @@ describe('sanitized tool errors', () => {
     );
   });
 
+  it('warns that a timed-out write may have been applied', async () => {
+    const client = testClient(async () => {
+      throw new Error('unexpected OpenSolar read');
+    });
+    client.post = async () => {
+      throw new OpenSolarApiError('x', 504, '', 'POST');
+    };
+    const mcp = buildServer({ client, orgId: 1, filters: ALL_TOOL_FILTERS });
+    const result = await withMcpClient(mcp, (session) =>
+      session.callTool({
+        name: 'create_contact',
+        arguments: { email: 'pat@example.test' },
+      }),
+    );
+    const text = toolText(result);
+    expect(text).toBe(
+      'Timed out waiting for OpenSolar during a write (HTTP 504). The change may or may not have been applied. Read the record to check before retrying, so you do not create a duplicate.',
+    );
+  });
+
   it('does not include a JSON body for HTTP 403', () => {
     const body = '{"detail":"secret-body"}';
     const text = messageForOpenSolarError(new OpenSolarApiError('x', 403, body));

@@ -22,6 +22,9 @@ export function messageForOpenSolarError(error: OpenSolarApiError): string {
     case 429:
       return 'Throttled. Wait. Do not loop';
     case 504:
+      if (error.method !== undefined && error.method !== 'GET') {
+        return 'Timed out waiting for OpenSolar during a write (HTTP 504). The change may or may not have been applied. Read the record to check before retrying, so you do not create a duplicate.';
+      }
       return 'Timed out. Large projects can time out upstream. Do not loop';
     default:
       return `OpenSolar API returned HTTP ${error.status}`;
