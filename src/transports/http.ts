@@ -41,7 +41,7 @@ export function createHttpApp(bind: HttpBind): ReturnType<typeof createMcpHonoAp
 
   app.get('/health', (c) => c.json({ status: 'ok' }));
   app.get('/ready', (c) => c.json({ status: 'ready' }));
-  app.all(bind.path, (c) => {
+  app.all(bind.path, async (c) => {
     try {
       resolveToken({
         header: c.req.raw.headers.get('authorization'),
