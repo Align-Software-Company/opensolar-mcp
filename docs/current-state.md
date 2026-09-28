@@ -106,6 +106,7 @@ Key behavior:
 - JSON write methods add a trailing slash when needed;
 - empty response body becomes `null`;
 - non-JSON bodies on JSON operations produce a controlled API error.
+- For HTTP 400, 409 and 422, the message includes sanitized field errors (at most 8, URLs and token-like values removed).
 
 A `Retry-After` value is honored only when the wait is at most five seconds. Without it, retry delays are 200 ms and 400 ms.
 

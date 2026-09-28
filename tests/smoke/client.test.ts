@@ -426,6 +426,27 @@ describe('OpenSolar client', () => {
     expect(String(error)).not.toContain('Signature');
   });
 
+  it('strips the bearer token from an error body', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(`{"detail":"rejected ${testAuth.token}"}`, {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      ),
+    );
+    const client = createClient(testAuth);
+    const error = await client.get('orgs/1/').catch((thrown: unknown) => thrown);
+
+    expect(error).toBeInstanceOf(OpenSolarApiError);
+    expect(error).toMatchObject({ status: 400 });
+    if (error instanceof OpenSolarApiError) {
+      expect(error.body).not.toContain(testAuth.token);
+      expect(error.body).toContain('[REDACTED]');
+    }
+  });
+
   it('rejects a JSON response that streams past the body cap', async () => {
     const chunkBytes = 1024 * 1024;
     vi.stubGlobal(

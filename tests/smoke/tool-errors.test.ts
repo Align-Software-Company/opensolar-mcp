@@ -56,4 +56,50 @@ describe('sanitized tool errors', () => {
       ).not.toContain(deniedBody);
     },
   );
+
+  it('includes a field error from an HTTP 400 body', () => {
+    const text = messageForOpenSolarError(
+      new OpenSolarApiError('x', 400, '{"email":["Enter a valid email address."]}'),
+    );
+    expect(text).toContain('email: Enter a valid email address.');
+  });
+
+  it('labels detail as request', () => {
+    const text = messageForOpenSolarError(
+      new OpenSolarApiError('x', 400, '{"detail":"Bad request"}'),
+    );
+    expect(text).toContain('request: Bad request');
+  });
+
+  it('redacts a JWT embedded in a validation message', () => {
+    const text = messageForOpenSolarError(
+      new OpenSolarApiError(
+        'x',
+        400,
+        '{"token":["Invalid token eyJaaaaaaaaaaaa.eyJbbbbbbbbbbbb.cccccccccccc supplied."]}',
+      ),
+    );
+    expect(text).not.toContain('eyJ');
+    expect(text).toContain('[REDACTED]');
+  });
+
+  it('replaces URLs in validation messages', () => {
+    const text = messageForOpenSolarError(
+      new OpenSolarApiError('x', 422, '{"website":["See https://files.example.test/a"]}'),
+    );
+    expect(text).toContain('[url]');
+    expect(text).not.toContain('https://');
+  });
+
+  it('hides a non-JSON HTTP 400 body', () => {
+    expect(messageForOpenSolarError(new OpenSolarApiError('x', 400, '<html>'))).toBe(
+      'OpenSolar rejected the request (HTTP 400).',
+    );
+  });
+
+  it('does not include a JSON body for HTTP 403', () => {
+    const body = '{"detail":"secret-body"}';
+    const text = messageForOpenSolarError(new OpenSolarApiError('x', 403, body));
+    expect(text).not.toContain('secret-body');
+  });
 });

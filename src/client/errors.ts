@@ -1,7 +1,16 @@
+import { validationDetails } from '../lib/validation-details.js';
 import { OpenSolarApiError } from './index.js';
 
 export function messageForOpenSolarError(error: OpenSolarApiError): string {
   switch (error.status) {
+    case 400:
+    case 409:
+    case 422: {
+      const details = validationDetails(error.body);
+      return details === undefined
+        ? `OpenSolar rejected the request (HTTP ${error.status}).`
+        : `OpenSolar rejected the request (HTTP ${error.status}): ${details}`;
+    }
     case 401:
       return 'Token missing or expired. Normal tokens last 7 days. A machine user does not expire';
     case 402:

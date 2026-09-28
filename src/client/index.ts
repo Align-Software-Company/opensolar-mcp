@@ -214,17 +214,21 @@ export function createClient(
       }
 
       const body = new TextDecoder().decode(
-        await readLimitedBody(response, MAX_JSON_RESPONSE_BYTES, () =>
-          new OpenSolarApiError('OpenSolar response is too large', 413, ''),
+        await readLimitedBody(
+          response,
+          MAX_JSON_RESPONSE_BYTES,
+          () => new OpenSolarApiError('OpenSolar response is too large', 413, ''),
         ),
       );
+      // OpenSolar could echo request data in an error body; the bearer token must never reach tool output.
+      const errorBody = auth.token === '' ? body : body.split(auth.token).join('[REDACTED]');
       if (response.status === 429 && attempt < maxAttempts) {
         const waitMs = readRetryDelayMs(response.headers.get('retry-after'), attempt);
         if (waitMs === null) {
           throw new OpenSolarApiError(
             `OpenSolar API 429 ${response.statusText} on ${method} ${requestPath}`,
             429,
-            body,
+            errorBody,
           );
         }
         await sleep(waitMs);
@@ -234,7 +238,7 @@ export function createClient(
         throw new OpenSolarApiError(
           `OpenSolar API ${response.status} ${response.statusText} on ${method} ${requestPath}`,
           response.status,
-          body,
+          errorBody,
         );
       }
       if (body === '') {
