@@ -77,6 +77,13 @@ export const DEFAULT_REDACTION: RedactionOptions = {
     { match: /_credentials?$/i, mode: 'wholesale' },
     { match: /_private_key$/i, mode: 'wholesale' },
     { match: /_client_secret$/i, mode: 'wholesale' },
+    {
+      match:
+        /^(token|secret|password|passwd|api_key|apikey|api_token|auth_token|access_token|refresh_token|client_secret|private_key)$/i,
+      mode: 'wholesale',
+    },
+    { match: /_token$/i, mode: 'wholesale' },
+    { match: 'file_contents', mode: 'wholesale' },
   ],
   valuePatterns: [
     /^gAAAA[A-Za-z0-9+/=_-]{20,}/,
@@ -84,6 +91,7 @@ export const DEFAULT_REDACTION: RedactionOptions = {
     /^pk_(live|test)_[A-Za-z0-9]{20,}/,
     /^rk_(live|test)_[A-Za-z0-9]{20,}/,
     /^eyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/,
+    /^https?:\/\/\S*[?&](X-Amz-Signature|X-Amz-Credential|Signature)=/i,
     // Keep value redaction format-specific; generic high-entropy patterns over-redact
     // non-credential bulk fields (for example gzip+base64 project design blobs).
   ],
