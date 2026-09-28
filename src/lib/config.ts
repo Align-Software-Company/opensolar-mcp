@@ -9,10 +9,31 @@ import { ConfigError } from './config-error.js';
 
 export { ConfigError };
 
+const LOOPBACK_URL_HOSTNAMES = new Set(['localhost', '127.0.0.1', '[::1]']);
+
 export const BaseUrlSchema = z
   .string()
   .url()
   .default('https://api.opensolar.com/api/')
+  .superRefine((value, ctx) => {
+    const url = new URL(value);
+    if (url.username !== '' || url.password !== '') {
+      ctx.addIssue({ code: 'custom', message: 'OPENSOLAR_BASE_URL must not contain credentials' });
+    }
+    if (url.search !== '' || url.hash !== '') {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'OPENSOLAR_BASE_URL must not contain a query or fragment',
+      });
+    }
+    const loopback = LOOPBACK_URL_HOSTNAMES.has(url.hostname);
+    if (!(url.protocol === 'https:' || (url.protocol === 'http:' && loopback))) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'OPENSOLAR_BASE_URL must use https (http is allowed only for localhost)',
+      });
+    }
+  })
   .transform((value) => (value.endsWith('/') ? value : `${value}/`));
 
 const CredentialsSchema = z.object({
