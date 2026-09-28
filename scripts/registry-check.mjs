@@ -37,14 +37,13 @@ if (!npmPackage) {
   const token = env.get('OPENSOLAR_API_TOKEN');
   const orgId = env.get('OPENSOLAR_ORG_ID');
 
-  if (!token || token.isRequired !== true || token.isSecret !== true || token.format !== 'string') {
+  if (token?.isRequired !== true || token.isSecret !== true || token.format !== 'string') {
     failures.push(
       'OPENSOLAR_API_TOKEN must be required, secret, and string-formatted in server.json',
     );
   }
   if (
-    !orgId ||
-    orgId.isRequired !== true ||
+    orgId?.isRequired !== true ||
     orgId.isSecret !== false ||
     orgId.format !== 'number' ||
     orgId.placeholder !== '12345'
@@ -63,7 +62,7 @@ if (!npmPackage) {
   };
   for (const [name, choices] of Object.entries(optionalChoices)) {
     const entry = env.get(name);
-    if (!entry || entry.isRequired !== false || entry.isSecret !== false) {
+    if (entry?.isRequired !== false || entry.isSecret !== false) {
       failures.push(`${name} must be declared as optional and non-secret in server.json`);
       continue;
     }
