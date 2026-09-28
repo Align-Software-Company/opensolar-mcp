@@ -127,17 +127,17 @@ const updateProjectUsageInputSchema = z
   });
 
 const projectScalarFields = {
-  address: z.string().optional().describe('Street address.'),
-  locality: z.string().optional().describe('City or locality.'),
-  state: z.string().optional().describe('State or region.'),
-  zip: z.string().optional().describe('Postal code.'),
-  country_iso2: z.string().optional().describe('ISO 3166-1 alpha-2 country code.'),
+  address: z.string().max(255).optional().describe('Street address.'),
+  locality: z.string().max(255).optional().describe('City or locality.'),
+  state: z.string().max(255).optional().describe('State or region.'),
+  zip: z.string().max(255).optional().describe('Postal code.'),
+  country_iso2: z.string().max(255).optional().describe('ISO 3166-1 alpha-2 country code.'),
   lat: z.number().optional().describe('Latitude.'),
   lon: z.number().optional().describe('Longitude.'),
   is_residential: z.boolean().optional().describe('True when the project is residential.'),
-  lead_source: z.string().optional().describe('Lead source label.'),
-  notes: z.string().optional().describe('Project notes.'),
-  identifier: z.string().optional().describe('External identifier.'),
+  lead_source: z.string().max(255).optional().describe('Lead source label.'),
+  notes: z.string().max(10000).optional().describe('Project notes.'),
+  identifier: z.string().max(255).optional().describe('External identifier.'),
   number_of_phases: z.number().int().optional().describe('Electrical phase count.'),
   roof_type: z
     .number()
@@ -189,6 +189,7 @@ const updateProjectStageInputSchema = z
       .string()
       .trim()
       .min(1)
+      .max(255)
       .optional()
       .describe(
         'Stage title on the workflow. Resolved locally against stages that are not archived. Do not send this together with active_stage_id.',
@@ -359,6 +360,7 @@ const listProjectsInputSchema = z.object({
     .number()
     .int()
     .min(1)
+    .max(100000)
     .default(1)
     .describe('1-indexed page number. Use page=2 to fetch the next batch of results.'),
   verbose: z

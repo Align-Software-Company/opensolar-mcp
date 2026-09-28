@@ -11,10 +11,10 @@ export type Contact = z.infer<typeof ContactSchema>;
 
 export const ContactWriteSchema = z
   .object({
-    first_name: z.string().optional().describe('Given name.'),
-    family_name: z.string().optional().describe('Family name.'),
-    email: z.string().optional().describe('Email address.'),
-    phone: z.string().optional().describe('Phone number.'),
+    first_name: z.string().max(255).optional().describe('Given name.'),
+    family_name: z.string().max(255).optional().describe('Family name.'),
+    email: z.string().max(255).optional().describe('Email address.'),
+    phone: z.string().max(255).optional().describe('Phone number.'),
   })
   .strict();
 

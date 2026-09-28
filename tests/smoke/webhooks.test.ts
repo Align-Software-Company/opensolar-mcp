@@ -10,6 +10,7 @@ import {
   ALL_TOOL_FILTERS,
   requireStructuredContent,
   testClient,
+  unexpectedCallClient,
   withMcpClient,
 } from '../helpers/mcp.js';
 
@@ -90,6 +91,47 @@ describe('create_webhook', () => {
     ]);
     expect(payload.id).toBe(7);
     expect(JSON.stringify(result)).not.toContain('SECRET-SHOULD-NOT-LEAK');
+  });
+
+  it('rejects an http endpoint before calling OpenSolar', async () => {
+    const mcp = buildServer({
+      client: unexpectedCallClient(),
+      orgId: 1,
+      filters: ALL_TOOL_FILTERS,
+    });
+    const result = await withMcpClient(mcp, (session) =>
+      session.callTool({
+        name: 'create_webhook',
+        arguments: {
+          endpoint: 'http://hooks.example.test/x',
+          enabled: true,
+          debug: false,
+        },
+      }),
+    );
+    expect(result.isError).toBe(true);
+  });
+
+  it('accepts an https endpoint', async () => {
+    const posts: string[] = [];
+    const client = unexpectedCallClient();
+    client.post = async (path) => {
+      posts.push(path);
+      return { ...webhookRecord, endpoint: 'https://hooks.example.test/x' };
+    };
+    const mcp = buildServer({ client, orgId: 1, filters: ALL_TOOL_FILTERS });
+    const result = await withMcpClient(mcp, (session) =>
+      session.callTool({
+        name: 'create_webhook',
+        arguments: {
+          endpoint: 'https://hooks.example.test/x',
+          enabled: true,
+          debug: false,
+        },
+      }),
+    );
+    expect(result.isError).toBeFalsy();
+    expect(posts).toEqual(['orgs/1/webhooks/']);
   });
 
   it('sends the field lists when they are set', async () => {

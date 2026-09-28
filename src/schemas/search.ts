@@ -15,6 +15,7 @@ export const SearchInputSchema = z
       .string()
       .trim()
       .min(1)
+      .max(200)
       .describe('Text to match locally. Not sent to OpenSolar as a search query.'),
     max_pages: z
       .number()

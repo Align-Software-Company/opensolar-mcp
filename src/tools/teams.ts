@@ -43,6 +43,13 @@ const createAnnotations = {
   openWorldHint: true,
 } as const;
 
+const shareAnnotations = {
+  readOnlyHint: false,
+  destructiveHint: true,
+  idempotentHint: true,
+  openWorldHint: true,
+} as const;
+
 const updateAnnotations = {
   readOnlyHint: false,
   destructiveHint: false,
@@ -74,7 +81,13 @@ const projectPermissionShape = Object.fromEntries(
 ) as Record<(typeof TEAM_PERMISSION_KEYS)[number], typeof permissionActions>;
 
 const pageLimitFields = {
-  page: z.number().int().min(1).default(1).describe('1-indexed page number. Defaults to 1.'),
+  page: z
+    .number()
+    .int()
+    .min(1)
+    .max(100000)
+    .default(1)
+    .describe('1-indexed page number. Defaults to 1.'),
   limit: z
     .number()
     .int()
@@ -88,7 +101,7 @@ const listConnectedOrgsInput = z.object(pageLimitFields);
 
 const createConnectionInput = z
   .object({
-    org_name: z.string().min(1).describe('Partner org name. Must match exactly.'),
+    org_name: z.string().min(1).max(255).describe('Partner org name. Must match exactly.'),
     notify_roles: z
       .array(positiveId)
       .describe(
@@ -135,9 +148,13 @@ const shareProjectInput = z
 const shareEntitiesInput = z
   .object({
     entity_type: z.enum(SHARE_ENTITY_TYPES).describe('Also sent as resource.'),
-    ids: z.array(positiveId).min(1).describe('Entity ids to share or unshare.'),
-    share_with_ids: z.array(positiveId).default([]),
-    unshare_with_ids: z.array(positiveId).default([]),
+    ids: z
+      .array(positiveId)
+      .min(1)
+      .max(100)
+      .describe('Entity ids to share or unshare, at most 100.'),
+    share_with_ids: z.array(positiveId).max(100).default([]),
+    unshare_with_ids: z.array(positiveId).max(100).default([]),
   })
   .strict()
   .refine((input) => input.share_with_ids.length > 0 || input.unshare_with_ids.length > 0, {
@@ -146,7 +163,7 @@ const shareEntitiesInput = z
 
 const createPermissionRoleInput = z
   .object({
-    title: z.string().min(1),
+    title: z.string().min(1).max(255),
     permissions: z
       .object({
         project: z.object(projectPermissionShape).strict(),
@@ -509,7 +526,7 @@ function registerShareProject(server: McpServer, ctx: TeamsContext): void {
         'Shares one project with one connected org. The server builds the permission role URL from permission_role_id. is_shared defaults to true when omitted. This call is not retried.',
       inputSchema: shareProjectInput,
       outputSchema: ShareProjectOutputSchema,
-      annotations: updateAnnotations,
+      annotations: shareAnnotations,
     },
     async (input) =>
       runOpenSolarTool(async () => {
@@ -546,7 +563,7 @@ function registerShareEntities(server: McpServer, ctx: TeamsContext): void {
         'Shares or unshares one kind of entity with connected orgs. resource is the same value as entity_type. This call is not retried.',
       inputSchema: shareEntitiesInput,
       outputSchema: ShareEntitiesOutputSchema,
-      annotations: updateAnnotations,
+      annotations: shareAnnotations,
     },
     async (input) =>
       runOpenSolarTool(async () => {

@@ -41,17 +41,23 @@ const workflowIdInput = z
 
 const createWorkflowInput = z
   .object({
-    title: z.string().min(1).describe('Workflow title.'),
+    title: z.string().min(1).max(255).describe('Workflow title.'),
     is_default: z
       .boolean()
       .optional()
       .describe('When true, this becomes the org default workflow.'),
-    description: z.string().optional().describe('Workflow description.'),
+    description: z.string().max(10000).optional().describe('Workflow description.'),
   })
   .strict();
 
 const listWorkflowsInputSchema = z.object({
-  page: z.number().int().min(1).default(1).describe('1-indexed page number. Defaults to 1.'),
+  page: z
+    .number()
+    .int()
+    .min(1)
+    .max(100000)
+    .default(1)
+    .describe('1-indexed page number. Defaults to 1.'),
   limit: z
     .number()
     .int()

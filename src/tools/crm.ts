@@ -86,7 +86,13 @@ function contactWriteBody(input: {
 }
 
 const listContactsInputSchema = z.object({
-  page: z.number().int().min(1).default(1).describe('1-indexed page number. Defaults to 1.'),
+  page: z
+    .number()
+    .int()
+    .min(1)
+    .max(100000)
+    .default(1)
+    .describe('1-indexed page number. Defaults to 1.'),
   limit: z
     .number()
     .int()
@@ -96,6 +102,7 @@ const listContactsInputSchema = z.object({
     .describe('Maximum contacts per page. Defaults to 20, capped at 100.'),
   ordering: z
     .string()
+    .max(255)
     .optional()
     .describe(
       'Optional ordering field. Supported fields: `first_name`, `family_name`, `email`. ' +

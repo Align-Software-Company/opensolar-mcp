@@ -75,7 +75,13 @@ const FILE_ORDERING = [
 
 const listPrivateFilesInput = z
   .object({
-    page: z.number().int().min(1).default(1).describe('1-indexed page number. Defaults to 1.'),
+    page: z
+      .number()
+      .int()
+      .min(1)
+      .max(100000)
+      .default(1)
+      .describe('1-indexed page number. Defaults to 1.'),
     limit: z
       .number()
       .int()
@@ -100,6 +106,7 @@ const listPrivateFilesInput = z
       .describe('When set, omit files with this file-tag title.'),
     search: z
       .string()
+      .max(200)
       .optional()
       .describe(
         'When set, search title, system_uuid, input_data, input_data_hash, file_hash, status, and status_message.',
@@ -139,10 +146,11 @@ const createPrivateFileInput = z
     path: z
       .string()
       .min(1)
+      .max(10000)
       .describe(
         'File path under OPENSOLAR_UPLOAD_ROOT on the machine running this server. Relative paths resolve from that root; absolute paths are accepted only when their resolved real path remains inside it.',
       ),
-    title: z.string().min(1).describe('File title. Sent as the multipart title field.'),
+    title: z.string().min(1).max(255).describe('File title. Sent as the multipart title field.'),
   })
   .strict();
 
@@ -153,7 +161,7 @@ const updatePrivateFileInput = z
       .int()
       .positive()
       .describe('Private file id. Use list_private_files to discover ids.'),
-    title: z.string().min(1).describe('New title. The published sample sends only title.'),
+    title: z.string().min(1).max(255).describe('New title. The published sample sends only title.'),
   })
   .strict();
 
