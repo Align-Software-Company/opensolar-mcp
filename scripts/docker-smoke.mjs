@@ -121,8 +121,8 @@ async function main() {
     await client.connect(transport);
     try {
       const listed = await client.listTools();
-      if (listed.tools.length !== 32) {
-        fail(`Docker agent profile exposed ${listed.tools.length} tools, expected 32`);
+      if (listed.tools.length !== 31) {
+        fail(`Docker agent profile exposed ${listed.tools.length} tools, expected 31`);
       }
     } finally {
       await client.close();
@@ -133,7 +133,7 @@ async function main() {
         'docker_smoke=ok',
         `docker_runtime_uid=${uid}`,
         `docker_http_port=${containerPort}`,
-        'docker_agent_tool_count=32',
+        'docker_agent_tool_count=31',
         '',
       ].join('\n'),
     );

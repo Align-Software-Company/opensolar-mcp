@@ -13,7 +13,8 @@ describe('OPENSOLAR_PROFILE', () => {
     expect(agentFilters.profile).toBe('agent');
     expect(agentFilters.toolsetsExplicit).toBe(false);
     expect(selectTools(agentFilters)).toEqual([...AGENT_PROFILE_TOOLS]);
-    expect(AGENT_PROFILE_TOOLS).toHaveLength(32);
+    expect(AGENT_PROFILE_TOOLS).toHaveLength(31);
+    expect(selectTools(agentFilters)).not.toContain('share_project');
   });
 
   it('returns all 75 registered tools for the full profile', () => {
@@ -22,6 +23,7 @@ describe('OPENSOLAR_PROFILE', () => {
     expect(registered).toHaveLength(75);
     expect(selected).toEqual(registered);
     expect(selected).toHaveLength(75);
+    expect(selected).toContain('share_project');
   });
 
   it('omits raw data tools from the agent profile on API Access', () => {
@@ -33,7 +35,7 @@ describe('OPENSOLAR_PROFILE', () => {
         (name) => name !== 'get_proposal_data' && name !== 'get_project_design',
       ),
     );
-    expect(selected).toHaveLength(30);
+    expect(selected).toHaveLength(29);
     expect(selected).not.toContain('get_proposal_data');
     expect(selected).not.toContain('get_project_design');
   });

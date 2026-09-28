@@ -20,7 +20,7 @@ Last reviewed: 2026-09-23
 | Optional transport | Streamable HTTP |
 | Default profile | `agent` |
 | Registered tools | 75 |
-| Default tools | 32 |
+| Default tools | 31 |
 
 The server version is read from `package.json` at runtime so package metadata and the MCP server identity stay aligned.
 
@@ -33,7 +33,7 @@ The server version is read from `package.json` at runtime so package metadata an
 - For 2026-07-28 requests, `tools/list` and `server/discover` carry `ttlMs: 300000` and `cacheScope: "private"`. The tool list is fixed for the life of the process, and it is private because it depends on the operator's filters.
 - `tools/list` order is deterministic: toolsets in `TOOLSET_NAMES` order, tools in registration order.
 - Every tool declares a `title`, an `outputSchema`, and `readOnlyHint`, `destructiveHint`, `idempotentHint`, and `openWorldHint` annotations.
-- Successful results put the data in `structuredContent` and add a one-line text summary. Private-file text and binary content are returned as additional content blocks.
+- Successful structured results put the data in `structuredContent` and also return a one-line summary plus the same payload serialized as compact JSON text for client compatibility. Private-file text and binary content are returned as additional content blocks.
 - OpenSolar API failures are returned as tool results with `isError: true` and a short, actionable message. Input that fails schema validation is rejected before any OpenSolar call.
 - The server does not use the Roots, Sampling, or Logging features, which the 2026-07-28 specification deprecates. Logs go to stderr.
 
@@ -43,7 +43,7 @@ Tool exposure is controlled by [`src/lib/tier-policy.ts`](../src/lib/tier-policy
 
 | Setting | Behavior |
 | --- | --- |
-| `OPENSOLAR_PROFILE=agent` | Curated 32-tool default surface |
+| `OPENSOLAR_PROFILE=agent` | Curated 31-tool default surface |
 | `OPENSOLAR_PROFILE=full` | All 75 registered tools |
 | `OPENSOLAR_TOOLSETS=...` | Exposes complete selected functional toolsets |
 | `OPENSOLAR_READ_ONLY=1` | Removes registered mutation tools. `1`, `true`, `yes`, `on` enable it; `0`, `false`, `no`, `off`, or empty disable it; any other value stops startup |

@@ -13,11 +13,12 @@ Initial public release.
 ### Added
 
 - 75 MCP tools across projects, contacts, events, systems, components, workflows, payment options, pricing schemes, costings, reference data, private files, webhooks, Teams, and Raw Data.
-- A curated 32-tool `agent` profile (the default) and a `full` profile, plus `OPENSOLAR_TOOLSETS`, `OPENSOLAR_READ_ONLY`, and `OPENSOLAR_PLAN` filters.
+- A curated 31-tool `agent` profile (the default) and a `full` profile, plus `OPENSOLAR_TOOLSETS`, `OPENSOLAR_READ_ONLY`, and `OPENSOLAR_PLAN` filters. `share_project` remains available through `full` or the Teams toolset pending live verification of multi-org share preservation.
 - Semantic tools built from documented reads: bounded project and contact search with `unique`, `none`, `ambiguous`, and `incomplete` resolution states, project snapshots, stage changes by name, project-system comparison, sectioned project-design projections, and a read-only project-share preflight.
 - stdio and stateless Streamable HTTP transports on the official MCP TypeScript SDK v2, implementing the 2026-07-28 protocol with fallback for 2025-era clients.
 - Server identity metadata (title, description, website) and private five-minute cache hints for `tools/list` and `server/discover`.
 - A title, output schema, and behavior annotations on every tool.
+- Compact JSON text alongside successful `structuredContent` for clients that do not forward structured tool output.
 - `--check`, `--list-tools`, and `--version` commands.
 - MCP Registry metadata (`server.json`) that declares the required and optional configuration.
 - A Docker image that runs as an unprivileged user, with a health check and OCI and MCP Registry labels.

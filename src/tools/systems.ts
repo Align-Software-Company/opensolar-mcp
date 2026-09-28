@@ -1,6 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/server';
 import { z } from 'zod';
-import { openSolarSuccess, runOpenSolarTool } from '../client/errors.js';
+import { openSolarSuccess, runOpenSolarTool, structuredContentText } from '../client/errors.js';
 import {
   MAX_PRIVATE_FILE_BYTES,
   OpenSolarApiError,
@@ -336,7 +336,11 @@ export function registerSystemsToolset(
             return openSolarSuccess(payload, summary);
           }
           return {
-            content: [{ type: 'text' as const, text: summary }, ...modelBlocks],
+            content: [
+              { type: 'text' as const, text: summary },
+              ...modelBlocks,
+              structuredContentText(payload),
+            ],
             structuredContent: payload,
           };
         }),

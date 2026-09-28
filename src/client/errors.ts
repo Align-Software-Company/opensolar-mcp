@@ -29,15 +29,26 @@ export function openSolarToolResult(error: OpenSolarApiError): {
   };
 }
 
+export function structuredContentText(structuredContent: unknown): {
+  type: 'text';
+  text: string;
+} {
+  const serialized = JSON.stringify(structuredContent);
+  if (serialized === undefined) {
+    throw new Error('Structured tool output must be JSON-serializable');
+  }
+  return { type: 'text', text: serialized };
+}
+
 export function openSolarSuccess<T>(
   structuredContent: T,
   text: string,
 ): {
-  content: [{ type: 'text'; text: string }];
+  content: [{ type: 'text'; text: string }, { type: 'text'; text: string }];
   structuredContent: T;
 } {
   return {
-    content: [{ type: 'text', text }],
+    content: [{ type: 'text', text }, structuredContentText(structuredContent)],
     structuredContent,
   };
 }

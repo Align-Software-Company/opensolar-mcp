@@ -73,6 +73,14 @@ function onePagePdf(text: string): Uint8Array {
   return new TextEncoder().encode(body + xref + trailer);
 }
 
+function jsonText(payload: unknown): { type: 'text'; text: string } {
+  const text = JSON.stringify(payload);
+  if (text === undefined) {
+    throw new Error('expected JSON-serializable structured content');
+  }
+  return { type: 'text', text };
+}
+
 function assertDownloadUrlAbsent(serialized: string): void {
   expect(serialized).not.toContain('Expires');
   expect(serialized).not.toContain('Signature');
@@ -214,6 +222,7 @@ describe('get_private_file', () => {
     expect(result.content).toEqual([
       { type: 'text', text: 'Private file 501: site-model.geojson.' },
       { type: 'text', text: '{"ok":true}' },
+      jsonText(payload),
     ]);
     assertDownloadUrlAbsent(serialized);
   });
@@ -250,6 +259,7 @@ describe('get_private_file', () => {
         type: 'text',
         text: `${'a'.repeat(MAX_MODEL_TEXT_CHARS)}\n[Truncated. 1 character omitted.]`,
       },
+      jsonText(payload),
     ]);
   });
 
@@ -279,6 +289,7 @@ describe('get_private_file', () => {
     expect(result.content).toEqual([
       { type: 'text', text: 'Private file 501: site-model.geojson.' },
       { type: 'image', data: encoded, mimeType: 'image/png' },
+      jsonText(payload),
     ]);
   });
 
@@ -317,6 +328,7 @@ describe('get_private_file', () => {
           blob: encoded,
         },
       },
+      jsonText(payload),
     ]);
     assertDownloadUrlAbsent(serialized);
   });
@@ -339,6 +351,7 @@ describe('get_private_file', () => {
         arguments: { id: 501, include_contents: true },
       }),
     );
+    const payload = PrivateFileDetailSchema.parse(requireStructuredContent(result));
 
     expect(result.content).toEqual([
       { type: 'text', text: 'Private file 501: site-model.geojson.' },
@@ -351,6 +364,7 @@ describe('get_private_file', () => {
           blob: Buffer.from([1, 2, 3]).toString('base64'),
         },
       },
+      jsonText(payload),
     ]);
   });
 
@@ -386,6 +400,7 @@ describe('get_private_file', () => {
           blob: encoded,
         },
       },
+      jsonText(payload),
     ]);
   });
 

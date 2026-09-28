@@ -40,7 +40,6 @@ const AGENT_TOOLS = [
   'generate_project_document',
   'list_connected_orgs',
   'preflight_project_share',
-  'share_project',
   'share_entities',
   'get_proposal_data',
   'get_project_design',
