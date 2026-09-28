@@ -29,10 +29,22 @@ function toolText(result: {
 
 describe('sanitized tool errors', () => {
   it.each([
-    [401, 'Token missing or expired. Normal tokens last 7 days. A machine user does not expire'],
-    [403, 'The caller cannot use this record. OpenSolar uses 403 even when the record exists'],
-    [429, 'Throttled. Wait. Do not loop'],
-    [504, 'Timed out. Large projects can time out upstream. Do not loop'],
+    [
+      401,
+      'Token missing or expired (HTTP 401). Standard OpenSolar tokens last 7 days; machine-user tokens do not expire. The operator must supply a new token, so retrying will not help.',
+    ],
+    [
+      403,
+      "The caller cannot use this record (HTTP 403). OpenSolar also returns 403 for records that exist but are outside this token's permissions or API Access entitlement, so do not treat it as not found.",
+    ],
+    [
+      429,
+      'Throttled by OpenSolar (HTTP 429). Limits are per user per minute, for example 10 project creates or updates per minute. Wait about a minute before retrying.',
+    ],
+    [
+      504,
+      "Timed out (HTTP 504). Large projects can exceed OpenSolar's upstream time limit, so an immediate identical retry is unlikely to help.",
+    ],
   ] as const)(
     'maps HTTP %s to isError text without the upstream body',
     async (status, expected) => {

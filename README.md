@@ -454,7 +454,7 @@ Successful structured tool results also include the same payload serialized as c
 | `Token missing or expired` | Standard tokens expire after seven days. Get a new token, or use a [machine user](https://developers.opensolar.com/api/how-to-set-machine-user/). |
 | `This call needs Raw Data API Access` | Enable Raw Data API Access in OpenSolar, or set `OPENSOLAR_PLAN=api_access` to hide those tools. |
 | `The caller cannot use this record` (HTTP 403) | The token's user lacks permission, or the project is outside your API Access entitlement. |
-| `Throttled. Wait. Do not loop` (HTTP 429) | You hit an OpenSolar [throttle limit](https://developers.opensolar.com/api/throttle/). Wait before retrying. |
+| `Throttled by OpenSolar` (HTTP 429) | You hit an OpenSolar [throttle limit](https://developers.opensolar.com/api/throttle/). Wait before retrying. |
 | A tool you expect is missing | Run with `--list-tools` using the same environment and check `OPENSOLAR_PROFILE`, `OPENSOLAR_TOOLSETS`, `OPENSOLAR_READ_ONLY`, and `OPENSOLAR_PLAN`. |
 | `Unknown OPENSOLAR_READ_ONLY` at startup | Use `1`/`true`/`yes`/`on` or `0`/`false`/`no`/`off`. Anything else is refused so a typo can't expose writes. |
 | The server won't start from your client | Check `node --version` is 24 or newer on the `PATH` your client uses. On Windows, some clients need `"command": "cmd"` with `"args": ["/c", "npx", "-y", "@alignco/opensolar-mcp"]`. |
