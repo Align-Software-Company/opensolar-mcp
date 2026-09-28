@@ -1,5 +1,5 @@
-import { openAsBlob } from 'node:fs';
-import { realpath, stat } from 'node:fs/promises';
+import { constants } from 'node:fs';
+import { open, realpath, stat } from 'node:fs/promises';
 import { basename, isAbsolute, relative, resolve, sep } from 'node:path';
 import type { McpServer } from '@modelcontextprotocol/server';
 import { z } from 'zod';
@@ -136,6 +136,8 @@ const privateFileIdInput = z
   })
   .strict();
 
+export const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
+
 const oversizeResult = {
   isError: true as const,
   content: [{ type: 'text' as const, text: 'Private file is over 10 MB' }],
@@ -198,7 +200,10 @@ function curatedDetail(raw: unknown): PrivateFileDetail {
 async function confinedUploadPath(
   filePath: string,
   uploadRoot: string | undefined,
-): Promise<string | { isError: true; content: [{ type: 'text'; text: string }] }> {
+): Promise<
+  | { path: string; dev: number; ino: number }
+  | { isError: true; content: [{ type: 'text'; text: string }] }
+> {
   if (uploadRoot === undefined) {
     return pathError(
       'Local file uploads are disabled. Set OPENSOLAR_UPLOAD_ROOT to a directory before using create_private_file.',
@@ -239,7 +244,7 @@ async function confinedUploadPath(
   if (!info.isFile()) {
     return pathError('Private file path is not a file.');
   }
-  return resolvedFile;
+  return { path: resolvedFile, dev: info.dev, ino: info.ino };
 }
 
 async function privateFileForm(
@@ -248,12 +253,26 @@ async function privateFileForm(
   uploadRoot: string | undefined,
 ): Promise<FormData | { isError: true; content: [{ type: 'text'; text: string }] }> {
   const resolved = await confinedUploadPath(filePath, uploadRoot);
-  if (typeof resolved !== 'string') {
+  if ('isError' in resolved) {
     return resolved;
   }
   const form = new FormData();
   form.append('title', title);
-  form.append('file_contents', await openAsBlob(resolved), basename(resolved));
+  // O_NOFOLLOW does not exist on Windows; there the dev/ino comparison below still catches a swap.
+  const handle = await open(resolved.path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
+  try {
+    const opened = await handle.stat();
+    if (!opened.isFile() || opened.dev !== resolved.dev || opened.ino !== resolved.ino) {
+      return pathError('Private file changed while it was being opened.');
+    }
+    if (opened.size > MAX_UPLOAD_BYTES) {
+      return pathError('Private file is over 25 MB.');
+    }
+    const bytes = await handle.readFile();
+    form.append('file_contents', new Blob([bytes]), basename(resolved.path));
+  } finally {
+    await handle.close();
+  }
   return form;
 }
 
@@ -441,7 +460,7 @@ function registerCreatePrivateFile(server: McpServer, ctx: FilesContext): void {
       description:
         'Creates a private file in the live org from a path confined to OPENSOLAR_UPLOAD_ROOT on this server. ' +
         'Uploads are disabled until that root is configured. The resolved real path must remain inside the root, including through symlinks. ' +
-        'The server streams that file as multipart title and file_contents. File bytes are not accepted from the model. ' +
+        'The server reads that file as multipart title and file_contents. Files over 25 MB are refused. File bytes are not accepted from the model. ' +
         'The download URL is omitted. This call is not retried.',
       inputSchema: createPrivateFileInput,
       outputSchema: PrivateFileDetailSchema,
