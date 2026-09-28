@@ -668,7 +668,7 @@ export function registerProjectsToolset(
           }
           if (resolved.status === 'ambiguous') {
             return stageToolError(
-              `More than one stage is titled "${stage_name}". Send active_stage_id.`,
+              `More than one active stage is titled "${stage_name}" (ids ${resolved.stageIds.join(', ')}). Send active_stage_id with workflow_id.`,
             );
           }
           const raw = await ctx.client.patch(
