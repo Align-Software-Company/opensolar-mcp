@@ -31,6 +31,41 @@ export const READ_RETRY_BASE_DELAY_MS = 200;
 
 export const MAX_PRIVATE_FILE_BYTES = 10 * 1024 * 1024;
 
+/** Largest JSON response body accepted from OpenSolar. */
+export const MAX_JSON_RESPONSE_BYTES = 32 * 1024 * 1024;
+
+async function readLimitedBody(
+  response: Response,
+  maxBytes: number,
+  tooLarge: () => Error,
+): Promise<Uint8Array> {
+  if (response.body === null) {
+    return new Uint8Array(0);
+  }
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) {
+      break;
+    }
+    total += value.byteLength;
+    if (total > maxBytes) {
+      await reader.cancel();
+      throw tooLarge();
+    }
+    chunks.push(value);
+  }
+  const body = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    body.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return body;
+}
+
 export interface DownloadedFile {
   bytes: Uint8Array;
   contentType: string | null;
@@ -178,7 +213,11 @@ export function createClient(
         throw error;
       }
 
-      const body = await response.text();
+      const body = new TextDecoder().decode(
+        await readLimitedBody(response, MAX_JSON_RESPONSE_BYTES, () =>
+          new OpenSolarApiError('OpenSolar response is too large', 413, ''),
+        ),
+      );
       if (response.status === 429 && attempt < maxAttempts) {
         const waitMs = readRetryDelayMs(response.headers.get('retry-after'), attempt);
         if (waitMs === null) {
@@ -290,10 +329,11 @@ export function createClient(
         await response.body?.cancel();
         throw new OpenSolarApiError('System image is over 10 MB', 413, '');
       }
-      const bytes = new Uint8Array(await response.arrayBuffer());
-      if (bytes.byteLength > MAX_PRIVATE_FILE_BYTES) {
-        throw new OpenSolarApiError('System image is over 10 MB', 413, '');
-      }
+      const bytes = await readLimitedBody(
+        response,
+        MAX_PRIVATE_FILE_BYTES,
+        () => new OpenSolarApiError('System image is over 10 MB', 413, ''),
+      );
       return { contentType, privateFileId, bytes };
     },
     async download(url, options) {
@@ -341,10 +381,11 @@ export function createClient(
           throw new OpenSolarApiError('Private file is over 10 MB', 413, '');
         }
 
-        const bytes = new Uint8Array(await response.arrayBuffer());
-        if (bytes.byteLength > MAX_PRIVATE_FILE_BYTES) {
-          throw new OpenSolarApiError('Private file is over 10 MB', 413, '');
-        }
+        const bytes = await readLimitedBody(
+          response,
+          MAX_PRIVATE_FILE_BYTES,
+          () => new OpenSolarApiError('Private file is over 10 MB', 413, ''),
+        );
         return {
           bytes,
           contentType: response.headers.get('content-type'),

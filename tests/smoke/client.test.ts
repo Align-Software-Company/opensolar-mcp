@@ -3,6 +3,7 @@ import { MAX_DOWNLOAD_REDIRECTS } from '../../src/client/download-target.js';
 import {
   createClient,
   DEFAULT_TIMEOUT_MS,
+  MAX_JSON_RESPONSE_BYTES,
   MAX_PRIVATE_FILE_BYTES,
   NON_JSON_BODY_MESSAGE,
   OpenSolarApiError,
@@ -20,6 +21,21 @@ const testAuth = {
 };
 
 const signedFileUrl = 'https://files.example.test/private/site.json?Expires=1&Signature=fixture';
+
+function chunkStream(chunkBytes: number, chunkCount: number): ReadableStream<Uint8Array> {
+  const chunk = new Uint8Array(chunkBytes);
+  let sent = 0;
+  return new ReadableStream({
+    pull(controller) {
+      if (sent === chunkCount) {
+        controller.close();
+        return;
+      }
+      sent += 1;
+      controller.enqueue(chunk);
+    },
+  });
+}
 
 function clientWithPublicLookup() {
   return createClient(testAuth, {
@@ -408,5 +424,40 @@ describe('OpenSolar client', () => {
     expect(error).toMatchObject({ status: 413, body: '' });
     expect(String(error)).not.toContain(signedFileUrl);
     expect(String(error)).not.toContain('Signature');
+  });
+
+  it('rejects a JSON response that streams past the body cap', async () => {
+    const chunkBytes = 1024 * 1024;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(chunkStream(chunkBytes, MAX_JSON_RESPONSE_BYTES / chunkBytes + 1), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      ),
+    );
+    const client = createClient(testAuth);
+    const error = await client.get('orgs/1/').catch((thrown: unknown) => thrown);
+
+    expect(error).toBeInstanceOf(OpenSolarApiError);
+    expect(error).toMatchObject({ status: 413 });
+  });
+
+  it('rejects a download that streams past 10 MB without a content length', async () => {
+    const chunkBytes = 1024 * 1024;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(chunkStream(chunkBytes, MAX_PRIVATE_FILE_BYTES / chunkBytes + 1), {
+          status: 200,
+        }),
+      ),
+    );
+    const client = clientWithPublicLookup();
+    const error = await client.download(signedFileUrl).catch((thrown: unknown) => thrown);
+
+    expect(error).toBeInstanceOf(OpenSolarApiError);
+    expect(error).toMatchObject({ status: 413, message: 'Private file is over 10 MB' });
   });
 });
