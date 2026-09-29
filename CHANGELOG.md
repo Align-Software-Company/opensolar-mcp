@@ -6,9 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-09-29
+
 ### Added
 
 - The tag workflow pushes `ghcr.io/align-software-company/opensolar-mcp` for `linux/amd64` and `linux/arm64` to GHCR, and `server.json` declares that image for Streamable HTTP on `http://localhost:3000/mcp`.
+
+### Changed
+
+- The publish workflow reports a private GHCR image with a clear message.
 
 ## [0.1.1] - 2026-09-28
 
@@ -65,6 +71,7 @@ Initial public release.
 - Redaction of credentials, signed URLs, integration secrets, and personal identity fields from model-facing output.
 - Local uploads confined to `OPENSOLAR_UPLOAD_ROOT`, including through symlinks; 10 MB download caps; bounded Raw Data decompression.
 
-[Unreleased]: https://github.com/Align-Software-Company/opensolar-mcp/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/Align-Software-Company/opensolar-mcp/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/Align-Software-Company/opensolar-mcp/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/Align-Software-Company/opensolar-mcp/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Align-Software-Company/opensolar-mcp/releases/tag/v0.1.0
