@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-09-29
+
 ### Security
 
 - `get_system_image` checks each redirect target before following it and drops the API token when leaving the OpenSolar API origin, matching file downloads.
@@ -79,7 +81,8 @@ Initial public release.
 - Redaction of credentials, signed URLs, integration secrets, and personal identity fields from model-facing output.
 - Local uploads confined to `OPENSOLAR_UPLOAD_ROOT`, including through symlinks; 10 MB download caps; bounded Raw Data decompression.
 
-[Unreleased]: https://github.com/Align-Software-Company/opensolar-mcp/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/Align-Software-Company/opensolar-mcp/compare/v0.1.3...HEAD
+[0.1.3]: https://github.com/Align-Software-Company/opensolar-mcp/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/Align-Software-Company/opensolar-mcp/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/Align-Software-Company/opensolar-mcp/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Align-Software-Company/opensolar-mcp/releases/tag/v0.1.0
