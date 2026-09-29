@@ -76,7 +76,7 @@ Last reviewed: 2026-09-29
 
 ## Publication
 
-Tag `vX.Y.Z` on the release commit. Approving the `release` environment runs `.github/workflows/publish.yml`, which publishes the npm package with provenance, pushes `ghcr.io/align-software-company/opensolar-mcp` (the version tag and `latest`) when that version is not already in GHCR, and then publishes the MCP Registry entry. Trusted publishing uses GitHub OIDC. The image push uses `GITHUB_TOKEN`. There is no npm token in the workflow.
+Tag `vX.Y.Z` on the release commit. Approving the `release` environment runs `.github/workflows/publish.yml`, which publishes the npm package with provenance, pushes `ghcr.io/align-software-company/opensolar-mcp` (the version tag and `latest`) when that version is not already in GHCR, and then publishes the MCP Registry entry. After publishing, the workflow creates the GitHub Release from the matching CHANGELOG section, and skips that step if the release already exists. Release notes can be edited afterwards. Trusted publishing uses GitHub OIDC. The image push uses `GITHUB_TOKEN`. There is no npm token in the workflow.
 
 First GHCR release: the package may be created private, and the MCP Registry only accepts public images. If the "Image must be publicly pullable" step fails, set the package to Public (GitHub org → Packages → opensolar-mcp → Package settings → Change visibility), then re-run the failed job. npm, GHCR and the registry steps skip or repeat safely.
 

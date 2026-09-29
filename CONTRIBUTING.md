@@ -47,7 +47,7 @@ Changes that affect packaging, authentication, transports, Docker, or the publis
 
 Keep pull requests focused. Separate unrelated feature work, refactors, documentation changes, and API-contract changes when practical.
 
-Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/) (`feat(tools): ...`, `fix(client): ...`, `docs: ...`). Add a `CHANGELOG.md` entry under **Unreleased** for user-facing changes.
+Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/) (`feat(tools): ...`, `fix(client): ...`, `docs: ...`). Add a `CHANGELOG.md` entry under **Unreleased** for user-facing changes. Write entries for users, since they become the GitHub Release notes.
 
 ## OpenSolar API contracts
 
