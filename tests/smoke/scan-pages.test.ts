@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { scanPaginatedCollection, searchResolution } from '../../src/lib/scan-pages.js';
+import {
+  identifierMatchId,
+  scanPaginatedCollection,
+  searchResolution,
+} from '../../src/lib/scan-pages.js';
 
 describe('scanPaginatedCollection', () => {
   it('treats a short final page as a finished scan', async () => {
@@ -151,5 +155,81 @@ describe('scanPaginatedCollection', () => {
       stopped_by: 'end',
       records_scanned: 0,
     });
+  });
+});
+
+describe('identifierMatchId', () => {
+  const emailAndName = [
+    { id: 2, match: { field: 'email', type: 'exact' } },
+    { id: 1, match: { field: 'full_name', type: 'contains' } },
+  ];
+
+  it('returns the single exact email on a complete untruncated scan', () => {
+    expect(
+      identifierMatchId({
+        matches: emailAndName,
+        complete: true,
+        resultsTruncated: false,
+        identifierFields: ['email', 'phone'],
+      }),
+    ).toBe(2);
+  });
+
+  it('returns null when the scan did not finish', () => {
+    expect(
+      identifierMatchId({
+        matches: emailAndName,
+        complete: false,
+        resultsTruncated: false,
+        identifierFields: ['email', 'phone'],
+      }),
+    ).toBeNull();
+  });
+
+  it('returns null when matches were dropped', () => {
+    expect(
+      identifierMatchId({
+        matches: emailAndName,
+        complete: true,
+        resultsTruncated: true,
+        identifierFields: ['email', 'phone'],
+      }),
+    ).toBeNull();
+  });
+
+  it('returns null when two exact emails match', () => {
+    expect(
+      identifierMatchId({
+        matches: [
+          { id: 2, match: { field: 'email', type: 'exact' } },
+          { id: 3, match: { field: 'email', type: 'exact' } },
+        ],
+        complete: true,
+        resultsTruncated: false,
+        identifierFields: ['email', 'phone'],
+      }),
+    ).toBeNull();
+  });
+
+  it('returns null for an exact name match', () => {
+    expect(
+      identifierMatchId({
+        matches: [{ id: 4, match: { field: 'full_name', type: 'exact' } }],
+        complete: true,
+        resultsTruncated: false,
+        identifierFields: ['email', 'phone'],
+      }),
+    ).toBeNull();
+  });
+
+  it('returns null when nothing matched', () => {
+    expect(
+      identifierMatchId({
+        matches: [],
+        complete: true,
+        resultsTruncated: false,
+        identifierFields: ['email', 'phone'],
+      }),
+    ).toBeNull();
   });
 });

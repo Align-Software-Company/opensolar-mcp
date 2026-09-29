@@ -86,4 +86,4 @@ Tag `vX.Y.Z` on the release commit. Approving the `release` environment runs `.g
 - [ ] Publish the `0.1.1` MCP Registry entry.
 - [ ] Enable GitHub private vulnerability reporting for the repository.
 
-Any future shared or multi-customer hosted service is a separate deployment model and is not part of the `0.1.0` release.
+Any future shared or multi-customer hosted service is a separate deployment model and is not part of the `0.1.1` release.

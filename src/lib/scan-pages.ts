@@ -26,6 +26,26 @@ export function searchResolution(input: {
   return input.matchCount === 0 ? 'none' : 'unique';
 }
 
+/**
+ * Only a complete, untruncated scan can prove that a single exact email/phone
+ * match is the only one; an early stop or dropped results could hide a second.
+ */
+export function identifierMatchId(input: {
+  matches: readonly { id: number; match: { field: string; type: string } }[];
+  complete: boolean;
+  resultsTruncated: boolean;
+  identifierFields: readonly string[];
+}): number | null {
+  if (!input.complete || input.resultsTruncated) {
+    return null;
+  }
+  const exact = input.matches.filter(
+    (candidate) =>
+      candidate.match.type === 'exact' && input.identifierFields.includes(candidate.match.field),
+  );
+  return exact.length === 1 ? (exact[0]?.id ?? null) : null;
+}
+
 export async function scanPaginatedCollection<Record, Match>(input: {
   fetchPage: (page: number) => Promise<readonly Record[]>;
   pageSize: number;

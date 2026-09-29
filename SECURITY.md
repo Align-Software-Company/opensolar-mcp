@@ -54,7 +54,7 @@ Mutation tools act on the configured live OpenSolar organisation.
 - Writes are never retried automatically.
 - Tool annotations mark read-only, mutating, and destructive behavior. `share_project`, `share_entities`, and `update_webhook` are marked destructive.
 - Webhook endpoints must be https URLs.
-- A search result is treated as a confirmed target only when the bounded scan reports `resolution: unique`.
+- A search confirms a target when the bounded scan reports `resolution: unique`, or `identifier_match_id` for a single exact email or phone match on a complete, untruncated scan.
 
 ### Local files
 

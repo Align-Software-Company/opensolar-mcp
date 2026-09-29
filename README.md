@@ -429,7 +429,7 @@ Inside the container the server binds to `0.0.0.0`, so clients must send `Author
 
 - **Your credentials, your process.** Tokens stay in your environment or your client's configuration. Nothing is persisted, and this project runs no hosted service.
 - **Writes are explicit.** Mutating tools carry MCP `readOnlyHint: false` annotations, destructive ones carry `destructiveHint: true`, and none are retried automatically. `OPENSOLAR_READ_ONLY=1` removes them entirely.
-- **No guessing.** Only a search result with `resolution: unique` confirms a target, and the server instructions tell agents not to loop mutations to simulate bulk operations.
+- **No guessing.** A search confirms a target only when it reports `resolution: unique`, or `identifier_match_id` for a single exact email or phone match on a complete scan. The server never retries writes and exposes no hidden bulk writes.
 - **Minimal output.** Signed download URLs, integration secrets, webhook secrets, personal identity fields, and raw design data are redacted or omitted.
 - **Bounded work.** Searches, downloads, and Raw Data decompression all have fixed limits. Only ordinary reads retry, and only on HTTP 429, up to three attempts.
 - **HTTP mode passes your OpenSolar token through.** The bearer token a client sends is the OpenSolar token itself, forwarded to OpenSolar. It is not an MCP OAuth token. If several people share one deployment, put an authenticating gateway in front of it.

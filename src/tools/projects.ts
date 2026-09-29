@@ -11,7 +11,12 @@ import {
 import { loadProjectSnapshot } from '../lib/project-snapshot.js';
 import { DEFAULT_REDACTION, redactSensitive } from '../lib/redaction.js';
 import { resolveWorkflowStage } from '../lib/resolve-workflow-stage.js';
-import { BareListPageError, scanPaginatedCollection, searchResolution } from '../lib/scan-pages.js';
+import {
+  BareListPageError,
+  identifierMatchId,
+  scanPaginatedCollection,
+  searchResolution,
+} from '../lib/scan-pages.js';
 import type { ToolName } from '../lib/tier-policy.js';
 import { ContactWriteSchema } from '../schemas/contact.js';
 import {
@@ -443,6 +448,7 @@ export function registerProjectsToolset(
           'identifier, locality, state, and zip match only when that list row carries them. ' +
           'The scan reads until the list ends or max_pages is reached. Returned rows are the strongest matches. Equal strength keeps list order. ' +
           '`resolution` is `none`, `unique`, `ambiguous`, or `incomplete`. Only `unique` proves exactly one match after exhausting the scan. ' +
+          '`identifier_match_id` names the record when the complete, untruncated scan found exactly one exact email or phone match; otherwise it is null. ' +
           '`complete` is false when further pages were not read. `results_truncated` is true when some matches on the scanned pages were not returned. `stopped_by` is `end` or `max_pages`. ' +
           'The 20-page cap is an MCP work bound, not an OpenSolar quota. This server does not count that quota.',
         inputSchema: SearchInputSchema,
@@ -472,6 +478,9 @@ export function registerProjectsToolset(
                 return raw;
               },
             });
+            const identifierCandidates = scan.matches.flatMap((row) =>
+              typeof row.id === 'number' ? [{ id: row.id, match: row.match }] : [],
+            );
             const payload = SearchProjectsOutputSchema.parse({
               matches: scan.matches,
               search: {
@@ -484,6 +493,12 @@ export function registerProjectsToolset(
                   matchCount: scan.matches.length,
                   complete: scan.complete,
                   resultsTruncated: scan.results_truncated,
+                }),
+                identifier_match_id: identifierMatchId({
+                  matches: identifierCandidates,
+                  complete: scan.complete,
+                  resultsTruncated: scan.results_truncated,
+                  identifierFields: ['contact_email', 'contact_phone'],
                 }),
                 stopped_by: scan.stopped_by,
               },

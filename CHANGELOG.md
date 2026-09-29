@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - OpenSolar error messages explain the failure instead of telling the caller what to do. HTTP 400, 409, and 422 include sanitized field details. HTTP 413 explains the size limit. A timed-out write says the change may or may not have been applied.
 - Webhook endpoints must be https. `share_project`, `share_entities`, and `update_webhook` are marked destructive. Search, title, note, URL, and page inputs have length bounds.
 - The MCP SDK dependency is 2.2. The registry server name is `io.github.Align-Software-Company/opensolar-mcp`.
+- Search reports add `identifier_match_id` for one exact email or phone match on a complete, untruncated scan. Server instructions treat that id, or `resolution: unique`, as confirmation, and they allow explicit per-item writes one call at a time.
 
 ### Added
 

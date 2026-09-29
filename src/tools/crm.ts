@@ -9,7 +9,12 @@ import {
   contactMatchStrength,
   rankContact,
 } from '../lib/entity-match.js';
-import { BareListPageError, scanPaginatedCollection, searchResolution } from '../lib/scan-pages.js';
+import {
+  BareListPageError,
+  identifierMatchId,
+  scanPaginatedCollection,
+  searchResolution,
+} from '../lib/scan-pages.js';
 import type { ToolName } from '../lib/tier-policy.js';
 import {
   ContactListSchema,
@@ -170,6 +175,7 @@ export function registerCrmToolset(
           'Matches name, email, and phone. Passport, licence, and date of birth are redacted. ' +
           'The scan reads until the list ends or max_pages is reached. Returned rows are the strongest matches. Equal strength keeps list order. ' +
           '`resolution` is `none`, `unique`, `ambiguous`, or `incomplete`. Only `unique` proves exactly one match after exhausting the scan. ' +
+          '`identifier_match_id` names the record when the complete, untruncated scan found exactly one exact email or phone match; otherwise it is null. ' +
           '`complete` is false when further pages were not read. `results_truncated` is true when some matches on the scanned pages were not returned. `stopped_by` is `end` or `max_pages`. ' +
           'The 20-page cap is an MCP work bound, not an OpenSolar quota. This server does not count that quota.',
         inputSchema: SearchInputSchema,
@@ -199,6 +205,9 @@ export function registerCrmToolset(
                 return raw;
               },
             });
+            const identifierCandidates = scan.matches.flatMap((row) =>
+              typeof row.id === 'number' ? [{ id: row.id, match: row.match }] : [],
+            );
             const payload = SearchContactsOutputSchema.parse({
               matches: scan.matches,
               search: {
@@ -211,6 +220,12 @@ export function registerCrmToolset(
                   matchCount: scan.matches.length,
                   complete: scan.complete,
                   resultsTruncated: scan.results_truncated,
+                }),
+                identifier_match_id: identifierMatchId({
+                  matches: identifierCandidates,
+                  complete: scan.complete,
+                  resultsTruncated: scan.results_truncated,
+                  identifierFields: ['email', 'phone'],
                 }),
                 stopped_by: scan.stopped_by,
               },

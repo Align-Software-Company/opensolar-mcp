@@ -93,13 +93,7 @@ Do not change profile or toolset membership casually. Tool names, schemas, annot
 
 Project/contact searches are bounded local scans.
 
-Only:
-
-```text
-resolution: unique
-```
-
-confirms a target.
+A target is confirmed by `resolution: unique`, or by `identifier_match_id`, which the server sets only for a single exact email or phone match on a complete, untruncated scan.
 
 `resolution: incomplete` means the bounded scan cannot prove uniqueness. `resolution: ambiguous` means multiple matches were observed. Do not guess through either state.
 
@@ -112,6 +106,7 @@ Mutations affect the live OpenSolar organisation.
 - Preserve mutation annotations.
 - Resolve human-facing identifiers conservatively.
 - Do not simulate undocumented bulk operations by looping mutations.
+- Explicit per-item writes the user asked for are made one call at a time.
 
 ## HTTP security
 
