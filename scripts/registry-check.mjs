@@ -82,6 +82,14 @@ if (!npmPackage) {
   }
 }
 
+if (Array.isArray(server.icons)) {
+  for (const icon of server.icons) {
+    if (typeof icon?.src !== 'string' || !icon.src.startsWith('https://')) {
+      failures.push('server icon src must be an https URL');
+    }
+  }
+}
+
 if (failures.length > 0) {
   process.stderr.write(['MCP Registry metadata check failed:', ...failures, ''].join('\n'));
   process.exit(1);

@@ -4,6 +4,7 @@ import { readPackageVersion } from '../../src/lib/package-version.js';
 import {
   buildServer,
   SERVER_DESCRIPTION,
+  SERVER_ICON_URL,
   SERVER_TITLE,
   SERVER_WEBSITE_URL,
 } from '../../src/server.js';
@@ -36,6 +37,7 @@ describe('server identity', () => {
         description: SERVER_DESCRIPTION,
         version: manifest.version,
         websiteUrl: SERVER_WEBSITE_URL,
+        icons: [{ src: SERVER_ICON_URL, mimeType: 'image/png', sizes: ['512x512'] }],
       });
     });
   });
@@ -45,9 +47,15 @@ describe('server identity metadata', () => {
   it('matches the MCP Registry metadata', () => {
     const registry = JSON.parse(
       readFileSync(new URL('../../server.json', import.meta.url), 'utf8'),
-    ) as { title: string; description: string; websiteUrl: string };
+    ) as {
+      title: string;
+      description: string;
+      websiteUrl: string;
+      icons: Array<{ src: string }>;
+    };
     expect(SERVER_TITLE).toBe(registry.title);
     expect(SERVER_DESCRIPTION).toBe(registry.description);
     expect(SERVER_WEBSITE_URL).toBe(registry.websiteUrl);
+    expect(SERVER_ICON_URL).toBe(registry.icons[0]?.src);
   });
 });

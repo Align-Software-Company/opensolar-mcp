@@ -16,6 +16,8 @@ export const SERVER_TITLE = 'OpenSolar MCP';
 export const SERVER_DESCRIPTION =
   'Unofficial, self-hosted MCP server for the documented OpenSolar API.';
 export const SERVER_WEBSITE_URL = 'https://github.com/Align-Software-Company/opensolar-mcp';
+export const SERVER_ICON_URL =
+  'https://raw.githubusercontent.com/Align-Software-Company/opensolar-mcp/main/docs/images/icon.png';
 
 // The tool surface is fixed for the life of the process, so 2026-era clients
 // may reuse tools/list and server/discover briefly. Results stay private
@@ -30,6 +32,7 @@ export function buildServer(requestContext: ServerRequestContext): McpServer {
       description: SERVER_DESCRIPTION,
       version: readPackageVersion(),
       websiteUrl: SERVER_WEBSITE_URL,
+      icons: [{ src: SERVER_ICON_URL, mimeType: 'image/png', sizes: ['512x512'] }],
     },
     {
       instructions: SERVER_INSTRUCTIONS,
