@@ -6,6 +6,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-09-30
+
+### Security
+
+- HTTP binds check Host and Origin even when the host is mixed-case `localhost`, and refuse MCP bodies over 4 MB with HTTP 413 before authentication. `/health` and `/ready` stay outside those checks.
+- Generic secret field names and signed file URLs are redacted. Error bodies are scrubbed of the caller's bearer token before a tool message is built.
+- OpenSolar JSON responses are capped at 32 MB while they are read. Local uploads are capped at 25 MB and are opened without following a final symlink.
+- `OPENSOLAR_BASE_URL` must be https, except http for `localhost`, `127.0.0.1`, and `[::1]`.
+
+### Changed
+
+- OpenSolar error messages explain the failure instead of telling the caller what to do. HTTP 400, 409, and 422 include sanitized field details. HTTP 413 explains the size limit. A timed-out write says the change may or may not have been applied.
+- Webhook endpoints must be https. `share_project`, `share_entities`, and `update_webhook` are marked destructive. Search, title, note, URL, and page inputs have length bounds.
+- The MCP SDK dependency is 2.2. The registry server name is `io.github.Align-Software-Company/opensolar-mcp`.
+
+### Added
+
+- A server icon, declared on the MCP server info and in `server.json`.
+
+### Known limitations
+
+- System-image downloads still follow redirects automatically and do not use the download SSRF target check.
+- Private-file downloads still re-resolve DNS after the address check.
+
+Both remain open.
+
 ## [0.1.0] - 2026-09-23
 
 Initial public release.
@@ -34,5 +60,6 @@ Initial public release.
 - Redaction of credentials, signed URLs, integration secrets, and personal identity fields from model-facing output.
 - Local uploads confined to `OPENSOLAR_UPLOAD_ROOT`, including through symlinks; 10 MB download caps; bounded Raw Data decompression.
 
-[Unreleased]: https://github.com/Align-Software-Company/opensolar-mcp/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/Align-Software-Company/opensolar-mcp/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/Align-Software-Company/opensolar-mcp/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Align-Software-Company/opensolar-mcp/releases/tag/v0.1.0

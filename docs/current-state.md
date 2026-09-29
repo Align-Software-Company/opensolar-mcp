@@ -1,15 +1,15 @@
 # Current implementation
 
-This document summarizes the behavior shipped by OpenSolar MCP `0.1.0`.
+This document summarizes the behavior shipped by OpenSolar MCP `0.1.1`.
 
-Last reviewed: 2026-09-23
+Last reviewed: 2026-09-30
 
 ## Package
 
 | Item | Value |
 | --- | --- |
 | Package | `@alignco/opensolar-mcp` |
-| Version | `0.1.0` |
+| Version | `0.1.1` |
 | Runtime | Node.js 24+ |
 | Module format | ESM |
 | Package manager | pnpm |

@@ -1,6 +1,6 @@
 {
   "name": "@alignco/opensolar-mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Unofficial, self-hosted Model Context Protocol server for the OpenSolar API",
   "mcpName": "io.github.Align-Software-Company/opensolar-mcp",
   "packageManager": "pnpm@10.34.5",

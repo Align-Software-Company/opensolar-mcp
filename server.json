@@ -3,7 +3,7 @@
   "name": "io.github.Align-Software-Company/opensolar-mcp",
   "title": "OpenSolar MCP",
   "description": "Unofficial, self-hosted MCP server for the documented OpenSolar API.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "websiteUrl": "https://github.com/Align-Software-Company/opensolar-mcp",
   "icons": [
     {
@@ -20,7 +20,7 @@
     {
       "registryType": "npm",
       "identifier": "@alignco/opensolar-mcp",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "runtimeHint": "npx",
       "transport": {
         "type": "stdio"
