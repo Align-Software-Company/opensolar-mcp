@@ -2,7 +2,7 @@
 
 This document summarizes the behavior shipped by OpenSolar MCP `0.1.1`.
 
-Last reviewed: 2026-09-30
+Last reviewed: 2026-09-28
 
 ## Package
 
