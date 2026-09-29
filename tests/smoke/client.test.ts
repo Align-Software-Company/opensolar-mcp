@@ -277,7 +277,7 @@ describe('OpenSolar client', () => {
     expect(JSON.stringify(file)).not.toContain('Signature');
     expect(JSON.stringify(file)).not.toContain(signed);
     const init = fetchMock.mock.calls[0]?.[1] as RequestInit;
-    expect(init.redirect).toBe('follow');
+    expect(init.redirect).toBe('manual');
     expect(init.headers).toEqual({ Authorization: 'Bearer test-token' });
     expect(String(fetchMock.mock.calls[0]?.[0])).toBe(
       'https://api.opensolar.com/api/orgs/1/projects/42/systems/abc-123/image/?width=500&height=500',

@@ -258,8 +258,28 @@ export function createClient(
     throw new OpenSolarApiError(`OpenSolar API 429 on ${method} ${requestPath}`, 429, '');
   }
 
-  function privateFileIdFromFileResponse(response: Response): number | null {
-    const fromUrl = privateFileIdFromText(response.url);
+  function privateFileIdFromRedirect(response: Response): number | null {
+    const location = response.headers.get('location');
+    if (location !== null) {
+      const fromLocation = privateFileIdFromText(location);
+      if (fromLocation !== null) {
+        return fromLocation;
+      }
+    }
+    for (const [name, value] of response.headers) {
+      if (name.toLowerCase() === 'location') {
+        continue;
+      }
+      const id = privateFileIdFromText(value);
+      if (id !== null) {
+        return id;
+      }
+    }
+    return null;
+  }
+
+  function privateFileIdFromFinal(url: string, response: Response): number | null {
+    const fromUrl = privateFileIdFromText(url);
     if (fromUrl !== null) {
       return fromUrl;
     }
@@ -293,55 +313,93 @@ export function createClient(
     },
     async getFile(path, options) {
       const timeoutMs = options?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-      const url = new URL(path.replace(/^\//, ''), auth.baseUrl);
-      let response: Response;
-      try {
-        response = await fetch(url, {
-          method: 'GET',
-          redirect: 'follow',
-          headers: {
-            Authorization: `Bearer ${auth.token}`,
-          },
-          signal: AbortSignal.timeout(timeoutMs),
-        });
-      } catch (error) {
-        if (isTimeoutError(error)) {
+      const signal = AbortSignal.timeout(timeoutMs);
+      const apiOrigin = new URL(auth.baseUrl).origin;
+      let current = new URL(path.replace(/^\//, ''), auth.baseUrl);
+      // A hop that leaves the configured API origin must not carry the bearer token back.
+      let leftApiOrigin = false;
+      let privateFileId: number | null = null;
+
+      for (let redirectCount = 0; ; redirectCount += 1) {
+        let response: Response;
+        try {
+          response = await fetch(current, {
+            method: 'GET',
+            redirect: 'manual',
+            signal,
+            ...(leftApiOrigin ? {} : { headers: { Authorization: `Bearer ${auth.token}` } }),
+          });
+        } catch (error) {
+          if (isTimeoutError(error)) {
+            throw new OpenSolarApiError(
+              `OpenSolar API timed out after ${timeoutMs}ms on GET ${path}`,
+              504,
+              '',
+            );
+          }
+          throw error;
+        }
+
+        if (isDownloadRedirect(response.status)) {
+          const fromRedirect = privateFileIdFromRedirect(response);
+          if (privateFileId === null && fromRedirect !== null) {
+            privateFileId = fromRedirect;
+          }
+          const location = response.headers.get('location')?.trim() ?? '';
+          await response.body?.cancel();
+          if (location === '' || redirectCount >= MAX_DOWNLOAD_REDIRECTS) {
+            throw new OpenSolarApiError(`OpenSolar API 400 on GET ${path}`, 400, '');
+          }
+          let resolved: URL;
+          try {
+            resolved = new URL(location, current);
+          } catch (error) {
+            // The URL parser's message includes Location. Signed URLs must not surface.
+            if (error instanceof TypeError) {
+              throw new OpenSolarApiError('OpenSolar file download failed', 400, '');
+            }
+            throw error;
+          }
+          if (resolved.origin === apiOrigin) {
+            current = resolved;
+            continue;
+          }
+          leftApiOrigin = true;
+          current = await requireDownloadUrl(location, lookupHost, current);
+          continue;
+        }
+
+        if (!response.ok) {
+          await response.body?.cancel();
           throw new OpenSolarApiError(
-            `OpenSolar API timed out after ${timeoutMs}ms on GET ${path}`,
-            504,
+            `OpenSolar API ${response.status} ${response.statusText} on GET ${path}`,
+            response.status,
             '',
           );
         }
-        throw error;
-      }
 
-      if (!response.ok) {
-        await response.body?.cancel();
-        throw new OpenSolarApiError(
-          `OpenSolar API ${response.status} ${response.statusText} on GET ${path}`,
-          response.status,
-          '',
+        const fromFinal = privateFileIdFromFinal(current.toString(), response);
+        if (privateFileId === null && fromFinal !== null) {
+          privateFileId = fromFinal;
+        }
+        const contentType = response.headers.get('content-type');
+        if (options?.readBody !== true) {
+          await response.body?.cancel();
+          return { contentType, privateFileId, bytes: null };
+        }
+
+        const declaredLength = Number(response.headers.get('content-length'));
+        if (Number.isFinite(declaredLength) && declaredLength > MAX_PRIVATE_FILE_BYTES) {
+          await response.body?.cancel();
+          throw new OpenSolarApiError('System image is over 10 MB', 413, '');
+        }
+        const bytes = await readLimitedBody(
+          response,
+          MAX_PRIVATE_FILE_BYTES,
+          () => new OpenSolarApiError('System image is over 10 MB', 413, ''),
         );
+        return { contentType, privateFileId, bytes };
       }
-
-      const contentType = response.headers.get('content-type');
-      const privateFileId = privateFileIdFromFileResponse(response);
-      if (options?.readBody !== true) {
-        await response.body?.cancel();
-        return { contentType, privateFileId, bytes: null };
-      }
-
-      const declaredLength = Number(response.headers.get('content-length'));
-      if (Number.isFinite(declaredLength) && declaredLength > MAX_PRIVATE_FILE_BYTES) {
-        await response.body?.cancel();
-        throw new OpenSolarApiError('System image is over 10 MB', 413, '');
-      }
-      const bytes = await readLimitedBody(
-        response,
-        MAX_PRIVATE_FILE_BYTES,
-        () => new OpenSolarApiError('System image is over 10 MB', 413, ''),
-      );
-      return { contentType, privateFileId, bytes };
     },
     async download(url, options) {
       const timeoutMs = options?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
