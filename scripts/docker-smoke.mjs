@@ -107,11 +107,18 @@ async function main() {
       fail(`Docker MCP without Authorization returned ${anonymous.status}, expected 401`);
     }
 
-    const blockedOrigin = await fetch(`${origin}/health`, {
+    const blockedOrigin = await fetch(`${origin}/mcp`, {
       headers: { Origin: 'https://evil.example' },
     });
     if (blockedOrigin.status !== 403) {
       fail(`Docker untrusted Origin returned ${blockedOrigin.status}, expected 403`);
+    }
+
+    const healthWithOrigin = await fetch(`${origin}/health`, {
+      headers: { Origin: 'https://evil.example' },
+    });
+    if (healthWithOrigin.status !== 200) {
+      fail(`Docker /health with a custom Origin returned ${healthWithOrigin.status}, expected 200`);
     }
 
     const transport = new StreamableHTTPClientTransport(new URL(`${origin}/mcp`), {

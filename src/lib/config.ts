@@ -9,10 +9,31 @@ import { ConfigError } from './config-error.js';
 
 export { ConfigError };
 
+const LOOPBACK_URL_HOSTNAMES = new Set(['localhost', '127.0.0.1', '[::1]']);
+
 export const BaseUrlSchema = z
   .string()
   .url()
   .default('https://api.opensolar.com/api/')
+  .superRefine((value, ctx) => {
+    const url = new URL(value);
+    if (url.username !== '' || url.password !== '') {
+      ctx.addIssue({ code: 'custom', message: 'OPENSOLAR_BASE_URL must not contain credentials' });
+    }
+    if (url.search !== '' || url.hash !== '') {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'OPENSOLAR_BASE_URL must not contain a query or fragment',
+      });
+    }
+    const loopback = LOOPBACK_URL_HOSTNAMES.has(url.hostname);
+    if (!(url.protocol === 'https:' || (url.protocol === 'http:' && loopback))) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'OPENSOLAR_BASE_URL must use https (http is allowed only for localhost)',
+      });
+    }
+  })
   .transform((value) => (value.endsWith('/') ? value : `${value}/`));
 
 const CredentialsSchema = z.object({
@@ -51,8 +72,28 @@ const DEFAULT_HTTP_PATH = '/mcp';
 const LOCAL_HOSTS = new Set(['127.0.0.1', 'localhost', '::1']);
 const WILDCARD_HOSTS = new Set(['0.0.0.0', '::']);
 
+/** Host and Origin hostnames accepted on loopback binds, in URL-hostname form. */
+export const LOOPBACK_ALLOWED_HOSTNAMES = ['localhost', '127.0.0.1', '[::1]'] as const;
+
 export function isLoopbackHttpHost(host: string): boolean {
   return LOCAL_HOSTS.has(host.trim().toLowerCase());
+}
+
+export function normalizeAllowedHostname(entry: string): string {
+  const trimmed = entry.trim();
+  // A bare IPv6 literal has two or more colons; URL parsing needs brackets.
+  const bracketed =
+    !trimmed.startsWith('[') && (trimmed.match(/:/g)?.length ?? 0) >= 2 ? `[${trimmed}]` : trimmed;
+  let hostname: string;
+  try {
+    hostname = new URL(`http://${bracketed}`).hostname;
+  } catch {
+    throw new ConfigError(`Invalid hostname in allowlist: ${entry}`);
+  }
+  if (hostname === '') {
+    throw new ConfigError(`Invalid hostname in allowlist: ${entry}`);
+  }
+  return hostname;
 }
 
 function formatZodIssues(error: z.ZodError): string {
@@ -179,7 +220,8 @@ function parseHostnameList(raw: string | undefined): string[] | undefined {
   const hostnames = raw
     .split(',')
     .map((hostname) => hostname.trim())
-    .filter((hostname) => hostname !== '');
+    .filter((hostname) => hostname !== '')
+    .map((hostname) => normalizeAllowedHostname(hostname));
   return hostnames.length === 0 ? undefined : hostnames;
 }
 
@@ -303,7 +345,7 @@ export function resolveHttpBind(
   flags: ParsedFlags,
   env: NodeJS.ProcessEnv = process.env,
 ): HttpBind {
-  const host = (flags.host ?? env.MCP_HTTP_HOST ?? DEFAULT_HTTP_HOST).trim();
+  const host = (flags.host ?? env.MCP_HTTP_HOST ?? DEFAULT_HTTP_HOST).trim().toLowerCase();
   const portRaw =
     flags.port ?? (env.MCP_HTTP_PORT !== undefined ? Number(env.MCP_HTTP_PORT) : DEFAULT_HTTP_PORT);
   if (!Number.isInteger(portRaw) || portRaw < 1 || portRaw > 65535) {
@@ -325,7 +367,8 @@ export function resolveHttpBind(
 
   const allowedHosts = isLoopbackHttpHost(host)
     ? undefined
-    : (configuredAllowedHosts ?? (WILDCARD_HOSTS.has(normalizedHost) ? undefined : [host]));
+    : (configuredAllowedHosts ??
+      (WILDCARD_HOSTS.has(normalizedHost) ? undefined : [normalizeAllowedHostname(host)]));
 
   return {
     host,

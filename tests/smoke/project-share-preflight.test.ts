@@ -275,7 +275,7 @@ describe('preflight_project_share', () => {
     expect(payload.connection.status).toBe('ready');
     expect(payload.project_share).toEqual({
       status: 'unknown',
-      gap: 'The record was not found',
+      gap: 'The record was not found (HTTP 404). Check the id with a list or search tool.',
     });
     expect(payload.resources.every((row) => row.share === 'unknown')).toBe(true);
   });

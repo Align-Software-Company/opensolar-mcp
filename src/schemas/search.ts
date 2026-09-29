@@ -15,6 +15,7 @@ export const SearchInputSchema = z
       .string()
       .trim()
       .min(1)
+      .max(200)
       .describe('Text to match locally. Not sent to OpenSolar as a search query.'),
     max_pages: z
       .number()
@@ -43,6 +44,7 @@ export const SearchReportSchema = z
     complete: z.boolean(),
     results_truncated: z.boolean(),
     resolution: z.enum(['none', 'unique', 'ambiguous', 'incomplete']),
+    identifier_match_id: z.number().int().positive().nullable(),
     stopped_by: z.enum(['end', 'max_pages']),
   })
   .strict();

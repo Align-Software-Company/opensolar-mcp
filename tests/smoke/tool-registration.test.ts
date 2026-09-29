@@ -227,7 +227,7 @@ const mutationAnnotations = {
   },
   update_webhook: {
     readOnlyHint: false,
-    destructiveHint: false,
+    destructiveHint: true,
     idempotentHint: true,
     openWorldHint: true,
   },
@@ -257,13 +257,13 @@ const mutationAnnotations = {
   },
   share_project: {
     readOnlyHint: false,
-    destructiveHint: false,
+    destructiveHint: true,
     idempotentHint: true,
     openWorldHint: true,
   },
   share_entities: {
     readOnlyHint: false,
-    destructiveHint: false,
+    destructiveHint: true,
     idempotentHint: true,
     openWorldHint: true,
   },

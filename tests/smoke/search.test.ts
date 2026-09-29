@@ -14,6 +14,7 @@ type SearchPayload = {
     complete: boolean;
     results_truncated: boolean;
     resolution: 'none' | 'unique' | 'ambiguous' | 'incomplete';
+    identifier_match_id: number | null;
     stopped_by: string;
     pages_scanned: number;
   };
@@ -136,6 +137,8 @@ describe('search_contacts', () => {
     expect(payload.matches.map((row) => row.id)).toEqual([2, 1]);
     expect(payload.matches[0]?.match).toEqual({ field: 'email', type: 'exact' });
     expect(payload.matches[1]?.match).toEqual({ field: 'display', type: 'prefix' });
+    expect(payload.search.resolution).toBe('ambiguous');
+    expect(payload.search.identifier_match_id).toBe(2);
   });
 
   it('lets an exact email on a later page outrank an earlier weaker match', async () => {
@@ -161,6 +164,7 @@ describe('search_contacts', () => {
       results_truncated: true,
       stopped_by: 'end',
       pages_scanned: 2,
+      identifier_match_id: null,
     });
   });
 
@@ -267,5 +271,26 @@ describe('search_projects', () => {
     expect(payload.matches[0]?.match).toEqual({ field: 'contact_email', type: 'exact' });
     expect(payload.search.resolution).toBe('unique');
     expect(payload.matches[0]).not.toHaveProperty('contacts_data');
+  });
+
+  it('names one exact contact email when a weaker project also matches', async () => {
+    const exact = {
+      id: 11,
+      title: 'Other',
+      address: '1 A Street',
+      stage: 0,
+      contacts_data: [{ id: 1, display: 'Pat Example', email: 'pat@example.test' }],
+    };
+    const weaker = {
+      id: 12,
+      title: 'pat@example.test note',
+      address: '2 B Street',
+      stage: 0,
+    };
+    const { payload } = await search('search_projects', [[exact, weaker]], {
+      query: 'pat@example.test',
+    });
+    expect(payload.search.resolution).toBe('ambiguous');
+    expect(payload.search.identifier_match_id).toBe(11);
   });
 });

@@ -74,7 +74,13 @@ const SYSTEM_DETAILS_TIMEOUT_MS = 120_000;
 const DEFAULT_INCLUDE_PARTS = 'modules,inverters,batteries,module_groups,incentives';
 
 const pageLimitFields = {
-  page: z.number().int().min(1).default(1).describe('1-indexed page number. Defaults to 1.'),
+  page: z
+    .number()
+    .int()
+    .min(1)
+    .max(100000)
+    .default(1)
+    .describe('1-indexed page number. Defaults to 1.'),
   limit: z
     .number()
     .int()

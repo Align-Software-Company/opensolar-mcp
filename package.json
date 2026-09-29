@@ -1,8 +1,8 @@
 {
   "name": "@alignco/opensolar-mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Unofficial, self-hosted Model Context Protocol server for the OpenSolar API",
-  "mcpName": "io.github.align-software-company/opensolar-mcp",
+  "mcpName": "io.github.Align-Software-Company/opensolar-mcp",
   "packageManager": "pnpm@10.34.5",
   "author": "Align Software Company",
   "license": "MIT",
@@ -53,19 +53,19 @@
   },
   "dependencies": {
     "@hono/node-server": "^2.1.1",
-    "@modelcontextprotocol/hono": "^2.0.0",
-    "@modelcontextprotocol/server": "^2.0.0",
+    "@modelcontextprotocol/hono": "^2.0.1",
+    "@modelcontextprotocol/server": "^2.2.0",
     "hono": "^4.13.8",
     "unpdf": "^1.8.1",
     "zod": "^4.6.5"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.4.15",
-    "@modelcontextprotocol/client": "^2.0.0",
+    "@biomejs/biome": "^2.5.14",
+    "@modelcontextprotocol/client": "^2.2.0",
     "@types/node": "^24.13.3",
     "tsup": "^8.5.1",
     "tsx": "^4.23.15",
-    "typescript": "^5.9.3",
+    "typescript": "^7.0.2",
     "vitest": "^5.0.1"
   }
 }

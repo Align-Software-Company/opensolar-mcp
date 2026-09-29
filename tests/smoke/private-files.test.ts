@@ -10,6 +10,7 @@ import {
   PrivateFileDetailSchema,
 } from '../../src/schemas/private-file.js';
 import { buildServer } from '../../src/server.js';
+import { MAX_UPLOAD_BYTES } from '../../src/tools/files.js';
 import { loadOpenSolarFixture } from '../fixtures/load-fixture.js';
 import {
   ALL_TOOL_FILTERS,
@@ -645,6 +646,32 @@ describe('update_private_file', () => {
 
     expect(result.isError).toBe(true);
     expect(calls).toEqual([]);
+  });
+
+  it('rejects a file over 25 MB', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'opensolar-upload-large-'));
+    const largePath = join(root, 'large.bin');
+    try {
+      await writeFile(largePath, Buffer.alloc(MAX_UPLOAD_BYTES + 1));
+      const { client, calls } = fileClient();
+      const mcp = buildServer({
+        client,
+        orgId: 1,
+        filters: ALL_TOOL_FILTERS,
+        uploadRoot: root,
+      });
+      const result = await withMcpClient(mcp, (session) =>
+        session.callTool({
+          name: 'create_private_file',
+          arguments: { path: largePath, title: 'Too big' },
+        }),
+      );
+      expect(result.isError).toBe(true);
+      expect(result.content).toEqual([{ type: 'text', text: 'Private file is over 25 MB.' }]);
+      expect(calls).toEqual([]);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
   });
 });
 

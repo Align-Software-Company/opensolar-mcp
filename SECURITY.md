@@ -43,7 +43,8 @@ OpenSolar MCP is self-hosted software. It does not provide a shared OpenSolar cr
 - In HTTP mode the bearer token sent by the client **is the OpenSolar API token**, which the server forwards to OpenSolar. It is not an MCP OAuth access token issued for this server. Anyone who can reach the endpoint with a valid OpenSolar token can act as that OpenSolar user, so treat the endpoint like the OpenSolar API itself. If several people share one deployment, put an authenticating gateway in front of it.
 - Host allowlisting protects against DNS rebinding. Browser Origin allowlisting is a separate control. Neither replaces authentication.
 - The built-in server speaks plain HTTP. Internet-facing deployments must terminate TLS at a trusted reverse proxy or hosting platform.
-- `/health` and `/ready` return process status only and do not require a token.
+- `/health` and `/ready` return process status only, do not require a token, and sit outside the Host and Origin checks.
+- MCP requests larger than 4 MB are refused with HTTP 413 before authentication.
 
 ### Mutations
 
@@ -51,18 +52,19 @@ Mutation tools act on the configured live OpenSolar organisation.
 
 - `OPENSOLAR_READ_ONLY=1` removes every registered mutation tool. Unrecognized values stop startup rather than leaving writes enabled.
 - Writes are never retried automatically.
-- Tool annotations mark read-only, mutating, and destructive behavior.
-- A search result is treated as a confirmed target only when the bounded scan reports `resolution: unique`.
+- Tool annotations mark read-only, mutating, and destructive behavior. `share_project`, `share_entities`, and `update_webhook` are marked destructive.
+- Webhook endpoints must be https URLs.
+- A search confirms a target when the bounded scan reports `resolution: unique`, or `identifier_match_id` for a single exact email or phone match on a complete, untruncated scan.
 
 ### Local files
 
 `create_private_file` is disabled unless `OPENSOLAR_UPLOAD_ROOT` is configured. Resolved real paths must stay inside that root, including through symlinks, and the model never supplies file bytes.
 
-Private-file downloads and system images are capped at 10 MB. Signed download URLs are not returned to the model.
+Private-file downloads and system images are capped at 10 MB. Local uploads are capped at 25 MB. Signed download URLs are not returned to the model.
 
 ### Resource limits
 
-Compressed Raw Data expansion is bounded before JSON parsing. Model-facing text from private files is truncated at a fixed limit. Searches stop at a fixed page limit. Only ordinary JSON reads retry, and only on HTTP 429.
+Compressed Raw Data expansion is bounded before JSON parsing. JSON responses from OpenSolar are capped at 32 MB while they are read. `OPENSOLAR_BASE_URL` must be https, except http for `localhost`, `127.0.0.1`, and `[::1]`. Model-facing text from private files is truncated at a fixed limit. Searches stop at a fixed page limit. Only ordinary JSON reads retry, and only on HTTP 429.
 
 ## Out of scope
 

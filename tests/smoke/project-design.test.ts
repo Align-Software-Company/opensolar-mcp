@@ -194,7 +194,12 @@ describe('get_project_design', () => {
     );
 
     expect(result.isError).toBe(true);
-    expect(result.content).toEqual([{ type: 'text', text: 'This call needs Raw Data API Access' }]);
+    expect(result.content).toEqual([
+      {
+        type: 'text',
+        text: "This call needs Raw Data API Access, or the organisation's OpenSolar plan does not cover it (HTTP 402).",
+      },
+    ]);
     expect(JSON.stringify(result)).not.toContain('BODY-SHOULD-NOT-LEAK');
   });
 });

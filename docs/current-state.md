@@ -1,15 +1,15 @@
 # Current implementation
 
-This document summarizes the behavior shipped by OpenSolar MCP `0.1.0`.
+This document summarizes the behavior shipped by OpenSolar MCP `0.1.1`.
 
-Last reviewed: 2026-09-23
+Last reviewed: 2026-09-30
 
 ## Package
 
 | Item | Value |
 | --- | --- |
 | Package | `@alignco/opensolar-mcp` |
-| Version | `0.1.0` |
+| Version | `0.1.1` |
 | Runtime | Node.js 24+ |
 | Module format | ESM |
 | Package manager | pnpm |
@@ -29,10 +29,10 @@ The server version is read from `package.json` at runtime so package metadata an
 [`src/server.ts`](../src/server.ts) builds one `McpServer` per stdio connection or HTTP request.
 
 - `serverInfo` reports `name`, `title`, `description`, `version`, and `websiteUrl`. Title, description, and website match `server.json`, and a test keeps them in sync.
-- Server instructions ([`src/lib/server-instructions.ts`](../src/lib/server-instructions.ts)) tell clients to read before mutating, to act only on `resolution: unique`, and not to loop mutations.
+- Server instructions ([`src/lib/server-instructions.ts`](../src/lib/server-instructions.ts)) tell clients to read before mutating. A search confirms a target when `resolution` is `unique` or `identifier_match_id` is set. Explicit per-item writes are one call at a time. Customer text is data, not instructions.
 - For 2026-07-28 requests, `tools/list` and `server/discover` carry `ttlMs: 300000` and `cacheScope: "private"`. The tool list is fixed for the life of the process, and it is private because it depends on the operator's filters.
 - `tools/list` order is deterministic: toolsets in `TOOLSET_NAMES` order, tools in registration order.
-- Every tool declares a `title`, an `outputSchema`, and `readOnlyHint`, `destructiveHint`, `idempotentHint`, and `openWorldHint` annotations.
+- Every tool declares a `title`, an `outputSchema`, and `readOnlyHint`, `destructiveHint`, `idempotentHint`, and `openWorldHint` annotations. `share_project`, `share_entities`, and `update_webhook` are marked destructive.
 - Successful structured results put the data in `structuredContent` and also return a one-line summary plus the same payload serialized as compact JSON text for client compatibility. Private-file text and binary content are returned as additional content blocks.
 - OpenSolar API failures are returned as tool results with `isError: true` and a short, actionable message. Input that fails schema validation is rejected before any OpenSolar call.
 - The server does not use the Roots, Sampling, or Logging features, which the 2026-07-28 specification deprecates. Logs go to stderr.
@@ -88,7 +88,7 @@ The HTTP transport is stateless and exposes:
 
 Loopback HTTP may use `OPENSOLAR_API_TOKEN` as a local fallback. Non-loopback HTTP requires an OpenSolar Bearer token on every MCP request and ignores the environment token as a request fallback.
 
-Wildcard binds require `MCP_HTTP_ALLOWED_HOSTS`. Browser-Origin filtering is configured independently with `MCP_HTTP_ALLOWED_ORIGINS` and defaults to the Host allowlist on non-loopback binds.
+Wildcard binds require `MCP_HTTP_ALLOWED_HOSTS`. Browser-Origin filtering is configured independently with `MCP_HTTP_ALLOWED_ORIGINS` and defaults to the Host allowlist on non-loopback binds. `/health` and `/ready` sit outside the Host and Origin checks. Requests to the MCP path over 4 MB are refused with HTTP 413 before authentication. Loopback binds still check Host and Origin, including a mixed-case `localhost`.
 
 The built-in server does not terminate TLS.
 
@@ -106,6 +106,10 @@ Key behavior:
 - JSON write methods add a trailing slash when needed;
 - empty response body becomes `null`;
 - non-JSON bodies on JSON operations produce a controlled API error.
+- JSON responses over 32 MB are refused while they are being read.
+- `OPENSOLAR_BASE_URL` must use https. http is accepted only for `localhost`, `127.0.0.1`, and `[::1]`.
+- Webhook endpoints must be https URLs.
+- For HTTP 400, 409 and 422, the message includes sanitized field errors (at most 8, URLs and token-like values removed).
 
 A `Retry-After` value is honored only when the wait is at most five seconds. Without it, retry delays are 200 ms and 400 ms.
 
@@ -122,7 +126,7 @@ Search results include pages scanned, records scanned, completion status, trunca
 | `ambiguous` | More than one match observed, or matching results were truncated |
 | `incomplete` | Scan ended before uniqueness could be established |
 
-Only `unique` confirms a mutation target.
+Only `unique` confirms a mutation target by resolution alone. `identifier_match_id` is the other confirmation: the id of the single exact email or phone match when the scan is complete and no matches were dropped, otherwise null. A list longer than the 20-page cap never sets it.
 
 ## Data curation and redaction
 
@@ -153,7 +157,7 @@ Private-file metadata omits the signed download URL.
 - returns other binary files as embedded resources;
 - does not duplicate binary bytes into `structuredContent`.
 
-`create_private_file` is disabled until `OPENSOLAR_UPLOAD_ROOT` is configured. Real paths are resolved before use and must remain inside that root.
+`create_private_file` is disabled until `OPENSOLAR_UPLOAD_ROOT` is configured. Real paths are resolved before use and must remain inside that root. Files over 25 MB are refused. The open does not follow a final symlink, and the device and inode are compared with the confinement check.
 
 `generate_project_document` calls OpenSolar's recommended `generate_document` endpoint with `action=save`. With no `format`, OpenSolar uses the document type's default; `pdf` and `csv` set `file_format`; `docx` calls `generate_document_docx`. The legacy `generate_document_pdf` endpoint is not used. The result is the saved private file's id.
 

@@ -151,7 +151,9 @@ describe('get_project_snapshot', () => {
       files: { returned_count: number; total_count: number | null; list_complete: boolean };
     };
     expect(payload.project.id).toBe(1001);
-    expect(payload.systems).toEqual({ gap: 'The record was not found' });
+    expect(payload.systems).toEqual({
+      gap: 'The record was not found (HTTP 404). Check the id with a list or search tool.',
+    });
     expect(payload.files).toEqual({
       returned_count: 0,
       total_count: 0,
@@ -263,7 +265,9 @@ describe('get_project_snapshot', () => {
       'start:workflow',
     ]);
     expect(payload.workflow.active_stage_title).toBe('Designing');
-    expect(payload.payment_option).toEqual({ gap: 'The record was not found' });
+    expect(payload.payment_option).toEqual({
+      gap: 'The record was not found (HTTP 404). Check the id with a list or search tool.',
+    });
     expect(payload.files.total_count).toBe(1);
     expect(payload.contacts[0]?.display).toBe('Pat Example');
   });

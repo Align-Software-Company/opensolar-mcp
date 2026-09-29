@@ -37,7 +37,7 @@ const createAnnotations = {
 
 const updateAnnotations = {
   readOnlyHint: false,
-  destructiveHint: false,
+  destructiveHint: true,
   idempotentHint: true,
   openWorldHint: true,
 } as const;
@@ -49,7 +49,12 @@ const fieldPaths = z
   );
 
 const webhookFields = {
-  endpoint: z.string().min(1).describe('URL that receives the webhook.'),
+  endpoint: z
+    .string()
+    .url()
+    .max(2048)
+    .refine((value) => new URL(value).protocol === 'https:', 'endpoint must be an https URL')
+    .describe('HTTPS URL that receives the webhook.'),
   enabled: z.boolean().describe('Whether the webhook is active.'),
   debug: z.boolean().describe('Required on create. OpenSolar currently does not use this flag.'),
   trigger_fields: fieldPaths.optional(),
@@ -82,7 +87,13 @@ const updateWebhookInput = z
   );
 
 const pageLimitFields = {
-  page: z.number().int().min(1).default(1).describe('1-indexed page number. Defaults to 1.'),
+  page: z
+    .number()
+    .int()
+    .min(1)
+    .max(100000)
+    .default(1)
+    .describe('1-indexed page number. Defaults to 1.'),
   limit: z
     .number()
     .int()
@@ -94,7 +105,12 @@ const pageLimitFields = {
 
 const listWebhookLogsInput = z.object({
   ...pageLimitFields,
-  search: z.string().min(1).optional().describe('When set, keep logs that contain this term.'),
+  search: z
+    .string()
+    .min(1)
+    .max(200)
+    .optional()
+    .describe('When set, keep logs that contain this term.'),
 });
 
 const listWebhookQueueInput = z.object(pageLimitFields);

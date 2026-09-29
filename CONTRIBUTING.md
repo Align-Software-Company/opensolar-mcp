@@ -80,7 +80,7 @@ Tool names, schemas, descriptions, annotations, profile membership, toolset memb
 
 For bounded project and contact search:
 
-- `resolution: unique` confirms a single target only after the scan is complete.
+- `resolution: unique` confirms a single target only after the scan is complete. `identifier_match_id` is the only other confirmation, and follows the same complete-scan rule.
 - `resolution: incomplete` means uniqueness was not established.
 - `resolution: ambiguous` means multiple matches were observed.
 

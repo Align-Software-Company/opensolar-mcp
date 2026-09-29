@@ -108,4 +108,31 @@ describe('update_project_stage by title', () => {
     expect(result.isError).toBe(true);
     expect(writes).toEqual([]);
   });
+
+  it('lists active stage ids when a title is ambiguous', async () => {
+    const installing = {
+      id: 200,
+      title: 'Example Workflow',
+      workflow_stages: [
+        { id: 11, title: 'Installing', milestone: 1, order: 0 },
+        { id: 12, title: 'Installing', milestone: 1, order: 1 },
+      ],
+    };
+    const { client, writes } = stageClient({
+      'orgs/1/workflows/200/': installing,
+    });
+    client.patch = async () => {
+      throw new Error('patch must not be called');
+    };
+    const mcp = buildServer({ client, orgId: 1, filters: ALL_TOOL_FILTERS });
+    const result = await withMcpClient(mcp, (session) =>
+      session.callTool({
+        name: 'update_project_stage',
+        arguments: { project_id: 1001, workflow_id: 200, stage_name: 'Installing' },
+      }),
+    );
+    expect(result.isError).toBe(true);
+    expect(JSON.stringify(result.content)).toContain('ids 11, 12');
+    expect(writes).toEqual([]);
+  });
 });

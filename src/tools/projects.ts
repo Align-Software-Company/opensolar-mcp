@@ -11,7 +11,12 @@ import {
 import { loadProjectSnapshot } from '../lib/project-snapshot.js';
 import { DEFAULT_REDACTION, redactSensitive } from '../lib/redaction.js';
 import { resolveWorkflowStage } from '../lib/resolve-workflow-stage.js';
-import { BareListPageError, scanPaginatedCollection, searchResolution } from '../lib/scan-pages.js';
+import {
+  BareListPageError,
+  identifierMatchId,
+  scanPaginatedCollection,
+  searchResolution,
+} from '../lib/scan-pages.js';
 import type { ToolName } from '../lib/tier-policy.js';
 import { ContactWriteSchema } from '../schemas/contact.js';
 import {
@@ -127,17 +132,17 @@ const updateProjectUsageInputSchema = z
   });
 
 const projectScalarFields = {
-  address: z.string().optional().describe('Street address.'),
-  locality: z.string().optional().describe('City or locality.'),
-  state: z.string().optional().describe('State or region.'),
-  zip: z.string().optional().describe('Postal code.'),
-  country_iso2: z.string().optional().describe('ISO 3166-1 alpha-2 country code.'),
+  address: z.string().max(255).optional().describe('Street address.'),
+  locality: z.string().max(255).optional().describe('City or locality.'),
+  state: z.string().max(255).optional().describe('State or region.'),
+  zip: z.string().max(255).optional().describe('Postal code.'),
+  country_iso2: z.string().max(255).optional().describe('ISO 3166-1 alpha-2 country code.'),
   lat: z.number().optional().describe('Latitude.'),
   lon: z.number().optional().describe('Longitude.'),
   is_residential: z.boolean().optional().describe('True when the project is residential.'),
-  lead_source: z.string().optional().describe('Lead source label.'),
-  notes: z.string().optional().describe('Project notes.'),
-  identifier: z.string().optional().describe('External identifier.'),
+  lead_source: z.string().max(255).optional().describe('Lead source label.'),
+  notes: z.string().max(10000).optional().describe('Project notes.'),
+  identifier: z.string().max(255).optional().describe('External identifier.'),
   number_of_phases: z.number().int().optional().describe('Electrical phase count.'),
   roof_type: z
     .number()
@@ -189,6 +194,7 @@ const updateProjectStageInputSchema = z
       .string()
       .trim()
       .min(1)
+      .max(255)
       .optional()
       .describe(
         'Stage title on the workflow. Resolved locally against stages that are not archived. Do not send this together with active_stage_id.',
@@ -359,6 +365,7 @@ const listProjectsInputSchema = z.object({
     .number()
     .int()
     .min(1)
+    .max(100000)
     .default(1)
     .describe('1-indexed page number. Use page=2 to fetch the next batch of results.'),
   verbose: z
@@ -441,6 +448,7 @@ export function registerProjectsToolset(
           'identifier, locality, state, and zip match only when that list row carries them. ' +
           'The scan reads until the list ends or max_pages is reached. Returned rows are the strongest matches. Equal strength keeps list order. ' +
           '`resolution` is `none`, `unique`, `ambiguous`, or `incomplete`. Only `unique` proves exactly one match after exhausting the scan. ' +
+          '`identifier_match_id` names the record when the complete, untruncated scan found exactly one exact email or phone match; otherwise it is null. ' +
           '`complete` is false when further pages were not read. `results_truncated` is true when some matches on the scanned pages were not returned. `stopped_by` is `end` or `max_pages`. ' +
           'The 20-page cap is an MCP work bound, not an OpenSolar quota. This server does not count that quota.',
         inputSchema: SearchInputSchema,
@@ -470,6 +478,9 @@ export function registerProjectsToolset(
                 return raw;
               },
             });
+            const identifierCandidates = scan.matches.flatMap((row) =>
+              typeof row.id === 'number' ? [{ id: row.id, match: row.match }] : [],
+            );
             const payload = SearchProjectsOutputSchema.parse({
               matches: scan.matches,
               search: {
@@ -482,6 +493,12 @@ export function registerProjectsToolset(
                   matchCount: scan.matches.length,
                   complete: scan.complete,
                   resultsTruncated: scan.results_truncated,
+                }),
+                identifier_match_id: identifierMatchId({
+                  matches: identifierCandidates,
+                  complete: scan.complete,
+                  resultsTruncated: scan.results_truncated,
+                  identifierFields: ['contact_email', 'contact_phone'],
                 }),
                 stopped_by: scan.stopped_by,
               },
@@ -666,7 +683,7 @@ export function registerProjectsToolset(
           }
           if (resolved.status === 'ambiguous') {
             return stageToolError(
-              `More than one stage is titled "${stage_name}". Send active_stage_id.`,
+              `More than one active stage is titled "${stage_name}" (ids ${resolved.stageIds.join(', ')}). Send active_stage_id with workflow_id.`,
             );
           }
           const raw = await ctx.client.patch(

@@ -330,7 +330,7 @@ Some documented OpenSolar operations are intentionally **not** exposed because t
 | --- | --- | --- |
 | `OPENSOLAR_API_TOKEN` | OpenSolar bearer token. Required for stdio and `--check`. Loopback HTTP can use it as a fallback. | — |
 | `OPENSOLAR_ORG_ID` | Your OpenSolar organisation ID. | required |
-| `OPENSOLAR_BASE_URL` | OpenSolar API base URL. | `https://api.opensolar.com/api/` |
+| `OPENSOLAR_BASE_URL` | OpenSolar API base URL. Must be https (http only for localhost). | `https://api.opensolar.com/api/` |
 | `OPENSOLAR_PROFILE` | Tool profile: `agent` or `full`. | `agent` |
 | `OPENSOLAR_TOOLSETS` | Comma-separated toolsets. Replaces the profile's selection when set. | unset |
 | `OPENSOLAR_READ_ONLY` | `1`, `true`, `yes`, or `on` hides every mutation. `0`, `false`, `no`, or `off` keeps them. Any other value stops startup. | off |
@@ -429,7 +429,7 @@ Inside the container the server binds to `0.0.0.0`, so clients must send `Author
 
 - **Your credentials, your process.** Tokens stay in your environment or your client's configuration. Nothing is persisted, and this project runs no hosted service.
 - **Writes are explicit.** Mutating tools carry MCP `readOnlyHint: false` annotations, destructive ones carry `destructiveHint: true`, and none are retried automatically. `OPENSOLAR_READ_ONLY=1` removes them entirely.
-- **No guessing.** Only a search result with `resolution: unique` confirms a target, and the server instructions tell agents not to loop mutations to simulate bulk operations.
+- **No guessing.** A search confirms a target only when it reports `resolution: unique`, or `identifier_match_id` for a single exact email or phone match on a complete scan. The server never retries writes and exposes no hidden bulk writes.
 - **Minimal output.** Signed download URLs, integration secrets, webhook secrets, personal identity fields, and raw design data are redacted or omitted.
 - **Bounded work.** Searches, downloads, and Raw Data decompression all have fixed limits. Only ordinary reads retry, and only on HTTP 429, up to three attempts.
 - **HTTP mode passes your OpenSolar token through.** The bearer token a client sends is the OpenSolar token itself, forwarded to OpenSolar. It is not an MCP OAuth token. If several people share one deployment, put an authenticating gateway in front of it.
@@ -454,7 +454,7 @@ Successful structured tool results also include the same payload serialized as c
 | `Token missing or expired` | Standard tokens expire after seven days. Get a new token, or use a [machine user](https://developers.opensolar.com/api/how-to-set-machine-user/). |
 | `This call needs Raw Data API Access` | Enable Raw Data API Access in OpenSolar, or set `OPENSOLAR_PLAN=api_access` to hide those tools. |
 | `The caller cannot use this record` (HTTP 403) | The token's user lacks permission, or the project is outside your API Access entitlement. |
-| `Throttled. Wait. Do not loop` (HTTP 429) | You hit an OpenSolar [throttle limit](https://developers.opensolar.com/api/throttle/). Wait before retrying. |
+| `Throttled by OpenSolar` (HTTP 429) | You hit an OpenSolar [throttle limit](https://developers.opensolar.com/api/throttle/). Wait before retrying. |
 | A tool you expect is missing | Run with `--list-tools` using the same environment and check `OPENSOLAR_PROFILE`, `OPENSOLAR_TOOLSETS`, `OPENSOLAR_READ_ONLY`, and `OPENSOLAR_PLAN`. |
 | `Unknown OPENSOLAR_READ_ONLY` at startup | Use `1`/`true`/`yes`/`on` or `0`/`false`/`no`/`off`. Anything else is refused so a typo can't expose writes. |
 | The server won't start from your client | Check `node --version` is 24 or newer on the `PATH` your client uses. On Windows, some clients need `"command": "cmd"` with `"args": ["/c", "npx", "-y", "@alignco/opensolar-mcp"]`. |

@@ -202,7 +202,9 @@ describe('compare_project_systems', () => {
       systems: Array<Record<string, unknown>>;
     };
 
-    expect(payload.hardware_gap).toBe('The record was not found');
+    expect(payload.hardware_gap).toBe(
+      'The record was not found (HTTP 404). Check the id with a list or search tool.',
+    );
     expect(payload.systems[0]).toMatchObject({
       id: 9,
       kw_stc: 1,

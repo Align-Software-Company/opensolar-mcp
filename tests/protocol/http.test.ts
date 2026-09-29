@@ -1,9 +1,10 @@
+import { request as httpRequest } from 'node:http';
 import type { ServerType } from '@hono/node-server';
 import { serve } from '@hono/node-server';
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { LIST_CACHE_TTL_MS, SERVER_TITLE } from '../../src/server.js';
-import { createHttpApp } from '../../src/transports/http.js';
+import { createHttpApp, MAX_HTTP_BODY_BYTES } from '../../src/transports/http.js';
 import { loadOpenSolarFixture } from '../fixtures/load-fixture.js';
 
 async function listenApp(
@@ -30,6 +31,26 @@ async function listenApp(
         });
       }),
   };
+}
+
+function rawPost(
+  origin: string,
+  path: string,
+  headers: Record<string, string>,
+  body = '{}',
+): Promise<number> {
+  const url = new URL(path, origin);
+  return new Promise((resolve, reject) => {
+    const req = httpRequest(
+      { host: url.hostname, port: url.port, path: url.pathname, method: 'POST', headers },
+      (res) => {
+        res.resume();
+        resolve(res.statusCode ?? 0);
+      },
+    );
+    req.on('error', reject);
+    req.end(body);
+  });
 }
 
 afterEach(() => {
@@ -207,15 +228,15 @@ describe('stateless HTTP transport', () => {
     });
     const listening = await listenApp(app);
     try {
-      const blocked = await fetch(`${listening.origin}/health`, {
+      const blocked = await fetch(`${listening.origin}/mcp`, {
         headers: { Origin: 'https://evil.example' },
       });
       expect(blocked.status).toBe(403);
 
-      const allowed = await fetch(`${listening.origin}/health`, {
+      const allowed = await fetch(`${listening.origin}/mcp`, {
         headers: { Origin: 'https://trusted.example' },
       });
-      expect(allowed.status).toBe(200);
+      expect(allowed.status).toBe(401);
     } finally {
       await listening.close();
     }
@@ -281,6 +302,109 @@ describe('stateless HTTP transport', () => {
       } finally {
         await client.close();
       }
+    } finally {
+      await listening.close();
+    }
+  });
+
+  it('rejects an untrusted Host on a mixed-case loopback bind', async () => {
+    vi.stubEnv('OPENSOLAR_ORG_ID', '1');
+    vi.stubEnv('OPENSOLAR_API_TOKEN', 'env-token');
+    const app = createHttpApp({
+      host: 'LOCALHOST',
+      port: 3000,
+      path: '/mcp',
+      allowedHosts: undefined,
+    });
+    const listening = await listenApp(app);
+    const port = new URL(listening.origin).port;
+    try {
+      const blocked = await rawPost(
+        listening.origin,
+        '/mcp',
+        {
+          Host: 'evil.example',
+          'Content-Type': 'application/json',
+        },
+        '{"jsonrpc":"2.0","id":1,"method":"tools/list"}',
+      );
+      expect(blocked).toBe(403);
+
+      const allowed = await rawPost(
+        listening.origin,
+        '/mcp',
+        {
+          Host: `127.0.0.1:${port}`,
+          'Content-Type': 'application/json',
+        },
+        '{"jsonrpc":"2.0","id":1,"method":"tools/list"}',
+      );
+      expect(allowed).not.toBe(403);
+    } finally {
+      await listening.close();
+    }
+  });
+
+  it('rejects an untrusted Origin on loopback HTTP', async () => {
+    vi.stubEnv('OPENSOLAR_ORG_ID', '1');
+    vi.stubEnv('OPENSOLAR_API_TOKEN', 'env-token');
+    const app = createHttpApp({
+      host: 'LOCALHOST',
+      port: 3000,
+      path: '/mcp',
+      allowedHosts: undefined,
+    });
+    const listening = await listenApp(app);
+    const port = new URL(listening.origin).port;
+    try {
+      const blocked = await rawPost(listening.origin, '/mcp', {
+        Host: `127.0.0.1:${port}`,
+        Origin: 'http://evil.example',
+        'Content-Type': 'application/json',
+      });
+      expect(blocked).toBe(403);
+    } finally {
+      await listening.close();
+    }
+  });
+
+  it('rejects an oversized body before authentication', async () => {
+    vi.stubEnv('OPENSOLAR_ORG_ID', '1');
+    const app = createHttpApp({
+      host: '0.0.0.0',
+      port: 3000,
+      path: '/mcp',
+      allowedHosts: ['127.0.0.1'],
+    });
+    const listening = await listenApp(app);
+    try {
+      const status = await rawPost(
+        listening.origin,
+        '/mcp',
+        {
+          Host: '127.0.0.1',
+          'Content-Type': 'application/json',
+        },
+        'x'.repeat(MAX_HTTP_BODY_BYTES + 1),
+      );
+      expect(status).toBe(413);
+    } finally {
+      await listening.close();
+    }
+  });
+
+  it('serves health outside a custom host allowlist', async () => {
+    vi.stubEnv('OPENSOLAR_ORG_ID', '1');
+    const app = createHttpApp({
+      host: '0.0.0.0',
+      port: 3000,
+      path: '/mcp',
+      allowedHosts: ['mcp.example.test'],
+    });
+    const listening = await listenApp(app);
+    try {
+      const health = await fetch(`${listening.origin}/health`);
+      expect(health.status).toBe(200);
     } finally {
       await listening.close();
     }

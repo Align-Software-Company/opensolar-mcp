@@ -1,10 +1,17 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.align-software-company/opensolar-mcp",
+  "name": "io.github.Align-Software-Company/opensolar-mcp",
   "title": "OpenSolar MCP",
   "description": "Unofficial, self-hosted MCP server for the documented OpenSolar API.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "websiteUrl": "https://github.com/Align-Software-Company/opensolar-mcp",
+  "icons": [
+    {
+      "src": "https://raw.githubusercontent.com/Align-Software-Company/opensolar-mcp/main/docs/images/icon.png",
+      "mimeType": "image/png",
+      "sizes": ["512x512"]
+    }
+  ],
   "repository": {
     "url": "https://github.com/Align-Software-Company/opensolar-mcp",
     "source": "github"
@@ -13,7 +20,7 @@
     {
       "registryType": "npm",
       "identifier": "@alignco/opensolar-mcp",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "runtimeHint": "npx",
       "transport": {
         "type": "stdio"
