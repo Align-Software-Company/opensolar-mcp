@@ -1,6 +1,6 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.align-software-company/opensolar-mcp",
+  "name": "io.github.Align-Software-Company/opensolar-mcp",
   "title": "OpenSolar MCP",
   "description": "Unofficial, self-hosted MCP server for the documented OpenSolar API.",
   "version": "0.1.0",

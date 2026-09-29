@@ -13,7 +13,7 @@ LABEL org.opencontainers.image.title="OpenSolar MCP" \
       org.opencontainers.image.description="Unofficial, self-hosted MCP server for the documented OpenSolar API." \
       org.opencontainers.image.source="https://github.com/Align-Software-Company/opensolar-mcp" \
       org.opencontainers.image.licenses="MIT" \
-      io.modelcontextprotocol.server.name="io.github.align-software-company/opensolar-mcp"
+      io.modelcontextprotocol.server.name="io.github.Align-Software-Company/opensolar-mcp"
 WORKDIR /app
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 RUN corepack enable

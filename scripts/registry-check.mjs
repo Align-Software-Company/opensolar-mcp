@@ -20,6 +20,12 @@ expectEqual(
   'server.json $schema',
 );
 expectEqual(server.name, pkg.mcpName, 'server name / package mcpName');
+const allowedNamespaces = ['io.github.Align-Software-Company/'];
+if (!allowedNamespaces.some((prefix) => server.name.startsWith(prefix))) {
+  failures.push(
+    `server name must start with one of ${allowedNamespaces.join(', ')} (case-sensitive)`,
+  );
+}
 expectEqual(server.version, pkg.version, 'server version / package version');
 
 const npmPackage = Array.isArray(server.packages)
