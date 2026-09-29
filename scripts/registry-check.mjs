@@ -89,7 +89,11 @@ const ociPackage = Array.isArray(server.packages)
 if (!ociPackage) {
   failures.push('server.json must declare an oci package');
 } else {
-  expectEqual(ociPackage.version, pkg.version, 'oci package version / package version');
+  if (Object.hasOwn(ociPackage, 'version')) {
+    failures.push(
+      'oci package must not have a version field; the tag in identifier is the version',
+    );
+  }
   expectEqual(
     ociPackage.identifier,
     `ghcr.io/align-software-company/opensolar-mcp:${pkg.version}`,

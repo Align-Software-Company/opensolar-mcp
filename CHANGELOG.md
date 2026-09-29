@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
-- The tag workflow pushes `ghcr.io/align-software-company/opensolar-mcp` to GHCR, and `server.json` declares that image for Streamable HTTP on `http://localhost:3000/mcp`.
+- The tag workflow pushes `ghcr.io/align-software-company/opensolar-mcp` for `linux/amd64` and `linux/arm64` to GHCR, and `server.json` declares that image for Streamable HTTP on `http://localhost:3000/mcp`.
 
 ## [0.1.1] - 2026-09-28
 

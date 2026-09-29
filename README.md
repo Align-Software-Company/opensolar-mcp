@@ -437,7 +437,7 @@ Inside the container the server binds to `0.0.0.0`, so clients must send `Author
 
 ## Security model
 
-- **No telemetry.** The server sends nothing anywhere except your requests to the OpenSolar API.
+- **No telemetry.** The server sends no analytics or usage data. Its only outbound requests are to the OpenSolar API and to the file and image URLs that OpenSolar returns.
 - **Your credentials, your process.** Tokens stay in your environment or your client's configuration. Nothing is persisted, and this project runs no hosted service.
 - **Writes are explicit.** Mutating tools carry MCP `readOnlyHint: false` annotations, destructive ones carry `destructiveHint: true`, and none are retried automatically. `OPENSOLAR_READ_ONLY=1` removes them entirely.
 - **No guessing.** A search confirms a target only when it reports `resolution: unique`, or `identifier_match_id` for a single exact email or phone match on a complete scan. The server never retries writes and exposes no hidden bulk writes.

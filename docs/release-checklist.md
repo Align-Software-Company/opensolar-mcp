@@ -78,13 +78,15 @@ Last reviewed: 2026-09-28
 
 Tag `vX.Y.Z` on the release commit. Approving the `release` environment runs `.github/workflows/publish.yml`, which publishes the npm package with provenance, pushes `ghcr.io/align-software-company/opensolar-mcp` (the version tag and `latest`) when that version is not already in GHCR, and then publishes the MCP Registry entry. Trusted publishing uses GitHub OIDC. The image push uses `GITHUB_TOKEN`. There is no npm token in the workflow.
 
+First GHCR release: the package may be created private, and the MCP Registry only accepts public images. If the "Image must be publicly pullable" step fails, set the package to Public (GitHub org → Packages → opensolar-mcp → Package settings → Change visibility), then re-run the failed job. npm, GHCR and the registry steps skip or repeat safely.
+
 - [x] Publish `@alignco/opensolar-mcp@0.1.0` to npm.
 - [ ] Verify the published npm package and package ownership.
 - [ ] Publish matching MCP Registry metadata.
 - [x] Create the matching `v0.1.0` tag and GitHub release, using the `0.1.0` changelog entry as release notes.
 - [ ] Publish `@alignco/opensolar-mcp@0.1.1` to npm.
 - [ ] Publish the `0.1.1` MCP Registry entry.
-- [ ] Publish `ghcr.io/align-software-company/opensolar-mcp:0.1.1` and `:latest`.
+- [ ] Publish `ghcr.io/align-software-company/opensolar-mcp` (version tag and `:latest`) on the first release after 0.1.1.
 - [ ] Enable GitHub private vulnerability reporting for the repository.
 
 Any future shared or multi-customer hosted service is a separate deployment model and is not part of the `0.1.1` release.
