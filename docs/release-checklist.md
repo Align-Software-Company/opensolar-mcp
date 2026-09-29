@@ -1,6 +1,6 @@
 # Release checklist
 
-Release target: `0.1.2`  
+Release target: `0.1.3`  
 Last reviewed: 2026-09-29
 
 ## Code and tests
@@ -55,7 +55,7 @@ Last reviewed: 2026-09-29
 
 ## Metadata and documentation
 
-- [x] `package.json`, server-reported version, and `server.json` use `0.1.2`.
+- [x] `package.json`, server-reported version, and `server.json` use `0.1.3`.
 - [x] MCP Registry metadata passes `pnpm check:registry`.
 - [x] `server.json` validates against the official 2025-12-11 `server.schema.json`.
 - [x] `server.json` title, description, and website match the server's `serverInfo`.
@@ -86,9 +86,12 @@ First GHCR release: the package may be created private, and the MCP Registry onl
 - [x] Create the matching `v0.1.0` tag and GitHub release, using the `0.1.0` changelog entry as release notes.
 - [x] Publish `@alignco/opensolar-mcp@0.1.1` to npm.
 - [x] Publish the `0.1.1` MCP Registry entry.
-- [ ] Publish `ghcr.io/align-software-company/opensolar-mcp:0.1.2` and `:latest`.
-- [ ] Publish `@alignco/opensolar-mcp@0.1.2` to npm.
-- [ ] Publish the `0.1.2` MCP Registry entry.
+- [x] Publish `ghcr.io/align-software-company/opensolar-mcp:0.1.2` and `:latest`.
+- [x] Publish `@alignco/opensolar-mcp@0.1.2` to npm.
+- [x] Publish the `0.1.2` MCP Registry entry.
+- [ ] Publish `@alignco/opensolar-mcp@0.1.3` to npm.
+- [ ] Publish the `0.1.3` MCP Registry entry.
+- [ ] Publish `ghcr.io/align-software-company/opensolar-mcp:0.1.3` and `:latest`.
 - [ ] Enable GitHub private vulnerability reporting for the repository.
 
-Any future shared or multi-customer hosted service is a separate deployment model and is not part of the `0.1.2` release.
+Any future shared or multi-customer hosted service is a separate deployment model and is not part of the `0.1.3` release.
