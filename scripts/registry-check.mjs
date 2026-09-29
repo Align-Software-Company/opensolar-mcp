@@ -82,6 +82,27 @@ if (!npmPackage) {
   }
 }
 
+const ociPackage = Array.isArray(server.packages)
+  ? server.packages.find((entry) => entry?.registryType === 'oci')
+  : undefined;
+
+if (!ociPackage) {
+  failures.push('server.json must declare an oci package');
+} else {
+  expectEqual(ociPackage.version, pkg.version, 'oci package version / package version');
+  expectEqual(
+    ociPackage.identifier,
+    `ghcr.io/align-software-company/opensolar-mcp:${pkg.version}`,
+    'oci package identifier',
+  );
+  expectEqual(ociPackage.transport?.type, 'streamable-http', 'oci package transport');
+  expectEqual(ociPackage.transport?.url, 'http://localhost:3000/mcp', 'oci package url');
+}
+
+const dockerfile = readFileSync(join(repoRoot, 'Dockerfile'), 'utf8');
+const serverNameLabel = dockerfile.match(/io\.modelcontextprotocol\.server\.name="([^"]+)"/);
+expectEqual(serverNameLabel?.[1], server.name, 'Dockerfile MCP server name / server.json name');
+
 if (Array.isArray(server.icons)) {
   for (const icon of server.icons) {
     if (typeof icon?.src !== 'string' || !icon.src.startsWith('https://')) {
