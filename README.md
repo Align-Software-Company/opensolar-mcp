@@ -330,7 +330,7 @@ Some documented OpenSolar operations are intentionally **not** exposed because t
 | --- | --- | --- |
 | `OPENSOLAR_API_TOKEN` | OpenSolar bearer token. Required for stdio and `--check`. Loopback HTTP can use it as a fallback. | — |
 | `OPENSOLAR_ORG_ID` | Your OpenSolar organisation ID. | required |
-| `OPENSOLAR_BASE_URL` | OpenSolar API base URL. | `https://api.opensolar.com/api/` |
+| `OPENSOLAR_BASE_URL` | OpenSolar API base URL. Must be https (http only for localhost). | `https://api.opensolar.com/api/` |
 | `OPENSOLAR_PROFILE` | Tool profile: `agent` or `full`. | `agent` |
 | `OPENSOLAR_TOOLSETS` | Comma-separated toolsets. Replaces the profile's selection when set. | unset |
 | `OPENSOLAR_READ_ONLY` | `1`, `true`, `yes`, or `on` hides every mutation. `0`, `false`, `no`, or `off` keeps them. Any other value stops startup. | off |
