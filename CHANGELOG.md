@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Security
+
+- `get_system_image` checks each redirect target before following it and drops the API token when leaving the OpenSolar API origin, matching file downloads.
+
+### Known limitations
+
+- Download targets are checked by DNS lookup before each request; the connection itself does not pin the checked address.
+
 ## [0.1.2] - 2026-09-29
 
 ### Added

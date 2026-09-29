@@ -60,7 +60,7 @@ Mutation tools act on the configured live OpenSolar organisation.
 
 `create_private_file` is disabled unless `OPENSOLAR_UPLOAD_ROOT` is configured. Resolved real paths must stay inside that root, including through symlinks, and the model never supplies file bytes.
 
-Private-file downloads and system images are capped at 10 MB. Local uploads are capped at 25 MB. Signed download URLs are not returned to the model.
+Private-file downloads and system images are capped at 10 MB. Both check each redirect target before following it, and a system-image hop that leaves the OpenSolar API origin is fetched without the API token, matching private-file downloads. Download targets are checked by DNS lookup before each request; the connection itself does not pin the checked address. Local uploads are capped at 25 MB. Signed download URLs are not returned to the model.
 
 ### Resource limits
 

@@ -103,6 +103,7 @@ Key behavior:
 - ordinary JSON GET: at most three attempts on HTTP 429;
 - writes: one attempt;
 - file GETs, downloads, and uploads: one attempt;
+- system-image GETs follow each redirect after checking a target that leaves the OpenSolar API origin, and do not send the API token on that hop or any later hop. Download targets are checked by DNS lookup before each request; the connection itself does not pin the checked address.
 - JSON write methods add a trailing slash when needed;
 - empty response body becomes `null`;
 - non-JSON bodies on JSON operations produce a controlled API error.

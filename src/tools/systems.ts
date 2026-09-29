@@ -282,7 +282,7 @@ export function registerSystemsToolset(
       {
         title: 'Get system image',
         description:
-          'Gets a system image. Width and height are required. The server follows redirects. ' +
+          'Gets a system image. Width and height are required. The server follows redirects after checking each redirect target. ' +
           'The first call can create a private file on the project, and a later design change regenerates it. ' +
           'The default result is the private file id when the response exposes one, plus content type. ' +
           'include_contents returns the image as MCP image content and refuses a body over 10 MB. Image bytes are not duplicated in structuredContent. The image URL is not returned.',
