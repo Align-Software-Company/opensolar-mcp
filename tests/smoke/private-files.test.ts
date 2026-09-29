@@ -4,13 +4,13 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { MAX_PRIVATE_FILE_BYTES, type OpenSolarClient } from '../../src/client/index.js';
-import { MAX_UPLOAD_BYTES } from '../../src/tools/files.js';
 import { MAX_MODEL_TEXT_CHARS } from '../../src/lib/file-contents.js';
 import {
   ListPrivateFilesOutputSchema,
   PrivateFileDetailSchema,
 } from '../../src/schemas/private-file.js';
 import { buildServer } from '../../src/server.js';
+import { MAX_UPLOAD_BYTES } from '../../src/tools/files.js';
 import { loadOpenSolarFixture } from '../fixtures/load-fixture.js';
 import {
   ALL_TOOL_FILTERS,
