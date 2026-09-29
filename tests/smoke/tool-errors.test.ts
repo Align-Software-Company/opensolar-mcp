@@ -129,6 +129,22 @@ describe('sanitized tool errors', () => {
     );
   });
 
+  it('explains HTTP 413 without echoing the body', async () => {
+    const mcp = buildServer({
+      client: errorClient(413),
+      orgId: 1,
+      filters: ALL_TOOL_FILTERS,
+    });
+    const result = await withMcpClient(mcp, (client) =>
+      client.callTool({ name: 'list_projects', arguments: {} }),
+    );
+    const text = toolText(result);
+    expect(text).toBe(
+      "Too large (HTTP 413). OpenSolar refused an oversized upload, or the response exceeded this server's 32 MB limit. Use a smaller page limit or a narrower request.",
+    );
+    expect(text).not.toContain(deniedBody);
+  });
+
   it('does not include a JSON body for HTTP 403', () => {
     const body = '{"detail":"secret-body"}';
     const text = messageForOpenSolarError(new OpenSolarApiError('x', 403, body));

@@ -19,6 +19,8 @@ export function messageForOpenSolarError(error: OpenSolarApiError): string {
       return "The caller cannot use this record (HTTP 403). OpenSolar also returns 403 for records that exist but are outside this token's permissions or API Access entitlement, so do not treat it as not found.";
     case 404:
       return 'The record was not found (HTTP 404). Check the id with a list or search tool.';
+    case 413:
+      return "Too large (HTTP 413). OpenSolar refused an oversized upload, or the response exceeded this server's 32 MB limit. Use a smaller page limit or a narrower request.";
     case 429:
       return 'Throttled by OpenSolar (HTTP 429). Limits are per user per minute, for example 10 project creates or updates per minute. Wait about a minute before retrying.';
     case 504:
