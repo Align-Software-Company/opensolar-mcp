@@ -37,7 +37,13 @@ jobs:
       - name: Ensure npm supports trusted publishing
         run: npm install -g npm@^11.5.1
       - name: Publish to npm (trusted publishing adds provenance)
-        run: npm publish
+        run: |
+          PKG="$(node -p "require('./package.json').version")"
+          if npm view "@alignco/opensolar-mcp@$PKG" version; then
+            echo "npm already has ${PKG}; skipping publish"
+          else
+            npm publish
+          fi
       - name: Install mcp-publisher (pinned version and checksum)
         env:
           MCP_PUBLISHER_VERSION: v1.8.1
@@ -48,5 +54,19 @@ jobs:
           tar xzf mcp-publisher.tar.gz mcp-publisher
       - name: Log in to the MCP Registry
         run: ./mcp-publisher login github-oidc
+      - name: Wait until npm serves this version
+        run: |
+          PKG="$(node -p "require('./package.json').version")"
+          for attempt in $(seq 1 20); do
+            if npm view "@alignco/opensolar-mcp@$PKG" version; then
+              echo "npm is serving ${PKG}"
+              exit 0
+            fi
+            if [ "$attempt" -lt 20 ]; then
+              sleep 15
+            fi
+          done
+          echo "npm did not serve ${PKG}" >&2
+          exit 1
       - name: Publish to the MCP Registry
         run: ./mcp-publisher publish
