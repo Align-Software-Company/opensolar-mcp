@@ -82,6 +82,14 @@
           "isSecret": false
         }
       ]
+    },
+    {
+      "registryType": "oci",
+      "identifier": "ghcr.io/align-software-company/opensolar-mcp:0.1.1",
+      "transport": {
+        "type": "streamable-http",
+        "url": "http://localhost:3000/mcp"
+      }
     }
   ]
 }

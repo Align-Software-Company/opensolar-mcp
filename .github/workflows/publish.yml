@@ -15,6 +15,8 @@ jobs:
     permissions:
       contents: read
       id-token: write
+      packages: write
+      attestations: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -52,8 +54,6 @@ jobs:
           curl -fsSL -o mcp-publisher.tar.gz "https://github.com/modelcontextprotocol/registry/releases/download/${MCP_PUBLISHER_VERSION}/mcp-publisher_linux_amd64.tar.gz"
           echo "${MCP_PUBLISHER_SHA256}  mcp-publisher.tar.gz" | sha256sum -c -
           tar xzf mcp-publisher.tar.gz mcp-publisher
-      - name: Log in to the MCP Registry
-        run: ./mcp-publisher login github-oidc
       - name: Wait until npm serves this version
         run: |
           PKG="$(node -p "require('./package.json').version")"
@@ -68,5 +68,59 @@ jobs:
           done
           echo "npm did not serve ${PKG}" >&2
           exit 1
+      - name: Log in to GHCR
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3.7.0
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+      - name: Check whether this image version is already in GHCR
+        id: ghcr
+        run: |
+          PKG="$(node -p "require('./package.json').version")"
+          echo "version=$PKG" >> "$GITHUB_OUTPUT"
+          image="ghcr.io/align-software-company/opensolar-mcp:${PKG}"
+          if docker buildx imagetools inspect "$image" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "${image} already exists; skipping push"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Build and push the image
+        id: image
+        if: steps.ghcr.outputs.exists != 'true'
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          provenance: false
+          tags: |
+            ghcr.io/align-software-company/opensolar-mcp:${{ steps.ghcr.outputs.version }}
+            ghcr.io/align-software-company/opensolar-mcp:latest
+      - name: Attest the image build
+        if: steps.ghcr.outputs.exists != 'true'
+        uses: actions/attest-build-provenance@96278af6caaf10aea03fd8d33a09a777ca52d62f # v3.2.0
+        with:
+          subject-name: ghcr.io/align-software-company/opensolar-mcp
+          subject-digest: ${{ steps.image.outputs.digest }}
+          push-to-registry: true
+      - name: Image must be publicly pullable
+        run: |
+          PKG="$(node -p "require('./package.json').version")"
+          repo="align-software-company/opensolar-mcp"
+          token="$(curl -fsS "https://ghcr.io/token?scope=repository:${repo}:pull" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>process.stdout.write(JSON.parse(s).token||""))')"
+          if ! curl -fsS -o /dev/null -H "Authorization: Bearer ${token}" \
+            -H "Accept: application/vnd.oci.image.index.v1+json, application/vnd.oci.image.manifest.v1+json, application/vnd.docker.distribution.manifest.v2+json" \
+            "https://ghcr.io/v2/${repo}/manifests/${PKG}"; then
+            echo "ghcr.io/${repo}:${PKG} is not publicly pullable. Make the GHCR package public, then re-run this job." >&2
+            exit 1
+          fi
+      - name: Log in to the MCP Registry
+        run: ./mcp-publisher login github-oidc
       - name: Publish to the MCP Registry
         run: ./mcp-publisher publish

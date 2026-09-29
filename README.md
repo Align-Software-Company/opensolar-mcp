@@ -413,7 +413,17 @@ claude mcp add --transport http opensolar https://mcp.example.com/mcp \
 
 ### Docker
 
-The image runs the HTTP transport as an unprivileged user and includes a health check. Build it from a clone of this repository:
+The image runs the HTTP transport as an unprivileged user and includes a health check.
+
+```bash
+docker pull ghcr.io/align-software-company/opensolar-mcp:latest
+docker run --rm \
+  -e OPENSOLAR_ORG_ID=12345 \
+  -p 127.0.0.1:3000:3000 \
+  ghcr.io/align-software-company/opensolar-mcp:latest
+```
+
+To build it from a clone of this repository instead:
 
 ```bash
 docker build -t opensolar-mcp .
@@ -427,6 +437,7 @@ Inside the container the server binds to `0.0.0.0`, so clients must send `Author
 
 ## Security model
 
+- **No telemetry.** The server sends no analytics or usage data. Its only outbound requests are to the OpenSolar API and to the file and image URLs that OpenSolar returns.
 - **Your credentials, your process.** Tokens stay in your environment or your client's configuration. Nothing is persisted, and this project runs no hosted service.
 - **Writes are explicit.** Mutating tools carry MCP `readOnlyHint: false` annotations, destructive ones carry `destructiveHint: true`, and none are retried automatically. `OPENSOLAR_READ_ONLY=1` removes them entirely.
 - **No guessing.** A search confirms a target only when it reports `resolution: unique`, or `identifier_match_id` for a single exact email or phone match on a complete scan. The server never retries writes and exposes no hidden bulk writes.
